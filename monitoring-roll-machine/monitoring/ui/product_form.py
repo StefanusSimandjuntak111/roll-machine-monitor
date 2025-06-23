@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout,
     QLineEdit, QSpinBox, QDoubleSpinBox,
     QPushButton, QFrame, QLabel, QHBoxLayout,
-    QComboBox, QSizePolicy
+    QRadioButton, QButtonGroup, QSizePolicy
 )
 from PySide6.QtCore import Signal, Qt, QSize
 from PySide6.QtGui import QFont, QPixmap
@@ -25,6 +25,7 @@ class ProductForm(QWidget):
     def __init__(self):
         super().__init__()
         self._is_updating = False  # Flag untuk mencegah recursive updates
+        self._current_unit = "Meter"  # Track current unit
         self.setup_ui()
         
     def setup_ui(self):
@@ -50,7 +51,7 @@ class ProductForm(QWidget):
         
         # Common style for input fields
         input_style = """
-            QLineEdit, QDoubleSpinBox, QComboBox {
+            QLineEdit, QDoubleSpinBox {
                 background-color: #353535;
                 border: 1px solid #444444;
                 border-radius: 4px;
@@ -59,8 +60,34 @@ class ProductForm(QWidget):
                 font-size: 14px;
                 min-height: 40px;
             }
-            QLineEdit:focus, QDoubleSpinBox:focus, QComboBox:focus {
+            QLineEdit:focus, QDoubleSpinBox:focus {
                 border: 1px solid #0078d4;
+            }
+        """
+        
+        # Radio button style
+        radio_style = """
+            QRadioButton {
+                color: #e0e0e0;
+                font-size: 14px;
+                spacing: 8px;
+            }
+            QRadioButton::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 9px;
+                border: 2px solid #666666;
+                background-color: #353535;
+            }
+            QRadioButton::indicator:checked {
+                background-color: #0078d4;
+                border: 2px solid #0078d4;
+            }
+            QRadioButton::indicator:unchecked:hover {
+                border: 2px solid #888888;
+            }
+            QRadioButton:checked {
+                color: white;
             }
         """
         
@@ -112,8 +139,12 @@ class ProductForm(QWidget):
                 color: white;
                 font-weight: bold;
                 padding: 0px;
-                min-width: 35px;
-                min-height: 35px;
+                width: 55px;
+                height: 50px;
+                min-width: 55px;
+                min-height: 50px;
+                max-width: 55px;
+                max-height: 50px;
             }
             QPushButton:hover {
                 background-color: #555555;
@@ -128,6 +159,7 @@ class ProductForm(QWidget):
         self.plus_button.setFont(QFont("Segoe UI", 14))
         self.plus_button.clicked.connect(self.increment_length)
         self.plus_button.setStyleSheet(button_style)
+        self.plus_button.setFixedSize(55, 40)
         length_layout.addWidget(self.plus_button)
         
         # Minus Button
@@ -135,16 +167,36 @@ class ProductForm(QWidget):
         self.minus_button.setFont(QFont("Segoe UI", 14))
         self.minus_button.clicked.connect(self.decrement_length)
         self.minus_button.setStyleSheet(button_style)
+        self.minus_button.setFixedSize(55, 40)
         length_layout.addWidget(self.minus_button)
         
         form_layout.addRow("Target Length:", length_container)
         
-        # Unit Selection
-        self.unit_selection = QComboBox()
-        self.unit_selection.addItems(["Meter", "Yard"])
-        self.unit_selection.currentTextChanged.connect(self.on_unit_changed)
-        self.unit_selection.setStyleSheet(input_style)
-        form_layout.addRow("Unit of Measurement:", self.unit_selection)
+        # Unit Selection with Radio Buttons
+        unit_container = QWidget()
+        unit_layout = QHBoxLayout(unit_container)
+        unit_layout.setSpacing(20)  # Space between radio buttons
+        unit_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.unit_group = QButtonGroup(self)
+        
+        # Meter Radio
+        self.meter_radio = QRadioButton("Meter")
+        self.meter_radio.setStyleSheet(radio_style)
+        self.meter_radio.setChecked(True)  # Default selection
+        self.unit_group.addButton(self.meter_radio)
+        unit_layout.addWidget(self.meter_radio)
+        
+        # Yard Radio
+        self.yard_radio = QRadioButton("Yard")
+        self.yard_radio.setStyleSheet(radio_style)
+        self.unit_group.addButton(self.yard_radio)
+        unit_layout.addWidget(self.yard_radio)
+        
+        # Connect radio button signals
+        self.unit_group.buttonClicked.connect(self.on_unit_changed)
+        
+        form_layout.addRow("Unit of Measurement:", unit_container)
 
         # Image Label
         image_container = QWidget()
@@ -221,8 +273,14 @@ class ProductForm(QWidget):
         
         form_layout.addRow(buttons_container)
         
-    def on_unit_changed(self, new_unit: str):
+    def on_unit_changed(self, button: QRadioButton):
         """Handle unit selection change."""
+        new_unit = button.text()
+        
+        # Jika unit sama dengan sebelumnya, abaikan
+        if new_unit == self._current_unit:
+            return
+            
         if self._is_updating:
             return
             
@@ -237,6 +295,7 @@ class ProductForm(QWidget):
             new_value = current_value * self.YARD_TO_METER
             
         self.target_length.setValue(round(new_value, 2))
+        self._current_unit = new_unit  # Update current unit
         self._is_updating = False
         
     def on_length_changed(self, value: float):
@@ -254,7 +313,7 @@ class ProductForm(QWidget):
                 'color_code': self.color_code.text().strip(),
                 'batch_number': self.batch_number.text().strip(),
                 'target_length': self.target_length.value(),
-                'units': self.unit_selection.currentText()
+                'units': self.unit_group.checkedButton().text()
             }
             # Emit the product_updated signal
             self.product_updated.emit(product_info)
@@ -288,7 +347,7 @@ class ProductForm(QWidget):
     def show_error(self, widget: QWidget, message: str):
         """Show error styling and tooltip for a widget."""
         widget.setStyleSheet("""
-            QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
+            QLineEdit, QSpinBox, QDoubleSpinBox, QRadioButton {
                 background-color: #353535;
                 border: 1px solid #ff4444;
                 border-radius: 5px;
@@ -310,7 +369,7 @@ class ProductForm(QWidget):
             'color_code': self.color_code.text().strip(),
             'batch_number': self.batch_number.text().strip(),
             'target_length': self.target_length.value(),
-            'unit': self.unit_selection.currentText()
+            'unit': self.unit_group.checkedButton().text()
         }
         
     def set_product_info(self, info: Dict[str, Any]):
@@ -319,7 +378,7 @@ class ProductForm(QWidget):
         self.color_code.setText(info.get('color_code', ''))
         self.batch_number.setText(info.get('batch_number', ''))
         self.target_length.setValue(info.get('target_length', 0.0))
-        self.unit_selection.setCurrentText(info.get('unit', 'Meter'))
+        self.unit_group.checkedButton().setChecked(True)
 
     def increment_length(self):
         """Increment target length by 1."""
@@ -365,7 +424,7 @@ class ProductForm(QWidget):
             'color_code': self.color_code.text().strip(),
             'batch_number': self.batch_number.text().strip(),
             'target_length': self.target_length.value(),
-            'units': self.unit_selection.currentText()
+            'units': self.unit_group.checkedButton().text()
         }
         # Emit the product_updated signal
         self.product_updated.emit(product_info) 
