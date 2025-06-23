@@ -1,58 +1,190 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout,
     QLineEdit, QSpinBox, QDoubleSpinBox,
-    QPushButton, QFrame, QLabel, QHBoxLayout
+    QPushButton, QFrame, QLabel, QHBoxLayout,
+    QComboBox, QSizePolicy
 )
-from PySide6.QtCore import Signal, Qt
-from PySide6.QtGui import QFont
+from PySide6.QtCore import Signal, Qt, QSize
+from PySide6.QtGui import QFont, QPixmap
 from typing import Dict, Any
+import requests
+from io import BytesIO
 
 class ProductForm(QWidget):
     """Form for entering and editing product information."""
     
-    # Signal emitted when product info is updated
+    # Signals
     product_updated = Signal(dict)
+    start_monitoring = Signal()  # Signal for starting monitoring
+    
+    # Konstanta konversi
+    METER_TO_YARD = 1.09361
+    YARD_TO_METER = 0.9144
+    DEFAULT_IMAGE_URL = "https://thumb.ac-illust.com/b1/b170870007dfa419295d949814474ab2_t.jpeg"
     
     def __init__(self):
         super().__init__()
+        self._is_updating = False  # Flag untuk mencegah recursive updates
         self.setup_ui()
         
     def setup_ui(self):
-        """Set up the product form UI."""
-        layout = QVBoxLayout(self)
-        layout.setSpacing(15)
-        
-        # Create form frame
+        """Set up the form UI."""
         form_frame = QFrame()
         form_frame.setStyleSheet("""
             QFrame {
                 background-color: #2d2d2d;
                 border-radius: 10px;
-                padding: 20px;
+                padding: 15px;
             }
             QLabel {
-                color: #888888;
-                font-size: 12px;
-            }
-            QLineEdit, QSpinBox, QDoubleSpinBox {
-                background-color: #353535;
-                border: 1px solid #444444;
-                border-radius: 5px;
-                padding: 8px;
-                color: white;
+                color: #e0e0e0;
                 font-size: 14px;
             }
-            QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus {
+        """)
+        
+        main_layout = QVBoxLayout(self)
+        main_layout.addWidget(form_frame)
+        
+        form_layout = QFormLayout(form_frame)
+        form_layout.setSpacing(10)  # Reduced spacing
+        
+        # Common style for input fields
+        input_style = """
+            QLineEdit, QDoubleSpinBox, QComboBox {
+                background-color: #353535;
+                border: 1px solid #444444;
+                border-radius: 4px;
+                padding: 5px;
+                color: white;
+                font-size: 14px;
+                min-height: 40px;
+            }
+            QLineEdit:focus, QDoubleSpinBox:focus, QComboBox:focus {
                 border: 1px solid #0078d4;
             }
+        """
+        
+        # Product Code
+        self.product_code = QLineEdit()
+        self.product_code.setPlaceholderText("Enter product code")
+        self.product_code.setStyleSheet(input_style)
+        form_layout.addRow("Product Code:", self.product_code)
+        
+        # Color Code
+        self.color_code = QLineEdit()
+        self.color_code.setPlaceholderText("Enter color code")
+        self.color_code.setStyleSheet(input_style)
+        form_layout.addRow("Color Code:", self.color_code)
+        
+        # Batch Number
+        self.batch_number = QLineEdit()
+        self.batch_number.setPlaceholderText("Enter batch number")
+        self.batch_number.setStyleSheet(input_style)
+        form_layout.addRow("Batch Number:", self.batch_number)
+        
+        # Target Length with buttons
+        length_container = QWidget()
+        length_layout = QHBoxLayout(length_container)
+        length_layout.setSpacing(5)  # Reduced spacing
+        length_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Target Length Input
+        self.target_length = QDoubleSpinBox()
+        self.target_length.setRange(0, 100000)
+        self.target_length.setDecimals(2)
+        self.target_length.setValue(0.0)
+        self.target_length.valueChanged.connect(self.on_length_changed)
+        self.target_length.setStyleSheet(input_style + """
+            QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+                width: 0px;
+                border: none;
+            }
+        """)
+        self.target_length.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        length_layout.addWidget(self.target_length)
+        
+        # Button style
+        button_style = """
+            QPushButton {
+                background-color: #444444;
+                border: none;
+                border-radius: 4px;
+                color: white;
+                font-weight: bold;
+                padding: 0px;
+                min-width: 35px;
+                min-height: 35px;
+            }
+            QPushButton:hover {
+                background-color: #555555;
+            }
+            QPushButton:pressed {
+                background-color: #666666;
+            }
+        """
+        
+        # Plus Button
+        self.plus_button = QPushButton("+")
+        self.plus_button.setFont(QFont("Segoe UI", 14))
+        self.plus_button.clicked.connect(self.increment_length)
+        self.plus_button.setStyleSheet(button_style)
+        length_layout.addWidget(self.plus_button)
+        
+        # Minus Button
+        self.minus_button = QPushButton("-")
+        self.minus_button.setFont(QFont("Segoe UI", 14))
+        self.minus_button.clicked.connect(self.decrement_length)
+        self.minus_button.setStyleSheet(button_style)
+        length_layout.addWidget(self.minus_button)
+        
+        form_layout.addRow("Target Length:", length_container)
+        
+        # Unit Selection
+        self.unit_selection = QComboBox()
+        self.unit_selection.addItems(["Meter", "Yard"])
+        self.unit_selection.currentTextChanged.connect(self.on_unit_changed)
+        self.unit_selection.setStyleSheet(input_style)
+        form_layout.addRow("Unit of Measurement:", self.unit_selection)
+
+        # Image Label
+        image_container = QWidget()
+        image_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
+        image_layout = QVBoxLayout(image_container)
+        image_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.image_label = QLabel()
+        # Set image size relative to form width
+        self.image_label.setFixedSize(150, 150)  # Reduced size
+        self.image_label.setStyleSheet("""
+            QLabel {
+                border: 1px solid #444444;
+                border-radius: 4px;
+            }
+        """)
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.image_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        image_layout.addWidget(self.image_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        form_layout.addRow("Attachment:", image_container)
+        
+        # Load default image
+        self.load_image(self.DEFAULT_IMAGE_URL)
+        
+        # Buttons container
+        buttons_container = QWidget()
+        buttons_layout = QHBoxLayout(buttons_container)
+        buttons_layout.setSpacing(10)
+        buttons_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Action button style
+        action_button_style = """
             QPushButton {
                 background-color: #0078d4;
                 border: none;
-                border-radius: 10px;
-                padding: 15px;
+                border-radius: 4px;
                 color: white;
                 font-size: 14px;
-                min-width: 150px;
+                min-height: 40px;
             }
             QPushButton:hover {
                 background-color: #1084d8;
@@ -69,77 +201,65 @@ class ProductForm(QWidget):
             #print_button:pressed {
                 background-color: #1e7e34;
             }
-        """)
+        """
         
-        form_layout = QFormLayout(form_frame)
-        form_layout.setSpacing(15)
-        
-        # Title
-        title = QLabel("Product Information")
-        title.setStyleSheet("font-size: 16px; font-weight: bold; color: white;")
-        form_layout.addRow(title)
-        
-        # Product Code
-        self.product_code = QLineEdit()
-        self.product_code.setPlaceholderText("Enter product code")
-        form_layout.addRow("Product Code:", self.product_code)
-        
-        # Batch Number
-        self.batch_number = QLineEdit()
-        self.batch_number.setPlaceholderText("Enter batch number")
-        form_layout.addRow("Batch Number:", self.batch_number)
-        
-        # Target Length
-        self.target_length = QDoubleSpinBox()
-        self.target_length.setRange(0, 100000)
-        self.target_length.setSuffix(" m")
-        self.target_length.setDecimals(1)
-        self.target_length.setValue(0.0)
-        form_layout.addRow("Target Length:", self.target_length)
-        
-        # Unit Selection
-        self.unit_selection = QSpinBox()
-        self.unit_selection.setRange(1, 100)
-        self.unit_selection.setSuffix(" units")
-        self.unit_selection.setValue(1)
-        form_layout.addRow("Number of Units:", self.unit_selection)
-        
-        # Buttons Layout (untuk meletakkan tombol secara horizontal)
-        buttons_layout = QHBoxLayout()
-        
-        # Save Button
-        self.save_button = QPushButton("Save Product Info")
-        self.save_button.setMinimumHeight(60)  # Membuat tombol lebih tinggi
-        self.save_button.setFont(QFont("Segoe UI", 12))  # Font lebih besar
-        self.save_button.clicked.connect(self.save_product_info)
-        buttons_layout.addWidget(self.save_button)
+        # Start Button
+        self.start_button = QPushButton("Start Monitoring")
+        self.start_button.setObjectName("start_button")
+        self.start_button.clicked.connect(self.start_monitoring_with_save)
+        self.start_button.setStyleSheet(action_button_style)
+        self.start_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        buttons_layout.addWidget(self.start_button)
         
         # Print Button
         self.print_button = QPushButton("Print")
         self.print_button.setObjectName("print_button")
-        self.print_button.setMinimumHeight(60)
-        self.print_button.setFont(QFont("Segoe UI", 12))
         self.print_button.clicked.connect(self.print_product_info)
+        self.print_button.setStyleSheet(action_button_style)
+        self.print_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         buttons_layout.addWidget(self.print_button)
         
-        # Tambahkan buttons layout ke form
-        form_layout.addRow(buttons_layout)
+        form_layout.addRow(buttons_container)
         
-        layout.addWidget(form_frame)
-        
-    def save_product_info(self):
-        """Validate and save product information."""
-        if not self.validate_inputs():
+    def on_unit_changed(self, new_unit: str):
+        """Handle unit selection change."""
+        if self._is_updating:
             return
             
-        product_info = {
-            'product_code': self.product_code.text().strip(),
-            'batch_number': self.batch_number.text().strip(),
-            'target_length': self.target_length.value(),
-            'units': self.unit_selection.value()
-        }
+        self._is_updating = True
+        current_value = self.target_length.value()
         
-        self.product_updated.emit(product_info)
+        if new_unit == "Yard":
+            # Convert from meters to yards
+            new_value = current_value * self.METER_TO_YARD
+        else:
+            # Convert from yards to meters
+            new_value = current_value * self.YARD_TO_METER
+            
+        self.target_length.setValue(round(new_value, 2))
+        self._is_updating = False
+        
+    def on_length_changed(self, value: float):
+        """Handle length value change."""
+        if not self._is_updating:
+            # Value changed by user, no need to convert
+            pass
+            
+    def start_monitoring_with_save(self):
+        """Save product info and start monitoring."""
+        if self.validate_inputs():
+            # Create product info dictionary
+            product_info = {
+                'product_code': self.product_code.text().strip(),
+                'color_code': self.color_code.text().strip(),
+                'batch_number': self.batch_number.text().strip(),
+                'target_length': self.target_length.value(),
+                'units': self.unit_selection.currentText()
+            }
+            # Emit the product_updated signal
+            self.product_updated.emit(product_info)
+            # Emit the start_monitoring signal
+            self.start_monitoring.emit()
         
     def print_product_info(self):
         """Print product information."""
@@ -168,7 +288,7 @@ class ProductForm(QWidget):
     def show_error(self, widget: QWidget, message: str):
         """Show error styling and tooltip for a widget."""
         widget.setStyleSheet("""
-            QLineEdit, QSpinBox, QDoubleSpinBox {
+            QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
                 background-color: #353535;
                 border: 1px solid #ff4444;
                 border-radius: 5px;
@@ -187,14 +307,65 @@ class ProductForm(QWidget):
         """Get current product information."""
         return {
             'product_code': self.product_code.text().strip(),
+            'color_code': self.color_code.text().strip(),
             'batch_number': self.batch_number.text().strip(),
             'target_length': self.target_length.value(),
-            'units': self.unit_selection.value()
+            'unit': self.unit_selection.currentText()
         }
         
     def set_product_info(self, info: Dict[str, Any]):
         """Set product information in the form."""
         self.product_code.setText(info.get('product_code', ''))
+        self.color_code.setText(info.get('color_code', ''))
         self.batch_number.setText(info.get('batch_number', ''))
         self.target_length.setValue(info.get('target_length', 0.0))
-        self.unit_selection.setValue(info.get('units', 1)) 
+        self.unit_selection.setCurrentText(info.get('unit', 'Meter'))
+
+    def increment_length(self):
+        """Increment target length by 1."""
+        current_value = self.target_length.value()
+        self.target_length.setValue(current_value + 1)
+
+    def decrement_length(self):
+        """Decrement target length by 1."""
+        current_value = self.target_length.value()
+        if current_value > 0:  # Prevent negative values
+            self.target_length.setValue(current_value - 1)
+
+    def load_image(self, url):
+        """Load image from URL and display it."""
+        try:
+            response = requests.get(url)
+            image_data = BytesIO(response.content)
+            pixmap = QPixmap()
+            pixmap.loadFromData(image_data.getvalue())
+            scaled_pixmap = pixmap.scaled(200, 200, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            self.image_label.setPixmap(scaled_pixmap)
+        except Exception as e:
+            # Load no-image placeholder
+            self.image_label.setText("No Image Available")
+            self.image_label.setStyleSheet("""
+                QLabel {
+                    background-color: #2d2d2d;
+                    border: 1px dashed #666666;
+                    border-radius: 5px;
+                    color: #666666;
+                    font-size: 14px;
+                }
+            """)
+
+    def save_product_info(self):
+        """Validate and save product information."""
+        if not self.validate_inputs():
+            return
+            
+        # Create product info dictionary
+        product_info = {
+            'product_code': self.product_code.text().strip(),
+            'color_code': self.color_code.text().strip(),
+            'batch_number': self.batch_number.text().strip(),
+            'target_length': self.target_length.value(),
+            'units': self.unit_selection.currentText()
+        }
+        # Emit the product_updated signal
+        self.product_updated.emit(product_info) 

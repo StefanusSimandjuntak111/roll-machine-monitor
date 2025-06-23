@@ -1,4 +1,4 @@
 {
-    "baudrate": 19200,
+    "baudrate": 38400,
     "serial_port": ""
 }

@@ -343,23 +343,7 @@ class ModernMainWindow(QMainWindow):
         header_layout.addWidget(title_label)
         header_layout.addStretch()
         
-        # Add control buttons
-        self.start_button = QPushButton("Start Monitoring")
-        self.start_button.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                border: none;
-                border-radius: 5px;
-                padding: 8px 15px;
-                color: white;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """)
-        self.start_button.clicked.connect(self.toggle_monitoring)
-        header_layout.addWidget(self.start_button)
-        
+        # Add settings button
         settings_btn = QPushButton("Settings")
         settings_btn.setStyleSheet("""
             QPushButton {
@@ -461,19 +445,6 @@ class ModernMainWindow(QMainWindow):
                 self.monitor.start()
                 self.connection_status.setText("Connected")
                 self.connection_status.setStyleSheet("color: #4CAF50;")
-                self.start_button.setText("Stop Monitoring")
-                self.start_button.setStyleSheet("""
-                    QPushButton {
-                        background-color: #f44336;
-                        border: none;
-                        border-radius: 5px;
-                        padding: 8px 15px;
-                        color: white;
-                    }
-                    QPushButton:hover {
-                        background-color: #e53935;
-                    }
-                """)
                 
             except Exception as e:
                 logger.error(f"Error starting monitoring: {e}")
@@ -488,19 +459,6 @@ class ModernMainWindow(QMainWindow):
                 self.monitor.serial_port.disable_auto_recover()
                 self.connection_status.setText("Not Connected")
                 self.connection_status.setStyleSheet("color: #ff4444;")
-                self.start_button.setText("Start Monitoring")
-                self.start_button.setStyleSheet("""
-                    QPushButton {
-                        background-color: #4CAF50;
-                        border: none;
-                        border-radius: 5px;
-                        padding: 8px 15px;
-                        color: white;
-                    }
-                    QPushButton:hover {
-                        background-color: #45a049;
-                    }
-                """)
                 
             except Exception as e:
                 logger.error(f"Error stopping monitoring: {e}")
