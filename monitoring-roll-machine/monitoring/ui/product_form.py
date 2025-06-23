@@ -1,9 +1,10 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout,
     QLineEdit, QSpinBox, QDoubleSpinBox,
-    QPushButton, QFrame, QLabel
+    QPushButton, QFrame, QLabel, QHBoxLayout
 )
 from PySide6.QtCore import Signal, Qt
+from PySide6.QtGui import QFont
 from typing import Dict, Any
 
 class ProductForm(QWidget):
@@ -47,16 +48,26 @@ class ProductForm(QWidget):
             QPushButton {
                 background-color: #0078d4;
                 border: none;
-                border-radius: 5px;
-                padding: 10px;
+                border-radius: 10px;
+                padding: 15px;
                 color: white;
                 font-size: 14px;
+                min-width: 150px;
             }
             QPushButton:hover {
                 background-color: #1084d8;
             }
             QPushButton:pressed {
                 background-color: #006cbd;
+            }
+            #print_button {
+                background-color: #28a745;
+            }
+            #print_button:hover {
+                background-color: #218838;
+            }
+            #print_button:pressed {
+                background-color: #1e7e34;
             }
         """)
         
@@ -93,10 +104,26 @@ class ProductForm(QWidget):
         self.unit_selection.setValue(1)
         form_layout.addRow("Number of Units:", self.unit_selection)
         
+        # Buttons Layout (untuk meletakkan tombol secara horizontal)
+        buttons_layout = QHBoxLayout()
+        
         # Save Button
         self.save_button = QPushButton("Save Product Info")
+        self.save_button.setMinimumHeight(60)  # Membuat tombol lebih tinggi
+        self.save_button.setFont(QFont("Segoe UI", 12))  # Font lebih besar
         self.save_button.clicked.connect(self.save_product_info)
-        form_layout.addRow(self.save_button)
+        buttons_layout.addWidget(self.save_button)
+        
+        # Print Button
+        self.print_button = QPushButton("Print")
+        self.print_button.setObjectName("print_button")
+        self.print_button.setMinimumHeight(60)
+        self.print_button.setFont(QFont("Segoe UI", 12))
+        self.print_button.clicked.connect(self.print_product_info)
+        buttons_layout.addWidget(self.print_button)
+        
+        # Tambahkan buttons layout ke form
+        form_layout.addRow(buttons_layout)
         
         layout.addWidget(form_frame)
         
@@ -113,6 +140,14 @@ class ProductForm(QWidget):
         }
         
         self.product_updated.emit(product_info)
+        
+    def print_product_info(self):
+        """Print product information."""
+        if not self.validate_inputs():
+            return
+            
+        # TODO: Implement printing functionality
+        print("Printing product info...")
         
     def validate_inputs(self) -> bool:
         """Validate form inputs."""

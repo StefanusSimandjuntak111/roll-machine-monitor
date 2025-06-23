@@ -27,6 +27,7 @@ class Monitor:
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self.is_running = False
+        self.product_info: Dict[str, Any] = {}
 
     def start(self) -> None:
         """Mulai monitoring dalam thread terpisah."""
@@ -74,4 +75,9 @@ class Monitor:
             return self.serial_port.query_status()
         except Exception as e:
             logger.error(f"Error getting status: {e}")
-            return None 
+            return None
+
+    def update_product_info(self, product_info: Dict[str, Any]) -> None:
+        """Update product information."""
+        self.product_info = product_info
+        logger.info(f"Product info updated: {product_info}") 

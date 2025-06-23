@@ -243,8 +243,8 @@ class ModernMainWindow(QMainWindow):
         self.setWindowTitle("Roll Machine Monitor")
         self.setWindowState(Qt.WindowState.WindowFullScreen)  # Start in fullscreen for kiosk mode
         
-        # Set up the dark theme
-        self.setup_dark_theme()
+        # Set up the theme (True for dark, False for light)
+        self.setup_theme(is_dark=False)  # Set to light theme
         
         # Create main widget and layout
         self.central_widget = QWidget()
@@ -270,21 +270,62 @@ class ModernMainWindow(QMainWindow):
         # Connect signals
         self.product_form.product_updated.connect(self.handle_product_update)
     
-    def setup_dark_theme(self):
-        """Set up dark theme colors and styling."""
+    def setup_theme(self, is_dark: bool = True):
+        """Set up theme colors and styling."""
         palette = QPalette()
-        palette.setColor(QPalette.ColorRole.Window, QColor("#1e1e1e"))
-        palette.setColor(QPalette.ColorRole.WindowText, QColor("#ffffff"))
-        palette.setColor(QPalette.ColorRole.Base, QColor("#2d2d2d"))
-        palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#353535"))
-        palette.setColor(QPalette.ColorRole.Text, QColor("#ffffff"))
-        palette.setColor(QPalette.ColorRole.Button, QColor("#353535"))
-        palette.setColor(QPalette.ColorRole.ButtonText, QColor("#ffffff"))
+        if is_dark:
+            # Dark theme colors
+            palette.setColor(QPalette.ColorRole.Window, QColor("#1e1e1e"))
+            palette.setColor(QPalette.ColorRole.WindowText, QColor("#ffffff"))
+            palette.setColor(QPalette.ColorRole.Base, QColor("#2d2d2d"))
+            palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#353535"))
+            palette.setColor(QPalette.ColorRole.Text, QColor("#ffffff"))
+            palette.setColor(QPalette.ColorRole.Button, QColor("#353535"))
+            palette.setColor(QPalette.ColorRole.ButtonText, QColor("#ffffff"))
+        else:
+            # Light theme colors
+            palette.setColor(QPalette.ColorRole.Window, QColor("#ffffff"))
+            palette.setColor(QPalette.ColorRole.WindowText, QColor("#000000"))
+            palette.setColor(QPalette.ColorRole.Base, QColor("#f0f0f0"))
+            palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#e0e0e0"))
+            palette.setColor(QPalette.ColorRole.Text, QColor("#000000"))
+            palette.setColor(QPalette.ColorRole.Button, QColor("#e0e0e0"))
+            palette.setColor(QPalette.ColorRole.ButtonText, QColor("#000000"))
+        
         self.setPalette(palette)
         
         # Set application-wide font
         font = QFont("Segoe UI", 10)
         self.setFont(font)
+    
+        # Update frame styles
+        frame_style = f"""
+            QFrame {{ 
+                background-color: {palette.color(QPalette.ColorRole.Base).name()}; 
+                border-radius: 10px; 
+            }}
+        """
+        for widget in self.findChildren(QFrame):
+            widget.setStyleSheet(frame_style)
+            
+        # Update button styles
+        button_style = f"""
+            QPushButton {{
+                background-color: #0078d4;
+                border: none;
+                border-radius: 5px;
+                padding: 8px 15px;
+                color: white;
+            }}
+            QPushButton:hover {{
+                background-color: #1084d8;
+            }}
+            QPushButton:pressed {{
+                background-color: #006cbd;
+            }}
+        """
+        for widget in self.findChildren(QPushButton):
+            widget.setStyleSheet(button_style)
     
     def setup_header(self):
         """Set up the header with title and main controls."""
@@ -297,6 +338,7 @@ class ModernMainWindow(QMainWindow):
         
         title_label = QLabel("Roll Machine Monitor")
         title_label.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        title_label.setStyleSheet("color: white;")
         
         header_layout.addWidget(title_label)
         header_layout.addStretch()

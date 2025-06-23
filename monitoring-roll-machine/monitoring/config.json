@@ -1,1 +1,4 @@
-{}
+{
+    "baudrate": 19200,
+    "serial_port": ""
+}
