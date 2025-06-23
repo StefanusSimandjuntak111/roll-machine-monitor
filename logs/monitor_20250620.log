@@ -1,0 +1,335 @@
+2025-06-20 16:37:22,958 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:37:22,958 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:37:22,963 - kivy - WARNING - stderr: Traceback (most recent call last):
+2025-06-20 16:37:22,963 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\lang\builder.py", line 245, in create_handler
+2025-06-20 16:37:22,968 - kivy - WARNING - stderr:     return eval(value, idmap), bound_list
+2025-06-20 16:37:22,968 - kivy - WARNING - stderr:            ~~~~^^^^^^^^^^^^^^
+2025-06-20 16:37:22,968 - kivy - WARNING - stderr:   File "<string>", line 17, in <module>
+2025-06-20 16:37:22,968 - kivy - WARNING - stderr: KeyError: 'H6'
+2025-06-20 16:37:22,969 - kivy - WARNING - stderr: 
+2025-06-20 16:37:22,969 - kivy - WARNING - stderr: During handling of the above exception, another exception occurred:
+2025-06-20 16:37:22,969 - kivy - WARNING - stderr: 
+2025-06-20 16:37:22,969 - kivy - WARNING - stderr: Traceback (most recent call last):
+2025-06-20 16:37:22,970 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\lang\builder.py", line 699, in _apply_rule
+2025-06-20 16:37:22,970 - kivy - WARNING - stderr:     value, bound = create_handler(
+2025-06-20 16:37:22,970 - kivy - WARNING - stderr:                    ~~~~~~~~~~~~~~^
+2025-06-20 16:37:22,970 - kivy - WARNING - stderr:         widget_set, widget_set, key, value, rule,
+2025-06-20 16:37:22,970 - kivy - WARNING - stderr:         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-06-20 16:37:22,971 - kivy - WARNING - stderr:         rctx['ids'])
+2025-06-20 16:37:22,971 - kivy - WARNING - stderr:         ^^^^^^^^^^^^
+2025-06-20 16:37:22,971 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\lang\builder.py", line 248, in create_handler
+2025-06-20 16:37:22,971 - kivy - WARNING - stderr:     raise BuilderException(rule.ctx, rule.line,
+2025-06-20 16:37:22,971 - kivy - WARNING - stderr:                            '{}: {}'.format(e.__class__.__name__, e),
+2025-06-20 16:37:22,972 - kivy - WARNING - stderr:                            cause=tb)
+2025-06-20 16:37:22,972 - kivy - WARNING - stderr: kivy.lang.builder.BuilderException: Parser: File "<inline>", line 17:
+2025-06-20 16:37:22,972 - kivy - WARNING - stderr: ...
+2025-06-20 16:37:22,972 - kivy - WARNING - stderr:      15:        [self.label_opacity_value_disabled_text]
+2025-06-20 16:37:22,972 - kivy - WARNING - stderr:      16:    font_size:
+2025-06-20 16:37:22,972 - kivy - WARNING - stderr: >>   17:        self.theme_cls.font_styles[self.font_style][self.role]["font-size"] \
+2025-06-20 16:37:22,972 - kivy - WARNING - stderr:      18:        if self.theme_font_size == "Primary" else self.font_size
+2025-06-20 16:37:22,973 - kivy - WARNING - stderr:      19:    line_height:
+2025-06-20 16:37:22,973 - kivy - WARNING - stderr: ...
+2025-06-20 16:37:22,973 - kivy - WARNING - stderr: KeyError: 'H6'
+2025-06-20 16:37:22,973 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\lang\builder.py", line 245, in create_handler
+2025-06-20 16:37:22,973 - kivy - WARNING - stderr:     return eval(value, idmap), bound_list
+2025-06-20 16:37:22,973 - kivy - WARNING - stderr:            ~~~~^^^^^^^^^^^^^^
+2025-06-20 16:37:22,974 - kivy - WARNING - stderr:   File "<string>", line 17, in <module>
+2025-06-20 16:37:22,974 - kivy - WARNING - stderr: 
+2025-06-20 16:37:22,974 - kivy - WARNING - stderr: 
+2025-06-20 16:37:22,974 - kivy - WARNING - stderr: During handling of the above exception, another exception occurred:
+2025-06-20 16:37:22,974 - kivy - WARNING - stderr: 
+2025-06-20 16:37:22,974 - kivy - WARNING - stderr: Traceback (most recent call last):
+2025-06-20 16:37:22,976 - kivy - WARNING - stderr:   File "<frozen runpy>", line 198, in _run_module_as_main
+2025-06-20 16:37:22,976 - kivy - WARNING - stderr:   File "<frozen runpy>", line 88, in _run_code
+2025-06-20 16:37:22,976 - kivy - WARNING - stderr:   File "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\ui\kiosk_ui.py", line 449, in <module>
+2025-06-20 16:37:22,977 - kivy - WARNING - stderr:     MonitoringKioskApp().run()
+2025-06-20 16:37:22,977 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~~~~~^^
+2025-06-20 16:37:22,977 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\app.py", line 955, in run
+2025-06-20 16:37:22,977 - kivy - WARNING - stderr:     self._run_prepare()
+2025-06-20 16:37:22,977 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~^^
+2025-06-20 16:37:22,977 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\app.py", line 159, in _run_prepare
+2025-06-20 16:37:22,977 - kivy - WARNING - stderr:     super()._run_prepare()
+2025-06-20 16:37:22,978 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~^^
+2025-06-20 16:37:22,978 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\app.py", line 925, in _run_prepare
+2025-06-20 16:37:22,978 - kivy - WARNING - stderr:     root = self.build()
+2025-06-20 16:37:22,978 - kivy - WARNING - stderr:   File "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\ui\kiosk_ui.py", line 311, in build
+2025-06-20 16:37:22,978 - kivy - WARNING - stderr:     self.product_form = ProductForm()
+2025-06-20 16:37:22,978 - kivy - WARNING - stderr:                         ~~~~~~~~~~~^^
+2025-06-20 16:37:22,978 - kivy - WARNING - stderr:   File "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\ui\kiosk_ui.py", line 46, in __init__
+2025-06-20 16:37:22,978 - kivy - WARNING - stderr:     title = MDLabel(
+2025-06-20 16:37:22,978 - kivy - WARNING - stderr:         text="Product Information",
+2025-06-20 16:37:22,978 - kivy - WARNING - stderr:     ...<3 lines>...
+2025-06-20 16:37:22,979 - kivy - WARNING - stderr:         height=dp(50)
+2025-06-20 16:37:22,979 - kivy - WARNING - stderr:     )
+2025-06-20 16:37:22,979 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\label\label.py", line 1056, in __init__
+2025-06-20 16:37:22,979 - kivy - WARNING - stderr:     super().__init__(*args, **kwargs)
+2025-06-20 16:37:22,979 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+2025-06-20 16:37:22,979 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\behaviors\declarative_behavior.py", line 485, in __init__
+2025-06-20 16:37:22,979 - kivy - WARNING - stderr:     super().__init__(**kwargs)
+2025-06-20 16:37:22,980 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:37:22,980 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\theming.py", line 1121, in __init__
+2025-06-20 16:37:22,980 - kivy - WARNING - stderr:     super().__init__(**kwargs)
+2025-06-20 16:37:22,980 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:37:22,980 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\behaviors\backgroundcolor_behavior.py", line 168, in __init__
+2025-06-20 16:37:22,980 - kivy - WARNING - stderr:     super().__init__(**kwarg)
+2025-06-20 16:37:22,980 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-06-20 16:37:22,981 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\uix\label.py", line 319, in __init__
+2025-06-20 16:37:22,981 - kivy - WARNING - stderr:     super(Label, self).__init__(**kwargs)
+2025-06-20 16:37:22,981 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:37:22,981 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\uix\widget.py", line 366, in __init__
+2025-06-20 16:37:22,981 - kivy - WARNING - stderr:     self.apply_class_lang_rules(
+2025-06-20 16:37:22,981 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-06-20 16:37:22,981 - kivy - WARNING - stderr:         ignored_consts=self._kwargs_applied_init,
+2025-06-20 16:37:22,982 - kivy - WARNING - stderr:         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-06-20 16:37:22,982 - kivy - WARNING - stderr:         rule_children=rule_children)
+2025-06-20 16:37:22,982 - kivy - WARNING - stderr:         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-06-20 16:37:22,982 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\uix\widget.py", line 470, in apply_class_lang_rules
+2025-06-20 16:37:22,982 - kivy - WARNING - stderr:     Builder.apply(
+2025-06-20 16:37:22,982 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~^
+2025-06-20 16:37:22,982 - kivy - WARNING - stderr:         self, ignored_consts=ignored_consts,
+2025-06-20 16:37:22,982 - kivy - WARNING - stderr:         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-06-20 16:37:22,982 - kivy - WARNING - stderr:         rule_children=rule_children)
+2025-06-20 16:37:22,982 - kivy - WARNING - stderr:         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-06-20 16:37:22,982 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\lang\builder.py", line 545, in apply
+2025-06-20 16:37:22,983 - kivy - WARNING - stderr:     self._apply_rule(
+2025-06-20 16:37:22,983 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^
+2025-06-20 16:37:22,983 - kivy - WARNING - stderr:         widget, rule, rule, ignored_consts=ignored_consts,
+2025-06-20 16:37:22,983 - kivy - WARNING - stderr:         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-06-20 16:37:22,983 - kivy - WARNING - stderr:         rule_children=rule_children)
+2025-06-20 16:37:22,983 - kivy - WARNING - stderr:         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-06-20 16:37:22,983 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\lang\builder.py", line 714, in _apply_rule
+2025-06-20 16:37:22,983 - kivy - WARNING - stderr:     raise BuilderException(rule.ctx, rule.line,
+2025-06-20 16:37:22,983 - kivy - WARNING - stderr:                            '{}: {}'.format(e.__class__.__name__,
+2025-06-20 16:37:22,983 - kivy - WARNING - stderr:                                            e), cause=tb)
+2025-06-20 16:37:22,984 - kivy - WARNING - stderr: kivy.lang.builder.BuilderException: Parser: File "<inline>", line 17:
+2025-06-20 16:37:22,984 - kivy - WARNING - stderr: ...
+2025-06-20 16:37:22,984 - kivy - WARNING - stderr:      15:        [self.label_opacity_value_disabled_text]
+2025-06-20 16:37:22,984 - kivy - WARNING - stderr:      16:    font_size:
+2025-06-20 16:37:22,984 - kivy - WARNING - stderr: >>   17:        self.theme_cls.font_styles[self.font_style][self.role]["font-size"] \
+2025-06-20 16:37:22,984 - kivy - WARNING - stderr:      18:        if self.theme_font_size == "Primary" else self.font_size
+2025-06-20 16:37:22,984 - kivy - WARNING - stderr:      19:    line_height:
+2025-06-20 16:37:22,984 - kivy - WARNING - stderr: ...
+2025-06-20 16:37:22,984 - kivy - WARNING - stderr: BuilderException: Parser: File "<inline>", line 17:
+2025-06-20 16:37:22,984 - kivy - WARNING - stderr: ...
+2025-06-20 16:37:22,985 - kivy - WARNING - stderr:      15:        [self.label_opacity_value_disabled_text]
+2025-06-20 16:37:22,985 - kivy - WARNING - stderr:      16:    font_size:
+2025-06-20 16:37:22,985 - kivy - WARNING - stderr: >>   17:        self.theme_cls.font_styles[self.font_style][self.role]["font-size"] \
+2025-06-20 16:37:22,985 - kivy - WARNING - stderr:      18:        if self.theme_font_size == "Primary" else self.font_size
+2025-06-20 16:37:22,985 - kivy - WARNING - stderr:      19:    line_height:
+2025-06-20 16:37:22,985 - kivy - WARNING - stderr: ...
+2025-06-20 16:37:22,986 - kivy - WARNING - stderr: KeyError: 'H6'
+2025-06-20 16:37:22,986 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\lang\builder.py", line 245, in create_handler
+2025-06-20 16:37:22,986 - kivy - WARNING - stderr:     return eval(value, idmap), bound_list
+2025-06-20 16:37:22,986 - kivy - WARNING - stderr:            ~~~~^^^^^^^^^^^^^^
+2025-06-20 16:37:22,986 - kivy - WARNING - stderr:   File "<string>", line 17, in <module>
+2025-06-20 16:37:22,986 - kivy - WARNING - stderr: 
+2025-06-20 16:37:22,986 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\lang\builder.py", line 699, in _apply_rule
+2025-06-20 16:37:22,987 - kivy - WARNING - stderr:     value, bound = create_handler(
+2025-06-20 16:37:22,987 - kivy - WARNING - stderr:                    ~~~~~~~~~~~~~~^
+2025-06-20 16:37:22,987 - kivy - WARNING - stderr:         widget_set, widget_set, key, value, rule,
+2025-06-20 16:37:22,987 - kivy - WARNING - stderr:         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-06-20 16:37:22,987 - kivy - WARNING - stderr:         rctx['ids'])
+2025-06-20 16:37:22,987 - kivy - WARNING - stderr:         ^^^^^^^^^^^^
+2025-06-20 16:37:22,988 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\lang\builder.py", line 248, in create_handler
+2025-06-20 16:37:22,988 - kivy - WARNING - stderr:     raise BuilderException(rule.ctx, rule.line,
+2025-06-20 16:37:22,988 - kivy - WARNING - stderr:                            '{}: {}'.format(e.__class__.__name__, e),
+2025-06-20 16:37:22,988 - kivy - WARNING - stderr:                            cause=tb)
+2025-06-20 16:37:22,988 - kivy - WARNING - stderr: 
+2025-06-20 16:39:21,807 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:39:21,808 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:39:21,813 - kivy - WARNING - stderr: Traceback (most recent call last):
+2025-06-20 16:39:21,814 - kivy - WARNING - stderr:   File "<frozen runpy>", line 198, in _run_module_as_main
+2025-06-20 16:39:21,814 - kivy - WARNING - stderr:   File "<frozen runpy>", line 88, in _run_code
+2025-06-20 16:39:21,815 - kivy - WARNING - stderr:   File "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\ui\kiosk_ui.py", line 457, in <module>
+2025-06-20 16:39:21,815 - kivy - WARNING - stderr:     MonitoringKioskApp().run()
+2025-06-20 16:39:21,815 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~~~~~^^
+2025-06-20 16:39:21,816 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\app.py", line 955, in run
+2025-06-20 16:39:21,816 - kivy - WARNING - stderr:     self._run_prepare()
+2025-06-20 16:39:21,816 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~^^
+2025-06-20 16:39:21,817 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\app.py", line 159, in _run_prepare
+2025-06-20 16:39:21,817 - kivy - WARNING - stderr:     super()._run_prepare()
+2025-06-20 16:39:21,817 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~^^
+2025-06-20 16:39:21,817 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\app.py", line 925, in _run_prepare
+2025-06-20 16:39:21,818 - kivy - WARNING - stderr:     root = self.build()
+2025-06-20 16:39:21,818 - kivy - WARNING - stderr:   File "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\ui\kiosk_ui.py", line 319, in build
+2025-06-20 16:39:21,818 - kivy - WARNING - stderr:     self.product_form = ProductForm()
+2025-06-20 16:39:21,818 - kivy - WARNING - stderr:                         ~~~~~~~~~~~^^
+2025-06-20 16:39:21,819 - kivy - WARNING - stderr:   File "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\ui\kiosk_ui.py", line 56, in __init__
+2025-06-20 16:39:21,819 - kivy - WARNING - stderr:     self.product_name = MDTextField(
+2025-06-20 16:39:21,819 - kivy - WARNING - stderr:                         ~~~~~~~~~~~^
+2025-06-20 16:39:21,820 - kivy - WARNING - stderr:         hint_text="Product Name",
+2025-06-20 16:39:21,820 - kivy - WARNING - stderr:         ^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-06-20 16:39:21,820 - kivy - WARNING - stderr:     ...<3 lines>...
+2025-06-20 16:39:21,821 - kivy - WARNING - stderr:         height=dp(50)
+2025-06-20 16:39:21,821 - kivy - WARNING - stderr:         ^^^^^^^^^^^^^
+2025-06-20 16:39:21,821 - kivy - WARNING - stderr:     )
+2025-06-20 16:39:21,822 - kivy - WARNING - stderr:     ^
+2025-06-20 16:39:21,822 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\textfield\textfield.py", line 1223, in __init__
+2025-06-20 16:39:21,822 - kivy - WARNING - stderr:     super().__init__(*args, **kwargs)
+2025-06-20 16:39:21,822 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+2025-06-20 16:39:21,823 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\behaviors\declarative_behavior.py", line 485, in __init__
+2025-06-20 16:39:21,823 - kivy - WARNING - stderr:     super().__init__(**kwargs)
+2025-06-20 16:39:21,823 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:39:21,824 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\behaviors\focus_behavior.py", line 94, in __init__
+2025-06-20 16:39:21,824 - kivy - WARNING - stderr:     super().__init__(*args, **kwargs)
+2025-06-20 16:39:21,824 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+2025-06-20 16:39:21,824 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\behaviors\hover_behavior.py", line 163, in __init__
+2025-06-20 16:39:21,825 - kivy - WARNING - stderr:     super().__init__(*args, **kwargs)
+2025-06-20 16:39:21,825 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+2025-06-20 16:39:21,825 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\theming.py", line 1121, in __init__
+2025-06-20 16:39:21,825 - kivy - WARNING - stderr:     super().__init__(**kwargs)
+2025-06-20 16:39:21,826 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:39:21,826 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\uix\textinput.py", line 585, in __init__
+2025-06-20 16:39:21,826 - kivy - WARNING - stderr:     super().__init__(**kwargs)
+2025-06-20 16:39:21,826 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:39:21,826 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\uix\behaviors\focus.py", line 393, in __init__
+2025-06-20 16:39:21,827 - kivy - WARNING - stderr:     super(FocusBehavior, self).__init__(**kwargs)
+2025-06-20 16:39:21,827 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:39:21,827 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\uix\widget.py", line 357, in __init__
+2025-06-20 16:39:21,827 - kivy - WARNING - stderr:     super(Widget, self).__init__(**kwargs)
+2025-06-20 16:39:21,827 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:39:21,827 - kivy - WARNING - stderr:   File "kivy\\_event.pyx", line 243, in kivy._event.EventDispatcher.__init__
+2025-06-20 16:39:21,827 - kivy - WARNING - stderr:   File "kivy\\_event.pyx", line 235, in kivy._event.EventDispatcher.__init__
+2025-06-20 16:39:21,827 - kivy - WARNING - stderr: TypeError: AutoFormatTelephoneNumber.__init__() got an unexpected keyword argument 'helper_text'
+2025-06-20 16:41:22,612 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:41:22,613 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:41:22,620 - kivy - WARNING - stderr: Traceback (most recent call last):
+2025-06-20 16:41:22,621 - kivy - WARNING - stderr:   File "<frozen runpy>", line 198, in _run_module_as_main
+2025-06-20 16:41:22,621 - kivy - WARNING - stderr:   File "<frozen runpy>", line 88, in _run_code
+2025-06-20 16:41:22,622 - kivy - WARNING - stderr:   File "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\ui\kiosk_ui.py", line 458, in <module>
+2025-06-20 16:41:22,622 - kivy - WARNING - stderr:     MonitoringKioskApp().run()
+2025-06-20 16:41:22,622 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~~~~~^^
+2025-06-20 16:41:22,622 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\app.py", line 955, in run
+2025-06-20 16:41:22,623 - kivy - WARNING - stderr:     self._run_prepare()
+2025-06-20 16:41:22,623 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~^^
+2025-06-20 16:41:22,623 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\app.py", line 159, in _run_prepare
+2025-06-20 16:41:22,623 - kivy - WARNING - stderr:     super()._run_prepare()
+2025-06-20 16:41:22,623 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~^^
+2025-06-20 16:41:22,623 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\app.py", line 925, in _run_prepare
+2025-06-20 16:41:22,624 - kivy - WARNING - stderr:     root = self.build()
+2025-06-20 16:41:22,624 - kivy - WARNING - stderr:   File "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\ui\kiosk_ui.py", line 320, in build
+2025-06-20 16:41:22,624 - kivy - WARNING - stderr:     self.product_form = ProductForm()
+2025-06-20 16:41:22,624 - kivy - WARNING - stderr:                         ~~~~~~~~~~~^^
+2025-06-20 16:41:22,624 - kivy - WARNING - stderr:   File "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\ui\kiosk_ui.py", line 56, in __init__
+2025-06-20 16:41:22,625 - kivy - WARNING - stderr:     self.product_name = MDTextField(
+2025-06-20 16:41:22,625 - kivy - WARNING - stderr:                         ~~~~~~~~~~~^
+2025-06-20 16:41:22,625 - kivy - WARNING - stderr:         text="",
+2025-06-20 16:41:22,625 - kivy - WARNING - stderr:         ^^^^^^^^
+2025-06-20 16:41:22,625 - kivy - WARNING - stderr:     ...<3 lines>...
+2025-06-20 16:41:22,626 - kivy - WARNING - stderr:         height=dp(50)
+2025-06-20 16:41:22,626 - kivy - WARNING - stderr:         ^^^^^^^^^^^^^
+2025-06-20 16:41:22,626 - kivy - WARNING - stderr:     )
+2025-06-20 16:41:22,626 - kivy - WARNING - stderr:     ^
+2025-06-20 16:41:22,626 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\textfield\textfield.py", line 1223, in __init__
+2025-06-20 16:41:22,627 - kivy - WARNING - stderr:     super().__init__(*args, **kwargs)
+2025-06-20 16:41:22,627 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+2025-06-20 16:41:22,627 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\behaviors\declarative_behavior.py", line 485, in __init__
+2025-06-20 16:41:22,627 - kivy - WARNING - stderr:     super().__init__(**kwargs)
+2025-06-20 16:41:22,627 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:41:22,627 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\behaviors\focus_behavior.py", line 94, in __init__
+2025-06-20 16:41:22,628 - kivy - WARNING - stderr:     super().__init__(*args, **kwargs)
+2025-06-20 16:41:22,628 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+2025-06-20 16:41:22,628 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\behaviors\hover_behavior.py", line 163, in __init__
+2025-06-20 16:41:22,628 - kivy - WARNING - stderr:     super().__init__(*args, **kwargs)
+2025-06-20 16:41:22,629 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+2025-06-20 16:41:22,629 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\theming.py", line 1121, in __init__
+2025-06-20 16:41:22,629 - kivy - WARNING - stderr:     super().__init__(**kwargs)
+2025-06-20 16:41:22,629 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:41:22,629 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\uix\textinput.py", line 585, in __init__
+2025-06-20 16:41:22,630 - kivy - WARNING - stderr:     super().__init__(**kwargs)
+2025-06-20 16:41:22,630 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:41:22,630 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\uix\behaviors\focus.py", line 393, in __init__
+2025-06-20 16:41:22,630 - kivy - WARNING - stderr:     super(FocusBehavior, self).__init__(**kwargs)
+2025-06-20 16:41:22,630 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:41:22,630 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\uix\widget.py", line 357, in __init__
+2025-06-20 16:41:22,631 - kivy - WARNING - stderr:     super(Widget, self).__init__(**kwargs)
+2025-06-20 16:41:22,631 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:41:22,631 - kivy - WARNING - stderr:   File "kivy\\_event.pyx", line 262, in kivy._event.EventDispatcher.__init__
+2025-06-20 16:41:22,631 - kivy - WARNING - stderr:   File "kivy\\properties.pyx", line 520, in kivy.properties.Property.__set__
+2025-06-20 16:41:22,631 - kivy - WARNING - stderr:   File "kivy\\properties.pyx", line 564, in kivy.properties.Property.set
+2025-06-20 16:41:22,631 - kivy - WARNING - stderr:   File "kivy\\properties.pyx", line 555, in kivy.properties.Property.set
+2025-06-20 16:41:22,632 - kivy - WARNING - stderr:   File "kivy\\properties.pyx", line 1354, in kivy.properties.OptionProperty.check
+2025-06-20 16:41:22,632 - kivy - WARNING - stderr: ValueError: MDTextField.mode is set to an invalid option 'rectangle'. Must be one of: ['outlined', 'filled']
+2025-06-20 16:55:07,017 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:55:07,017 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:55:07,026 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:55:07,028 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:55:07,033 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:55:07,035 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:55:07,039 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:55:07,039 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:55:07,041 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:55:07,042 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:55:07,043 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:55:07,044 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:55:07,047 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:55:07,048 - kivy - WARNING - KivyMD: The `FocusBehavior` class is deprecated. It is recommended to use `StateFocusBehavior` instead of `FocusBehavior`.
+2025-06-20 16:55:07,053 - kivy - WARNING - stderr: Traceback (most recent call last):
+2025-06-20 16:55:07,054 - kivy - WARNING - stderr:   File "kivy\\_event.pyx", line 235, in kivy._event.EventDispatcher.__init__
+2025-06-20 16:55:07,055 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\behaviors\focus_behavior.py", line 94, in __init__
+2025-06-20 16:55:07,055 - kivy - WARNING - stderr:     super().__init__(*args, **kwargs)
+2025-06-20 16:55:07,055 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+2025-06-20 16:55:07,055 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\behaviors\hover_behavior.py", line 163, in __init__
+2025-06-20 16:55:07,055 - kivy - WARNING - stderr:     super().__init__(*args, **kwargs)
+2025-06-20 16:55:07,056 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+2025-06-20 16:55:07,056 - kivy - WARNING - stderr: TypeError: object.__init__() takes exactly one argument (the instance to initialize)
+2025-06-20 16:55:07,056 - kivy - WARNING - stderr: 
+2025-06-20 16:55:07,056 - kivy - WARNING - stderr: The above exception was the direct cause of the following exception:
+2025-06-20 16:55:07,056 - kivy - WARNING - stderr: 
+2025-06-20 16:55:07,057 - kivy - WARNING - stderr: Traceback (most recent call last):
+2025-06-20 16:55:07,058 - kivy - WARNING - stderr:   File "<frozen runpy>", line 198, in _run_module_as_main
+2025-06-20 16:55:07,058 - kivy - WARNING - stderr:   File "<frozen runpy>", line 88, in _run_code
+2025-06-20 16:55:07,058 - kivy - WARNING - stderr:   File "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\ui\kiosk_ui.py", line 628, in <module>
+2025-06-20 16:55:07,058 - kivy - WARNING - stderr:     MonitoringKioskApp().run()
+2025-06-20 16:55:07,059 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~~~~~^^
+2025-06-20 16:55:07,059 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\app.py", line 955, in run
+2025-06-20 16:55:07,059 - kivy - WARNING - stderr:     self._run_prepare()
+2025-06-20 16:55:07,059 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~^^
+2025-06-20 16:55:07,059 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\app.py", line 159, in _run_prepare
+2025-06-20 16:55:07,059 - kivy - WARNING - stderr:     super()._run_prepare()
+2025-06-20 16:55:07,060 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~^^
+2025-06-20 16:55:07,060 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\app.py", line 925, in _run_prepare
+2025-06-20 16:55:07,060 - kivy - WARNING - stderr:     root = self.build()
+2025-06-20 16:55:07,060 - kivy - WARNING - stderr:   File "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\ui\kiosk_ui.py", line 502, in build
+2025-06-20 16:55:07,060 - kivy - WARNING - stderr:     self.conn_settings = ConnectionSettings()
+2025-06-20 16:55:07,061 - kivy - WARNING - stderr:                          ~~~~~~~~~~~~~~~~~~^^
+2025-06-20 16:55:07,061 - kivy - WARNING - stderr:   File "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\ui\kiosk_ui.py", line 173, in __init__
+2025-06-20 16:55:07,061 - kivy - WARNING - stderr:     self.port_button = MDButton(
+2025-06-20 16:55:07,061 - kivy - WARNING - stderr:                        ~~~~~~~~^
+2025-06-20 16:55:07,061 - kivy - WARNING - stderr:         text="Select Port",
+2025-06-20 16:55:07,061 - kivy - WARNING - stderr:         ^^^^^^^^^^^^^^^^^^^
+2025-06-20 16:55:07,062 - kivy - WARNING - stderr:         style="filled",
+2025-06-20 16:55:07,062 - kivy - WARNING - stderr:         ^^^^^^^^^^^^^^^
+2025-06-20 16:55:07,062 - kivy - WARNING - stderr:         size_hint_x=0.7
+2025-06-20 16:55:07,062 - kivy - WARNING - stderr:         ^^^^^^^^^^^^^^^
+2025-06-20 16:55:07,062 - kivy - WARNING - stderr:     )
+2025-06-20 16:55:07,062 - kivy - WARNING - stderr:     ^
+2025-06-20 16:55:07,063 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\button\button.py", line 962, in __init__
+2025-06-20 16:55:07,063 - kivy - WARNING - stderr:     super().__init__(*args, **kwargs)
+2025-06-20 16:55:07,063 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+2025-06-20 16:55:07,063 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\behaviors\declarative_behavior.py", line 485, in __init__
+2025-06-20 16:55:07,063 - kivy - WARNING - stderr:     super().__init__(**kwargs)
+2025-06-20 16:55:07,063 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:55:07,063 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\uix\behaviors\backgroundcolor_behavior.py", line 168, in __init__
+2025-06-20 16:55:07,064 - kivy - WARNING - stderr:     super().__init__(**kwarg)
+2025-06-20 16:55:07,064 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-06-20 16:55:07,064 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\uix\behaviors\button.py", line 121, in __init__
+2025-06-20 16:55:07,064 - kivy - WARNING - stderr:     super(ButtonBehavior, self).__init__(**kwargs)
+2025-06-20 16:55:07,064 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:55:07,064 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivymd\theming.py", line 1121, in __init__
+2025-06-20 16:55:07,064 - kivy - WARNING - stderr:     super().__init__(**kwargs)
+2025-06-20 16:55:07,064 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:55:07,065 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\uix\relativelayout.py", line 274, in __init__
+2025-06-20 16:55:07,065 - kivy - WARNING - stderr:     super(RelativeLayout, self).__init__(**kw)
+2025-06-20 16:55:07,065 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+2025-06-20 16:55:07,065 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\uix\floatlayout.py", line 65, in __init__
+2025-06-20 16:55:07,065 - kivy - WARNING - stderr:     super(FloatLayout, self).__init__(**kwargs)
+2025-06-20 16:55:07,065 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:55:07,066 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\uix\layout.py", line 76, in __init__
+2025-06-20 16:55:07,066 - kivy - WARNING - stderr:     super(Layout, self).__init__(**kwargs)
+2025-06-20 16:55:07,066 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:55:07,066 - kivy - WARNING - stderr:   File "d:\Apps\monitoring-roll-machine\venv\Lib\site-packages\kivy\uix\widget.py", line 357, in __init__
+2025-06-20 16:55:07,066 - kivy - WARNING - stderr:     super(Widget, self).__init__(**kwargs)
+2025-06-20 16:55:07,066 - kivy - WARNING - stderr:     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+2025-06-20 16:55:07,066 - kivy - WARNING - stderr:   File "kivy\\_event.pyx", line 238, in kivy._event.EventDispatcher.__init__
+2025-06-20 16:55:07,067 - kivy - WARNING - stderr: TypeError: Properties ['text'] passed to __init__ may not be existing property names. Valid properties are ['_background_origin', '_background_x', '_background_y', '_button_icon', '_button_text', '_doing_ripple', '_fading_out', '_finishing_ripple', '_md_bg_color', '_ripple_rad', '_round_rad', 'allow_hover', 'always_release', 'angle', 'background', 'background_origin', 'button_elevated_opacity_value_disabled_container', 'button_elevated_opacity_value_disabled_icon', 'button_elevated_opacity_value_disabled_text', 'button_filled_opacity_value_disabled_container', 'button_filled_opacity_value_disabled_icon', 'button_filled_opacity_value_disabled_text', 'button_outlined_opacity_value_disabled_container', 'button_outlined_opacity_value_disabled_icon', 'button_outlined_opacity_value_disabled_line', 'button_outlined_opacity_value_disabled_text', 'button_text_opacity_value_disabled_icon', 'button_text_opacity_value_disabled_text', 'button_tonal_opacity_value_disabled_container', 'button_tonal_opacity_value_disabled_icon', 'button_tonal_opacity_value_disabled_text', 'card_filled_opacity_value_disabled_state_container', 'card_opacity_value_disabled_state_elevated_container', 'card_outlined_opacity_value_disabled_state_container', 'center', 'center_x', 'center_y', 'checkbox_opacity_value_disabled_container', 'children', 'chip_opacity_value_disabled_container', 'chip_opacity_value_disabled_icon', 'chip_opacity_value_disabled_text', 'cls', 'detect_visible', 'device_ios', 'disabled', 'elevation', 'elevation_level', 'elevation_levels', 'enter_point', 'fab_button_opacity_value_disabled_container', 'fab_button_opacity_value_disabled_icon', 'focus_behavior', 'focus_color', 'height', 'hover_visible', 'hovering', 'icon_button_filled_opacity_value_disabled_container', 'icon_button_filled_opacity_value_disabled_icon', 'icon_button_outlined_opacity_value_disabled_container', 'icon_button_outlined_opacity_value_disabled_icon', 'icon_button_outlined_opacity_value_disabled_line', 'icon_button_standard_opacity_value_disabled_icon', 'icon_button_tonal_opacity_value_disabled_container', 'icon_button_tonal_opacity_value_disabled_icon', 'id', 'ids', 'label_opacity_value_disabled_text', 'last_touch', 'line_color', 'line_width', 'list_opacity_value_disabled_container', 'list_opacity_value_disabled_leading_avatar', 'md_bg_color', 'md_bg_color_disabled', 'min_state_time', 'motion_filter', 'opacity', 'parent', 'pos', 'pos_hint', 'radius', 'right', 'ripple_alpha', 'ripple_canvas_after', 'ripple_color', 'ripple_duration_in_fast', 'ripple_duration_in_slow', 'ripple_duration_out', 'ripple_effect', 'ripple_func_in', 'ripple_func_out', 'ripple_rad_default', 'ripple_scale', 'rotate_value_angle', 'rotate_value_axis', 'scale_value_center', 'scale_value_x', 'scale_value_y', 'scale_value_z', 'segmented_button_opacity_value_disabled_container', 'segmented_button_opacity_value_disabled_container_active', 'segmented_button_opacity_value_disabled_icon', 'segmented_button_opacity_value_disabled_line', 'segmented_button_opacity_value_disabled_text', 'shadow_color', 'shadow_offset', 'shadow_radius', 'shadow_softness', 'size', 'size_hint', 'size_hint_max', 'size_hint_max_x', 'size_hint_max_y', 'size_hint_min', 'size_hint_min_x', 'size_hint_min_y', 'size_hint_x', 'size_hint_y', 'state', 'state_drag', 'state_hover', 'state_layer_color', 'state_press', 'style', 'switch_opacity_value_disabled_container', 'switch_opacity_value_disabled_icon', 'switch_opacity_value_disabled_line', 'switch_thumb_opacity_value_disabled_container', 'text_field_filled_opacity_value_disabled_state_container', 'text_field_opacity_value_disabled_helper_text_label', 'text_field_opacity_value_disabled_hint_text_label', 'text_field_opacity_value_disabled_leading_icon', 'text_field_opacity_value_disabled_line', 'text_field_opacity_value_disabled_max_length_label', 'text_field_opacity_value_disabled_trailing_icon', 'text_field_outlined_opacity_value_disabled_state_container', 'theme_bg_color', 'theme_cls', 'theme_divider_color', 'theme_elevation_level', 'theme_focus_color', 'theme_font_name', 'theme_font_size', 'theme_height', 'theme_icon_color', 'theme_line_color', 'theme_line_height', 'theme_shadow_color', 'theme_shadow_offset', 'theme_shadow_softness', 'theme_text_color', 'theme_width', 'top', 'unfocus_color', 'widgets', 'width', 'x', 'y']

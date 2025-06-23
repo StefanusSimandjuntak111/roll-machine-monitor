@@ -1,0 +1,48 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Python Code Quality Standards for Monitoring Application
+
+Help me write Python code that follows the best coding standards. Make sure my code:
+
+1. Follows **PEP 8** (style guide) and **PEP 257** (docstring conventions)  
+2. Applies **clean code principles**: short functions, meaningful names, and no duplication  
+3. Respects **KISS** (Keep It Simple), **DRY** (Don’t Repeat Yourself), and **YAGNI** (You Aren’t Gonna Need It)  
+4. Includes **type hinting** according to **PEP 484**  
+5. Is **testable with pytest** and follows good testing practices  
+6. Contains **well-written and consistent docstrings** for all public functions, classes, and modules  
+7. Is **consistent, maintainable**, and runnable in **modern Python environments (3.9+)**  
+8. Uses proper **exception handling and logging** (instead of print statements)  
+9. **Separates concerns** clearly (e.g., logic, data access, UI)  
+10. Adheres to **good module/package organization** and file naming conventions  
+11. Uses **virtual environments** and dependency management via `requirements.txt` atau `pyproject.toml`  
+12. Implements **version control best practices** (e.g., clear commit messages, `.gitignore` usage)  
+13. **Avoids premature optimization** and keeps the code readable  
+14. Leverages **built-in functions** and idiomatic Python (e.g., `list comprehensions`, `enumerate`, `zip`)  
+15. Supports **unit testing** with **mocking/stubs** where necessary  
+
+---
+
+### Additional Rules for Serial-Based Monitoring System with Kiosk UI
+
+16. Komunikasi serial harus **handal**: gunakan timeout, retry logic, dan pengecekan koneksi berkala  
+17. Semua akses hardware (port serial) harus **dipisah dalam modul sendiri** untuk memudahkan pengujian dan isolasi logika  
+18. UI harus mendukung **kiosk mode**: fullscreen, tidak bisa ditutup oleh user, dan meminimalisir interaksi OS  
+19. Gunakan **threading** atau **async IO** secara aman untuk polling data, tanpa mem-block UI utama  
+20. Semua log aktivitas dan error harus ditulis ke **log file harian** dengan rotasi otomatis  
+21. Buat abstraksi agar protokol mesin (JSK3588) bisa diganti atau dikembangkan tanpa mengubah seluruh aplikasi  
+22. Desain sistem agar **robust** saat terjadi error seperti: mesin tidak terhubung, kabel lepas, atau data corrupt  
+23. Data monitoring harus bisa diekspor ke **CSV atau Excel**, dan bisa diberi label per sesi (mulai/akhir waktu)  
+24. Gunakan file konfigurasi (`.env` atau `.ini`) untuk parameter runtime seperti port COM, baudrate, dan nama mesin  
+25. Aplikasi harus bisa **berjalan secara offline**, tanpa ketergantungan jaringan atau cloud  
+26. Semua dependensi pihak ketiga harus **dicatat secara eksplisit** dan dapat direproduksi dari environment  
+27. Aplikasi harus dapat dibundel sebagai **executable** (.exe untuk Windows, AppImage untuk Linux)  
+28. Pisahkan lingkungan **pengembangan dan produksi**, dan gunakan virtual environment untuk keduanya  
+
+---
+
+> Jika ada bagian dari kode yang tidak sesuai dengan prinsip-prinsip ini, berikan saran perbaikannya.  
+> Bila memungkinkan, sertakan juga konfigurasi formatter/linter yang sesuai seperti **black**, **flake8**, dan **mypy**.
+
