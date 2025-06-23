@@ -123,10 +123,16 @@ class ProductForm(QWidget):
         self.target_length.valueChanged.connect(self.on_length_changed)
         self.target_length.setStyleSheet(input_style + """
             QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
-                width: 0px;
+                width: 0;
+                height: 0;
                 border: none;
+                background: none;
+            }
+            QDoubleSpinBox {
+                padding-right: 5px;  /* Reduce right padding since we removed the buttons */
             }
         """)
+        self.target_length.setReadOnly(True)  # Make it read-only since we use plus/minus buttons
         self.target_length.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         length_layout.addWidget(self.target_length)
         
@@ -334,6 +340,10 @@ class ProductForm(QWidget):
             self.show_error(self.product_code, "Product code is required")
             return False
             
+        if not self.color_code.text().strip():
+            self.show_error(self.color_code, "Color code is required")
+            return False
+            
         if not self.batch_number.text().strip():
             self.show_error(self.batch_number, "Batch number is required")
             return False
@@ -350,9 +360,11 @@ class ProductForm(QWidget):
             QLineEdit, QSpinBox, QDoubleSpinBox, QRadioButton {
                 background-color: #353535;
                 border: 1px solid #ff4444;
-                border-radius: 5px;
-                padding: 8px;
+                border-radius: 4px;
+                padding: 5px;
                 color: white;
+                font-size: 14px;
+                min-height: 40px;
             }
         """)
         widget.setToolTip(message)
