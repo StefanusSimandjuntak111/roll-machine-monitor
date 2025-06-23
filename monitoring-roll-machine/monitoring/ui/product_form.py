@@ -2,13 +2,15 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout,
     QLineEdit, QSpinBox, QDoubleSpinBox,
     QPushButton, QFrame, QLabel, QHBoxLayout,
-    QRadioButton, QButtonGroup, QSizePolicy
+    QRadioButton, QButtonGroup, QSizePolicy, QMessageBox
 )
 from PySide6.QtCore import Signal, Qt, QSize
 from PySide6.QtGui import QFont, QPixmap
 from typing import Dict, Any
 import requests
 from io import BytesIO
+
+from .connection_settings import ConnectionSettings
 
 class ProductForm(QWidget):
     """Form for entering and editing product information."""
@@ -312,6 +314,16 @@ class ProductForm(QWidget):
             
     def start_monitoring_with_save(self):
         """Save product info and start monitoring."""
+        # Check if port is selected
+        settings = self.window().findChild(ConnectionSettings)
+        if not settings or not settings.get_selected_port():
+            QMessageBox.warning(
+                self,
+                "Port Not Selected",
+                "Please select a serial port before starting monitoring."
+            )
+            return
+            
         if self.validate_inputs():
             # Create product info dictionary
             product_info = {
@@ -328,6 +340,16 @@ class ProductForm(QWidget):
         
     def print_product_info(self):
         """Print product information."""
+        # Check if port is selected
+        settings = self.window().findChild(ConnectionSettings)
+        if not settings or not settings.get_selected_port():
+            QMessageBox.warning(
+                self,
+                "Port Not Selected",
+                "Please select a serial port before printing."
+            )
+            return
+            
         if not self.validate_inputs():
             return
             

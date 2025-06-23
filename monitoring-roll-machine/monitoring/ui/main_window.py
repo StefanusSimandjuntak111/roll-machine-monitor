@@ -24,6 +24,7 @@ from ..logging_utils import setup_logging
 from .monitoring_view import MonitoringView
 from .product_form import ProductForm
 from .settings_dialog import SettingsDialog
+from .connection_settings import ConnectionSettings
 
 logger = logging.getLogger(__name__)
 
@@ -120,62 +121,6 @@ class MachineStatus(QGroupBox):
         self.rolled_length.setText(f"{length:.1f}")
         self.speed.setText(f"{speed:.1f}")
         self.shift.setText(str(shift))
-
-class ConnectionSettings(QGroupBox):
-    """Panel for serial connection settings."""
-    
-    def __init__(self, parent: Optional[QWidget] = None):
-        super().__init__("Connection Settings", parent)
-        self.setup_ui()
-        
-    def setup_ui(self):
-        """Set up the connection settings UI."""
-        layout = QVBoxLayout(self)
-        layout.setSpacing(15)
-        layout.setContentsMargins(20, 20, 20, 20)
-        
-        # Port selection
-        port_layout = QHBoxLayout()
-        self.port_combo = QComboBox()
-        self.port_combo.setMinimumHeight(40)
-        self.refresh_btn = QPushButton("Refresh")
-        self.refresh_btn.setMinimumHeight(40)
-        port_layout.addWidget(self.port_combo, stretch=2)
-        port_layout.addWidget(self.refresh_btn, stretch=1)
-        layout.addLayout(port_layout)
-        
-        # Connection info
-        self.conn_info = QLabel("Baudrate: 19200, Data: 8bit, Parity: None, Stop: 1bit")
-        self.last_connected = QLabel("Last Connected: Never")
-        layout.addWidget(self.conn_info)
-        layout.addWidget(self.last_connected)
-        
-        # Connect signals
-        self.refresh_btn.clicked.connect(self.refresh_ports)
-        
-        # Initial port refresh
-        self.refresh_ports()
-        
-    def refresh_ports(self):
-        """Refresh the list of available serial ports."""
-        import serial.tools.list_ports
-        self.port_combo.clear()
-        
-        try:
-            ports = list(serial.tools.list_ports.comports())
-            for port in ports:
-                self.port_combo.addItem(port.device)
-            
-            if not ports:
-                self.port_combo.addItem("No ports available")
-                
-        except Exception as e:
-            logger.error(f"Error refreshing ports: {e}")
-            self.port_combo.addItem("Error getting ports")
-            
-    def get_selected_port(self) -> str:
-        """Get the currently selected port."""
-        return self.port_combo.currentText()
 
 class Statistics(QGroupBox):
     """Panel for statistics and data visualization."""
