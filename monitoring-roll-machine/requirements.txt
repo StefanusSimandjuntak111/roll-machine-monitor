@@ -22,3 +22,7 @@ mypy>=1.5.1
 
 # Build
 pyinstaller>=5.0.0 
+
+# QR Code Generation
+qrcode>=7.4.2
+Pillow>=10.0.0  # Required for QR code image generation 

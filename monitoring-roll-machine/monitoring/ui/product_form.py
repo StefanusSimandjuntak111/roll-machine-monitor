@@ -11,6 +11,7 @@ import requests
 from io import BytesIO
 
 from .connection_settings import ConnectionSettings
+from .print_preview import PrintPreviewDialog
 
 class ProductForm(QWidget):
     """Form for entering and editing product information."""
@@ -340,21 +341,31 @@ class ProductForm(QWidget):
         
     def print_product_info(self):
         """Print product information."""
-        # Check if port is selected
-        settings = self.window().findChild(ConnectionSettings)
-        if not settings or not settings.get_selected_port():
-            QMessageBox.warning(
-                self,
-                "Port Not Selected",
-                "Please select a serial port before printing."
-            )
-            return
+        # Temporarily disable port validation
+        # settings = self.window().findChild(ConnectionSettings)
+        # if not settings or not settings.get_selected_port():
+        #     QMessageBox.warning(
+        #         self,
+        #         "Port Not Selected",
+        #         "Please select a serial port before printing."
+        #     )
+        #     return
             
         if not self.validate_inputs():
             return
             
-        # TODO: Implement printing functionality
-        print("Printing product info...")
+        # Get product info
+        product_info = {
+            'product_code': self.product_code.text().strip(),
+            'color_code': self.color_code.text().strip(),
+            'batch_number': self.batch_number.text().strip(),
+            'target_length': self.target_length.value(),
+            'units': self.unit_group.checkedButton().text()
+        }
+        
+        # Show print preview dialog
+        preview_dialog = PrintPreviewDialog(product_info, self)
+        preview_dialog.exec()
         
     def validate_inputs(self) -> bool:
         """Validate form inputs."""
