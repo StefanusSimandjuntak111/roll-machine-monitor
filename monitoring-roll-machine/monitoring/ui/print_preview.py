@@ -22,6 +22,7 @@ import qrcode
 from qrcode.constants import ERROR_CORRECT_L
 from PIL.Image import Image
 from io import BytesIO
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +183,7 @@ class PrintPreviewDialog(QDialog):
         # Header section (Product Code)
         header_font = QFont("Arial", 24, QFont.Weight.Bold)
         
-        product_code = self.product_info.get('product_code', '')
+        product_code = self.product_info.get('product_code', 'PRD-0001')  # Default product code
         code_item = QTableWidgetItem(product_code)
         code_item.setFont(header_font)
         code_item.setTextAlignment(int(Qt.AlignmentFlag.AlignCenter))
@@ -190,7 +191,7 @@ class PrintPreviewDialog(QDialog):
         table.setItem(0, 0, code_item)
         
         # Product Name
-        product_name = self.product_info.get('product_name', '')
+        product_name = self.product_info.get('product_name', 'Default Product')  # Default product name
         name_item = QTableWidgetItem(product_name)
         name_item.setFont(QFont("Arial", 20, QFont.Weight.Bold))
         name_item.setTextAlignment(int(Qt.AlignmentFlag.AlignCenter))
@@ -204,10 +205,10 @@ class PrintPreviewDialog(QDialog):
         
         labels = ["Color", "Length", "Roll No.", "Lot No."]
         values = [
-            self.product_info.get('color', ''),
+            str(self.product_info.get('color', '1')),  # Ensure color is retrieved as string
             f"{self.product_info.get('target_length', 0)} {self.product_info.get('units', 'Yard')}",
-            str(self.product_info.get('roll_number', '')),
-            str(self.product_info.get('lot_number', ''))
+            str(self.product_info.get('roll_number', '0')),
+            str(self.product_info.get('lot_number', 'None'))
         ]
         
         for i, (label, value) in enumerate(zip(labels, values)):
@@ -236,8 +237,27 @@ class PrintPreviewDialog(QDialog):
         table.setSpan(6, 0, 1, 2)  # Merge bottom row
         table.setItem(6, 0, bottom_item)
 
-    def generate_qr_code(self, data: str) -> QImage:
-        """Generate QR code image."""
+    def generate_qr_code(self, data: str, use_internet_qr: bool = False) -> QImage:
+        """Generate QR code image.
+        
+        Args:
+            data: Data to encode in QR code
+            use_internet_qr: If True, use a sample QR from internet (for testing)
+        """
+        if use_internet_qr:
+            try:
+                # Use a sample QR code from internet for testing
+                url = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + data
+                response = requests.get(url, timeout=5)
+                if response.status_code == 200:
+                    qimage = QImage()
+                    qimage.loadFromData(response.content)
+                    return qimage
+            except Exception as e:
+                logger.warning(f"Failed to fetch internet QR: {e}")
+                # Fall back to local generation
+        
+        # Generate QR code locally
         qr = qrcode.QRCode(
             version=1,
             error_correction=ERROR_CORRECT_L,
@@ -270,16 +290,20 @@ class PrintPreviewDialog(QDialog):
         page_width_px = page_rect.width()
         page_height_px = page_rect.height()
         
-        # Calculate table size in pixels (7cm x 8cm)
+        # Calculate table size in pixels (7.5cm x 7cm with reduced margins)
         dpi = printer.resolution()
         mm_to_inch = 25.4
         
-        table_width_px = int((70.0 / mm_to_inch) * dpi)  # 70mm = 7cm
-        table_height_px = int((80.0 / mm_to_inch) * dpi)  # 80mm = 8cm
+        # Calculate margins (0.5cm on all sides)
+        margin_px = int((5.0 / mm_to_inch) * dpi)  # 5mm = 0.5cm
+        
+        # Calculate table size to fit within margins
+        table_width_px = int(page_width_px - (2 * margin_px))  # Full width minus margins
+        table_height_px = int((70.0 / mm_to_inch) * dpi)  # 70mm = 7cm height
         
         # Center the table on the page
-        start_x = int((page_width_px - table_width_px) // 2)
-        start_y = int((page_height_px - table_height_px) // 2)
+        start_x = margin_px  # Start at left margin
+        start_y = int((page_height_px - table_height_px) // 2) - int((10.0 / mm_to_inch) * dpi)  # Move table up by 1cm
         
         # Draw white background for table area
         painter.fillRect(
@@ -323,24 +347,18 @@ class PrintPreviewDialog(QDialog):
                     current_y
                 )
         
-        # Draw vertical line for column separator
+        # Draw vertical line for column separator (skip for header and bottom rows)
         column_x = int(start_x + (table_width_px // 2))
-        painter.drawLine(
-            column_x, 
-            start_y, 
-            column_x, 
-            int(start_y + table_height_px)
-        )
         
         # Draw content
         current_y = start_y
         
-        # Header - Product Code
+        # Header - Product Code (merged across full width)
         header_font = QFont("Arial", 28, QFont.Weight.Bold)
         painter.setFont(header_font)
         painter.setPen(QPen(Qt.GlobalColor.black, 2))
         
-        product_code = self.product_info.get('product_code', '')
+        product_code = self.product_info.get('product_code', 'PRD-0001')  # Default product code
         text_rect = QRectF(
             start_x, 
             current_y, 
@@ -350,11 +368,11 @@ class PrintPreviewDialog(QDialog):
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, product_code)
         current_y += row_heights[0]
         
-        # Product Name
+        # Product Name (merged across full width)
         name_font = QFont("Arial", 24, QFont.Weight.Bold)
         painter.setFont(name_font)
         
-        product_name = self.product_info.get('product_name', '')
+        product_name = self.product_info.get('product_name', 'Default Product')  # Default product name
         text_rect = QRectF(
             start_x, 
             current_y, 
@@ -364,16 +382,24 @@ class PrintPreviewDialog(QDialog):
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, product_name)
         current_y += row_heights[1]
         
+        # Draw vertical line for info section only
+        painter.drawLine(
+            column_x, 
+            current_y, 
+            column_x, 
+            int(start_y + table_height_px - row_heights[6])  # Stop before bottom row
+        )
+        
         # Info section
         info_font = QFont("Arial", 20, QFont.Weight.Bold)
         painter.setFont(info_font)
         
         labels = ["Color", "Length", "Roll No.", "Lot No."]
         values = [
-            self.product_info.get('color', ''),
+            str(self.product_info.get('color', '1')),  # Default color: 1
             f"{self.product_info.get('target_length', 0)} {self.product_info.get('units', 'Yard')}",
-            str(self.product_info.get('roll_number', '')),
-            str(self.product_info.get('lot_number', ''))
+            str(self.product_info.get('roll_number', '0')),  # Default roll number: 0
+            str(self.product_info.get('lot_number', 'None'))  # Default lot number: None
         ]
         
         for i, (label, value) in enumerate(zip(labels, values)):
@@ -397,7 +423,7 @@ class PrintPreviewDialog(QDialog):
             
             current_y += row_heights[i + 2]
         
-        # Bottom section
+        # Bottom section (Product Code with Length) - merged across full width
         bottom_font = QFont("Arial", 24, QFont.Weight.Bold)
         painter.setFont(bottom_font)
         
@@ -411,6 +437,34 @@ class PrintPreviewDialog(QDialog):
             row_heights[6]
         )
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, bottom_code)
+        
+        # Add QR barcodes below the table
+        barcode_size_px = int((20.0 / mm_to_inch) * dpi)  # 20mm = 2cm (reduced from 2.5cm)
+        spacing_px = int((3.0 / mm_to_inch) * dpi)  # 3mm = 0.3cm spacing (reduced from 0.5cm)
+        
+        barcode_y = start_y + table_height_px + spacing_px
+        
+        # Calculate positions for left and right barcodes
+        barcode_left_x = start_x + int((table_width_px * 0.25) - (barcode_size_px // 2))
+        barcode_right_x = start_x + int((table_width_px * 0.75) - (barcode_size_px // 2))
+        
+        # Generate QR code
+        qr_data = f"{product_code}-{length}"
+        qr_image = self.generate_qr_code(qr_data, use_internet_qr=False)
+        
+        # Scale QR code to desired size
+        scaled_qr = qr_image.scaled(
+            barcode_size_px, 
+            barcode_size_px, 
+            Qt.AspectRatioMode.KeepAspectRatio, 
+            Qt.TransformationMode.SmoothTransformation
+        )
+        
+        # Draw left barcode
+        painter.drawImage(barcode_left_x, barcode_y, scaled_qr)
+        
+        # Draw right barcode
+        painter.drawImage(barcode_right_x, barcode_y, scaled_qr)
         
         painter.end()
 
