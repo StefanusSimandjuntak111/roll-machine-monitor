@@ -4,14 +4,73 @@ from PySide6.QtWidgets import (
     QPushButton, QFrame, QLabel, QHBoxLayout,
     QRadioButton, QButtonGroup, QSizePolicy, QMessageBox
 )
-from PySide6.QtCore import Signal, Qt, QSize
+from PySide6.QtCore import Signal, Qt, QSize, QTimer, QThread
 from PySide6.QtGui import QFont, QPixmap
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import requests
 from io import BytesIO
+import logging
+from datetime import datetime
 
 from .connection_settings import ConnectionSettings
 from .print_preview import PrintPreviewDialog
+
+# Setup logger
+logger = logging.getLogger(__name__)
+
+
+class ProductSearchWorker(QThread):
+    """Worker thread for non-blocking API calls."""
+    
+    # Signals
+    search_completed = Signal(dict)  # Emitted when search completes successfully
+    search_failed = Signal(str, str)  # Emitted when search fails (error_type, message)
+    
+    # Class-level session for connection pooling
+    _session = None
+    
+    def __init__(self, product_code: str, api_url: str, headers: Dict[str, str]):
+        super().__init__()
+        self.product_code = product_code
+        self.api_url = api_url
+        self.headers = headers
+        
+        # Initialize session if not exists
+        if ProductSearchWorker._session is None:
+            ProductSearchWorker._session = requests.Session()
+            ProductSearchWorker._session.headers.update(headers)
+        
+    def run(self):
+        """Run the API call in background thread."""
+        try:
+            # Ensure session is available
+            if ProductSearchWorker._session is None:
+                ProductSearchWorker._session = requests.Session()
+                ProductSearchWorker._session.headers.update(self.headers)
+                
+            response = ProductSearchWorker._session.get(
+                f"{self.api_url}?item_code={self.product_code}",
+                timeout=3
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            # Check if product data is found
+            if (data.get("message") and 
+                isinstance(data["message"], dict) and 
+                data["message"].get("success") and 
+                data["message"].get("data")):
+                
+                self.search_completed.emit(data["message"]["data"])
+            else:
+                self.search_failed.emit("not_found", "Product not found")
+                
+        except requests.exceptions.Timeout:
+            self.search_failed.emit("timeout", "Search timeout - please try again")
+        except requests.exceptions.ConnectionError:
+            self.search_failed.emit("connection", "Cannot connect to server")
+        except Exception as e:
+            self.search_failed.emit("error", f"Search error: {str(e)}")
 
 class ProductForm(QWidget):
     """Form for entering and editing product information."""
@@ -25,10 +84,22 @@ class ProductForm(QWidget):
     YARD_TO_METER = 0.9144
     DEFAULT_IMAGE_URL = "https://thumb.ac-illust.com/b1/b170870007dfa419295d949814474ab2_t.jpeg"
     
+    # API Configuration
+    API_BASE_URL = "http://localhost:8001/api/method/frappe.utils.custom_api.get_product_detail"
+    API_HEADERS = {
+        "Content-Type": "application/json",
+        "Authorization": "token 61996278bcc8bbb:8a178a12b28e784"
+    }
+    
     def __init__(self):
         super().__init__()
         self._is_updating = False  # Flag untuk mencegah recursive updates
         self._current_unit = "Meter"  # Track current unit
+        self._search_timer = QTimer()  # Timer untuk delayed search
+        self._search_timer.setSingleShot(True)
+        self._search_timer.timeout.connect(self._perform_product_search)
+        self._last_searched_code = ""  # Track last searched code to avoid duplicate searches
+        self._search_worker = None  # Current search worker thread
         self.setup_ui()
         
     def setup_ui(self):
@@ -68,6 +139,19 @@ class ProductForm(QWidget):
             }
         """
         
+        # Loading style for product code input
+        self.loading_style = """
+            QLineEdit {
+                background-color: #353535;
+                border: 1px solid #ffa500;
+                border-radius: 4px;
+                padding: 5px;
+                color: white;
+                font-size: 14px;
+                min-height: 40px;
+            }
+        """
+        
         # Radio button style
         radio_style = """
             QRadioButton {
@@ -94,11 +178,39 @@ class ProductForm(QWidget):
             }
         """
         
-        # Product Code
+        # Product Code with search functionality
+        product_code_container = QWidget()
+        product_code_layout = QHBoxLayout(product_code_container)
+        product_code_layout.setContentsMargins(0, 0, 0, 0)
+        product_code_layout.setSpacing(5)
+        
         self.product_code = QLineEdit()
-        self.product_code.setPlaceholderText("Enter product code")
+        self.product_code.setPlaceholderText("Enter product code (auto-search after 3 chars)")
         self.product_code.setStyleSheet(input_style)
-        form_layout.addRow("Product Code:", self.product_code)
+        self.product_code.textChanged.connect(self._on_product_code_changed)
+        self.product_code.editingFinished.connect(self._on_product_code_finished)
+        product_code_layout.addWidget(self.product_code)
+        
+        # Loading indicator
+        self.search_status_label = QLabel("")
+        self.search_status_label.setStyleSheet("""
+            QLabel {
+                color: #ffa500;
+                font-size: 12px;
+                font-weight: bold;
+            }
+        """)
+        self.search_status_label.setFixedWidth(80)
+        product_code_layout.addWidget(self.search_status_label)
+        
+        form_layout.addRow("Product Code:", product_code_container)
+        
+        # Product Name (auto-filled from API)
+        self.product_name = QLineEdit()
+        self.product_name.setPlaceholderText("Product name (auto-filled)")
+        self.product_name.setStyleSheet(input_style)
+        self.product_name.setReadOnly(True)  # Read-only field
+        form_layout.addRow("Product Name:", self.product_name)
         
         # Color Code
         self.color_code = QLineEdit()
@@ -326,10 +438,12 @@ class ProductForm(QWidget):
             return
             
         if self.validate_inputs():
-            # Create product info dictionary
+            # Create product info dictionary with consistent field names
             product_info = {
                 'product_code': self.product_code.text().strip(),
+                'product_name': self.product_name.text().strip(),
                 'color_code': self.color_code.text().strip(),
+                'color': self.color_code.text().strip(),  # For backward compatibility
                 'batch_number': self.batch_number.text().strip(),
                 'target_length': self.target_length.value(),
                 'units': self.unit_group.checkedButton().text()
@@ -341,23 +455,15 @@ class ProductForm(QWidget):
         
     def print_product_info(self):
         """Print product information."""
-        # Temporarily disable port validation
-        # settings = self.window().findChild(ConnectionSettings)
-        # if not settings or not settings.get_selected_port():
-        #     QMessageBox.warning(
-        #         self,
-        #         "Port Not Selected",
-        #         "Please select a serial port before printing."
-        #     )
-        #     return
-            
         if not self.validate_inputs():
             return
             
-        # Get product info
+        # Get product info with consistent field names for printing
         product_info = {
             'product_code': self.product_code.text().strip(),
+            'product_name': self.product_name.text().strip(),
             'color_code': self.color_code.text().strip(),
+            'color': self.color_code.text().strip(),  # For backward compatibility
             'batch_number': self.batch_number.text().strip(),
             'target_length': self.target_length.value(),
             'units': self.unit_group.checkedButton().text()
@@ -371,6 +477,10 @@ class ProductForm(QWidget):
         """Validate form inputs."""
         if not self.product_code.text().strip():
             self.show_error(self.product_code, "Product code is required")
+            return False
+            
+        if not self.product_name.text().strip():
+            self.show_error(self.product_name, "Product name is required")
             return False
             
         if not self.color_code.text().strip():
@@ -411,6 +521,7 @@ class ProductForm(QWidget):
         """Get current product information."""
         return {
             'product_code': self.product_code.text().strip(),
+            'product_name': self.product_name.text().strip(),
             'color_code': self.color_code.text().strip(),
             'batch_number': self.batch_number.text().strip(),
             'target_length': self.target_length.value(),
@@ -420,10 +531,19 @@ class ProductForm(QWidget):
     def set_product_info(self, info: Dict[str, Any]):
         """Set product information in the form."""
         self.product_code.setText(info.get('product_code', ''))
+        self.product_name.setText(info.get('product_name', ''))
         self.color_code.setText(info.get('color_code', ''))
         self.batch_number.setText(info.get('batch_number', ''))
         self.target_length.setValue(info.get('target_length', 0.0))
-        self.unit_group.checkedButton().setChecked(True)
+        
+        # Handle unit selection properly
+        unit = info.get('unit', 'Meter')
+        if unit.lower() in ['yard', 'yards', 'y']:
+            self.yard_radio.setChecked(True)
+            self._current_unit = "Yard"
+        else:
+            self.meter_radio.setChecked(True)
+            self._current_unit = "Meter"
 
     def increment_length(self):
         """Increment target length by 1."""
@@ -463,13 +583,207 @@ class ProductForm(QWidget):
         if not self.validate_inputs():
             return
             
-        # Create product info dictionary
+        # Create product info dictionary with consistent field names
         product_info = {
             'product_code': self.product_code.text().strip(),
+            'product_name': self.product_name.text().strip(),
             'color_code': self.color_code.text().strip(),
+            'color': self.color_code.text().strip(),  # For backward compatibility
             'batch_number': self.batch_number.text().strip(),
             'target_length': self.target_length.value(),
             'units': self.unit_group.checkedButton().text()
         }
         # Emit the product_updated signal
-        self.product_updated.emit(product_info) 
+        self.product_updated.emit(product_info)
+
+    def _on_product_code_changed(self):
+        """Handle text change in product code input."""
+        # Reduce delay to 150ms for faster response
+        self._search_timer.start(150)  # Start timer for delayed search
+
+    def _on_product_code_finished(self):
+        """Handle editing finished in product code input."""
+        self._search_timer.stop()  # Stop timer
+        self._perform_product_search()
+
+    def _perform_product_search(self):
+        """Perform product search based on the current product code."""
+        product_code = self.product_code.text().strip()
+        
+        # Only search if code has at least 3 characters and is different from last search
+        if len(product_code) >= 3 and product_code != self._last_searched_code:
+            self._last_searched_code = product_code
+            self._set_search_status("Searching...", "#ffa500", "Searching for product details...")
+            
+            # Set loading style for product code input
+            self.product_code.setStyleSheet(self.loading_style)
+            
+            # Cancel previous search if running
+            if self._search_worker and self._search_worker.isRunning():
+                self._search_worker.terminate()
+                self._search_worker.wait()
+            
+            # Start new search in background thread
+            self._search_worker = ProductSearchWorker(product_code, self.API_BASE_URL, self.API_HEADERS)
+            self._search_worker.search_completed.connect(self._on_search_completed)
+            self._search_worker.search_failed.connect(self._on_search_failed)
+            self._search_worker.start()
+            
+        elif len(product_code) < 3:
+            # Clear status if less than 3 characters
+            self._clear_search_status()
+            self._last_searched_code = ""
+            
+    def _on_search_completed(self, product_info: Dict[str, Any]):
+        """Handle successful search completion."""
+        self._populate_form_from_api(product_info)
+        self._set_search_status("Found", "#28a745", f"Found: {product_info.get('item_name', 'Product')}")
+        self._reset_input_style()
+        
+    def _on_search_failed(self, error_type: str, message: str):
+        """Handle search failure."""
+        color_map = {
+            "not_found": "#ff4444",
+            "timeout": "#ff4444", 
+            "connection": "#ff4444",
+            "error": "#ff4444"
+        }
+        
+        status_map = {
+            "not_found": "Not Found",
+            "timeout": "Timeout",
+            "connection": "No Connection", 
+            "error": "Error"
+        }
+        
+        self._set_search_status(
+            status_map.get(error_type, "Error"),
+            color_map.get(error_type, "#ff4444"),
+            message
+        )
+        self._reset_input_style()
+        logger.error(f"Search failed: {error_type} - {message}")
+
+    def search_product_details(self, product_code: str):
+        """Perform API call to search for product details."""
+        try:
+            # Make API request with item_code parameter as per the API endpoint
+            response = requests.get(
+                f"{self.API_BASE_URL}?item_code={product_code}",
+                headers=self.API_HEADERS,
+                timeout=3  # Reduce timeout to 3 seconds for faster feedback
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            # Check if product data is found based on actual API response structure
+            if (data.get("message") and 
+                isinstance(data["message"], dict) and 
+                data["message"].get("success") and 
+                data["message"].get("data")):
+                
+                product_info = data["message"]["data"]
+                self._populate_form_from_api(product_info)
+                self._set_search_status("Found", "#28a745", f"Found: {product_info.get('item_name', product_code)}")
+                self._reset_input_style()
+                
+            else:
+                self._set_search_status("Not Found", "#ff4444", "Product not found")
+                self._reset_input_style()
+                logger.warning(f"Product not found for code: {product_code}")
+                
+        except requests.exceptions.Timeout:
+            self._set_search_status("Timeout", "#ff4444", "Search timeout - please try again")
+            self._reset_input_style()
+            logger.error(f"Timeout searching for product: {product_code}")
+            
+        except requests.exceptions.ConnectionError:
+            self._set_search_status("No Connection", "#ff4444", "Cannot connect to server")
+            self._reset_input_style()
+            logger.error(f"Connection error searching for product: {product_code}")
+            
+        except Exception as e:
+            self._set_search_status("Error", "#ff4444", f"Search error: {str(e)}")
+            self._reset_input_style()
+            logger.error(f"Error searching for product {product_code}: {e}")
+
+    def _set_search_status(self, text: str, color: str, tooltip: str):
+        """Set search status label with text, color and tooltip."""
+        self.search_status_label.setText(text)
+        self.search_status_label.setStyleSheet(f"""
+            QLabel {{
+                color: {color};
+                font-size: 12px;
+                font-weight: bold;
+            }}
+        """)
+        self.search_status_label.setToolTip(tooltip)
+        self.search_status_label.setFixedWidth(80)
+        self.search_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+    def _clear_search_status(self):
+        """Clear search status label."""
+        self.search_status_label.setText("")
+        self.search_status_label.setToolTip("")
+        self._reset_input_style()
+
+    def _reset_input_style(self):
+        """Reset product code input to normal style."""
+        input_style = """
+            QLineEdit {
+                background-color: #353535;
+                border: 1px solid #444444;
+                border-radius: 4px;
+                padding: 5px;
+                color: white;
+                font-size: 14px;
+                min-height: 40px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #0078d4;
+            }
+        """
+        self.product_code.setStyleSheet(input_style)
+
+    def _populate_form_from_api(self, product_info: Dict[str, Any]):
+        """Populate form fields from API response data."""
+        # Map API response fields based on actual API structure
+        if "item_code" in product_info:
+            # Only update if it's different to avoid cursor movement
+            current_text = self.product_code.text().strip()
+            new_text = str(product_info["item_code"])
+            if current_text.upper() != new_text.upper():
+                self.product_code.setText(new_text)
+        
+        # Set product name from item_name
+        if "item_name" in product_info:
+            self.product_name.setText(str(product_info["item_name"]))
+        
+        # Extract color code from variants.attributes[0].abbreviation
+        color_code = ""
+        if "variants" in product_info and "attributes" in product_info["variants"]:
+            attributes = product_info["variants"]["attributes"]
+            if isinstance(attributes, list) and len(attributes) > 0:
+                color_code = attributes[0].get("abbreviation", "")
+        
+        # If no color from variants, fallback to item_name
+        if not color_code and "item_name" in product_info:
+            color_code = str(product_info["item_name"])
+        
+        self.color_code.setText(color_code)
+        
+        # Generate batch number with current date in YMD format
+        current_date = datetime.now().strftime("%Y%m%d")
+        self.batch_number.setText(current_date)
+        
+        # Set default values for missing fields
+        # These might need to be adjusted based on your business logic
+        if self.target_length.value() == 0.0:
+            self.target_length.setValue(100.0)  # Default target length
+        
+        # Default to Meter unit if not specified
+        if not self.meter_radio.isChecked() and not self.yard_radio.isChecked():
+            self.meter_radio.setChecked(True)
+            self._current_unit = "Meter"
+        
+        logger.info(f"Form populated with product data for: {product_info.get('item_code', 'Unknown')} - {product_info.get('item_name', '')}") 

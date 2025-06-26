@@ -205,10 +205,10 @@ class PrintPreviewDialog(QDialog):
         
         labels = ["Color", "Length", "Roll No.", "Lot No."]
         values = [
-            str(self.product_info.get('color', '1')),  # Ensure color is retrieved as string
+            str(self.product_info.get('color_code', '1')),  # Use color_code field
             f"{self.product_info.get('target_length', 0)} {self.product_info.get('units', 'Yard')}",
             str(self.product_info.get('roll_number', '0')),
-            str(self.product_info.get('lot_number', 'None'))
+            str(self.product_info.get('batch_number', 'None'))  # Use batch_number as lot_number
         ]
         
         for i, (label, value) in enumerate(zip(labels, values)):
@@ -396,10 +396,10 @@ class PrintPreviewDialog(QDialog):
         
         labels = ["Color", "Length", "Roll No.", "Lot No."]
         values = [
-            str(self.product_info.get('color', '1')),  # Default color: 1
+            str(self.product_info.get('color_code', '1')),  # Use color_code field
             f"{self.product_info.get('target_length', 0)} {self.product_info.get('units', 'Yard')}",
             str(self.product_info.get('roll_number', '0')),  # Default roll number: 0
-            str(self.product_info.get('lot_number', 'None'))  # Default lot number: None
+            str(self.product_info.get('batch_number', 'None'))  # Use batch_number as lot_number
         ]
         
         for i, (label, value) in enumerate(zip(labels, values)):
