@@ -28,6 +28,9 @@ The product search feature provides automatic product information retrieval from
             "item_code": "BD-RED",
             "item_name": "Baby Doll-RED",
             "description": "Baby Doll-RED",
+            "image": "https://example.com/images/bd-red.jpg",
+            "barcode": "123456789012",
+            "barcode_id": "123456789012",
             "stock_uom": "Nos",
             "disabled": 0,
             "item_group": "Products",
@@ -63,8 +66,11 @@ The product search feature provides automatic product information retrieval from
 | Product Name | `data.item_name` | Full product name (read-only) |
 | Color Code | `data.variants.attributes[0].abbreviation` | Color abbreviation from variants |
 | Batch Number | Current Date (YYYYMMDD) | Auto-generated in YMD format |
-| Target Length | Manual Entry | User-defined target length |
+| Target Length | Manual Entry | User-defined target length (keyboard + buttons) |
 | Unit | Manual Selection | Meter or Yard |
+| Product Image | `data.image` | Product image from API (with fallback) |
+
+**Note**: Barcode from API (`data.barcode` or `data.barcode_id`) is stored internally but not displayed in the form UI. It is only used for printing.
 
 ### Print Preview Fields
 | Print Field | Source | Example |
@@ -75,7 +81,12 @@ The product search feature provides automatic product information retrieval from
 | Length | Target Length + Unit | "100.0 Meter" |
 | Roll No. | Default | "0" |
 | Lot No. | Batch Number | "20250626" |
-| QR Code | Product Code + Length | "BD-RED-100.0" |
+| Left QR Code | Product Code + Length | "BD-RED-100.0" |
+| Right QR Code | API Barcode Reference | "123456789012" |
+
+**Barcode Details**:
+- **Left QR Code**: Contains product details (Product Code + Length) for identification
+- **Right QR Code**: Contains barcode reference from API (`data.barcode` or `data.barcode_id`) from Textile barcode doctype. If no API barcode available, displays the same product details QR code.
 
 ## Features
 
@@ -130,11 +141,41 @@ The product search feature provides automatic product information retrieval from
 - Product Name (auto-filled from API)
 - Color Code (auto-filled from API)
 - Batch Number (auto-generated)
-- Target Length (must be > 0)
+- Target Length (must be ≥ 1 meter)
+
+### Target Length Input
+- **Manual Entry**: Users can type directly using keyboard or on-screen keyboard
+- **Button Controls**: Plus (+) and minus (-) buttons for quick adjustments
+- **Default Value**: 0.0 meters (forces user to set target length)
+- **Validation**: 
+  - Must be ≥ 1 meter
+  - Shows warning dialog if value is 0 or < 1 meter
+  - Error styling clears automatically when user changes value
+- **Unit Conversion**: Automatic conversion between meters and yards
+
+### Product Image Display
+- **API Integration**: Loads image from `data.image` field if available
+- **Fallback Strategy**: 
+  1. Try loading image from API URL (`data.image`)
+  2. If API image fails or is null/empty → Load default image
+  3. If default image fails → Show "No Image Available" placeholder
+- **Error Handling**: 
+  - 5-second timeout for image downloads
+  - Handles HTTP errors (404, 500, etc.)
+  - Network connection error handling
+  - Invalid image data handling
+- **Image Processing**: 
+  - Automatic scaling to 150x150 pixels
+  - Maintains aspect ratio
+  - Supports common image formats (JPEG, PNG, etc.)
+- **Null/Empty Handling**: 
+  - Empty strings, "null", "none", whitespace → Default image
+  - Missing `image` field → Default image
 
 ### Auto-Generation
 - **Batch Number**: Generated using current date in YYYYMMDD format
-- **Default Values**: 100.0 meters for target length
+- **Default Values**: 0.0 meters for target length (user must input manually)
+- **Barcode Storage**: Automatically stored from API response (`data.barcode` or `data.barcode_id`) for printing purposes
 
 ## Usage Workflow
 
@@ -145,6 +186,8 @@ The product search feature provides automatic product information retrieval from
    - Product Name (from `item_name`)
    - Color Code (from `variants.attributes[0].abbreviation`)
    - Batch Number (current date in YYYYMMDD)
+   - Product Image (from `image` field with fallback)
+   - Barcode (stored internally from `barcode` or `barcode_id` - not displayed in form)
 5. **User reviews/adjusts** target length and unit
 6. **Start monitoring** or **Print preview** with complete data
 

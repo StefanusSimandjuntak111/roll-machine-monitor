@@ -100,6 +100,7 @@ class ProductForm(QWidget):
         self._search_timer.timeout.connect(self._perform_product_search)
         self._last_searched_code = ""  # Track last searched code to avoid duplicate searches
         self._search_worker = None  # Current search worker thread
+        self._barcode = ""  # Store barcode data from API (not displayed in UI)
         self.setup_ui()
         
     def setup_ui(self):
@@ -234,8 +235,10 @@ class ProductForm(QWidget):
         self.target_length = QDoubleSpinBox()
         self.target_length.setRange(0, 100000)
         self.target_length.setDecimals(2)
-        self.target_length.setValue(0.0)
+        self.target_length.setValue(0.0)  # Default to 0
         self.target_length.valueChanged.connect(self.on_length_changed)
+        # Clear error styling when user changes value
+        self.target_length.valueChanged.connect(lambda: self.clear_error(self.target_length))
         self.target_length.setStyleSheet(input_style + """
             QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
                 width: 0;
@@ -247,7 +250,8 @@ class ProductForm(QWidget):
                 padding-right: 5px;  /* Reduce right padding since we removed the buttons */
             }
         """)
-        self.target_length.setReadOnly(True)  # Make it read-only since we use plus/minus buttons
+        # Allow manual input - remove setReadOnly(True)
+        self.target_length.setReadOnly(False)  # Allow manual keyboard input
         self.target_length.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         length_layout.addWidget(self.target_length)
         
@@ -341,7 +345,7 @@ class ProductForm(QWidget):
         form_layout.addRow("Attachment:", image_container)
         
         # Load default image
-        self.load_image(self.DEFAULT_IMAGE_URL)
+        self.load_default_image()
         
         # Buttons container
         buttons_container = QWidget()
@@ -444,6 +448,7 @@ class ProductForm(QWidget):
                 'product_name': self.product_name.text().strip(),
                 'color_code': self.color_code.text().strip(),
                 'color': self.color_code.text().strip(),  # For backward compatibility
+                'barcode': self._barcode,
                 'batch_number': self.batch_number.text().strip(),
                 'target_length': self.target_length.value(),
                 'units': self.unit_group.checkedButton().text()
@@ -464,6 +469,7 @@ class ProductForm(QWidget):
             'product_name': self.product_name.text().strip(),
             'color_code': self.color_code.text().strip(),
             'color': self.color_code.text().strip(),  # For backward compatibility
+            'barcode': self._barcode,
             'batch_number': self.batch_number.text().strip(),
             'target_length': self.target_length.value(),
             'units': self.unit_group.checkedButton().text()
@@ -492,7 +498,21 @@ class ProductForm(QWidget):
             return False
             
         if self.target_length.value() <= 0:
-            self.show_error(self.target_length, "Target length must be greater than 0")
+            self.show_error(self.target_length, "Panjang belum di set! Masukkan target panjang yang valid.")
+            QMessageBox.warning(
+                self,
+                "Target Length Required",
+                "Panjang belum di set!\n\nSilakan masukkan target panjang minimal 1 meter sebelum melanjutkan."
+            )
+            return False
+            
+        if self.target_length.value() < 1:
+            self.show_error(self.target_length, "Target panjang minimal 1 meter")
+            QMessageBox.warning(
+                self,
+                "Target Length Too Small",
+                "Target panjang terlalu kecil!\n\nMinimal panjang yang diizinkan adalah 1 meter."
+            )
             return False
             
         return True
@@ -514,7 +534,35 @@ class ProductForm(QWidget):
         
     def clear_error(self, widget: QWidget):
         """Clear error styling and tooltip for a widget."""
-        widget.setStyleSheet("")
+        # Reset to normal styling based on widget type
+        if isinstance(widget, QDoubleSpinBox):
+            # Reset to normal input style for spinbox
+            input_style = """
+                QDoubleSpinBox {
+                    background-color: #353535;
+                    border: 1px solid #444444;
+                    border-radius: 4px;
+                    padding: 5px;
+                    color: white;
+                    font-size: 14px;
+                    min-height: 40px;
+                }
+                QDoubleSpinBox:focus {
+                    border: 1px solid #0078d4;
+                }
+                QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+                    width: 0;
+                    height: 0;
+                    border: none;
+                    background: none;
+                }
+                QDoubleSpinBox {
+                    padding-right: 5px;
+                }
+            """
+            widget.setStyleSheet(input_style)
+        else:
+            widget.setStyleSheet("")
         widget.setToolTip("")
         
     def get_product_info(self) -> Dict[str, Any]:
@@ -523,6 +571,7 @@ class ProductForm(QWidget):
             'product_code': self.product_code.text().strip(),
             'product_name': self.product_name.text().strip(),
             'color_code': self.color_code.text().strip(),
+            'barcode': self._barcode,
             'batch_number': self.batch_number.text().strip(),
             'target_length': self.target_length.value(),
             'unit': self.unit_group.checkedButton().text()
@@ -533,6 +582,7 @@ class ProductForm(QWidget):
         self.product_code.setText(info.get('product_code', ''))
         self.product_name.setText(info.get('product_name', ''))
         self.color_code.setText(info.get('color_code', ''))
+        self._barcode = info.get('barcode', '')
         self.batch_number.setText(info.get('batch_number', ''))
         self.target_length.setValue(info.get('target_length', 0.0))
         
@@ -549,34 +599,101 @@ class ProductForm(QWidget):
         """Increment target length by 1."""
         current_value = self.target_length.value()
         self.target_length.setValue(current_value + 1)
+        # Clear any error styling when user interacts
+        self.clear_error(self.target_length)
 
     def decrement_length(self):
         """Decrement target length by 1."""
         current_value = self.target_length.value()
         if current_value > 0:  # Prevent negative values
             self.target_length.setValue(current_value - 1)
+        # Clear any error styling when user interacts
+        self.clear_error(self.target_length)
 
     def load_image(self, url):
         """Load image from URL and display it."""
         try:
-            response = requests.get(url)
+            if not url or url.strip() == "":
+                self.load_default_image()
+                return
+                
+            logger.info(f"Attempting to load image from: {url}")
+            response = requests.get(url, timeout=5)  # Add timeout for better error handling
+            response.raise_for_status()  # Raise exception for bad status codes
+            
             image_data = BytesIO(response.content)
             pixmap = QPixmap()
-            pixmap.loadFromData(image_data.getvalue())
-            scaled_pixmap = pixmap.scaled(200, 200, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            self.image_label.setPixmap(scaled_pixmap)
+            
+            if pixmap.loadFromData(image_data.getvalue()):
+                # Successfully loaded image
+                scaled_pixmap = pixmap.scaled(150, 150, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                self.image_label.setPixmap(scaled_pixmap)
+                # Reset any previous error styling
+                self.image_label.setStyleSheet("""
+                    QLabel {
+                        border: 1px solid #444444;
+                        border-radius: 4px;
+                    }
+                """)
+                self.image_label.setText("")  # Clear any text
+                logger.info(f"Successfully loaded image from: {url}")
+            else:
+                # Failed to load pixmap data
+                logger.warning(f"Failed to load pixmap data from: {url}")
+                self.load_default_image()
+                
+        except requests.exceptions.Timeout:
+            logger.error(f"Timeout loading image from: {url}")
+            self.load_default_image()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request error loading image from {url}: {e}")
+            self.load_default_image()
         except Exception as e:
-            # Load no-image placeholder
-            self.image_label.setText("No Image Available")
-            self.image_label.setStyleSheet("""
-                QLabel {
-                    background-color: #2d2d2d;
-                    border: 1px dashed #666666;
-                    border-radius: 5px;
-                    color: #666666;
-                    font-size: 14px;
-                }
-            """)
+            logger.error(f"Unexpected error loading image from {url}: {e}")
+            self.load_default_image()
+
+    def load_default_image(self):
+        """Load default 'No Image Available' placeholder."""
+        try:
+            # Try to load the default image URL first
+            response = requests.get(self.DEFAULT_IMAGE_URL, timeout=3)
+            response.raise_for_status()
+            
+            image_data = BytesIO(response.content)
+            pixmap = QPixmap()
+            if pixmap.loadFromData(image_data.getvalue()):
+                scaled_pixmap = pixmap.scaled(150, 150, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                self.image_label.setPixmap(scaled_pixmap)
+                self.image_label.setStyleSheet("""
+                    QLabel {
+                        border: 1px solid #444444;
+                        border-radius: 4px;
+                    }
+                """)
+                self.image_label.setText("")
+                logger.info("Loaded default image from URL")
+            else:
+                self.show_no_image_placeholder()
+        except Exception as e:
+            logger.warning(f"Could not load default image from URL: {e}")
+            self.show_no_image_placeholder()
+
+    def show_no_image_placeholder(self):
+        """Show 'No Image Available' text placeholder."""
+        self.image_label.clear()  # Clear any existing pixmap
+        self.image_label.setText("No Image\nAvailable")
+        self.image_label.setStyleSheet("""
+            QLabel {
+                background-color: #2d2d2d;
+                border: 1px dashed #666666;
+                border-radius: 5px;
+                color: #666666;
+                font-size: 12px;
+                text-align: center;
+            }
+        """)
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logger.info("Showing 'No Image Available' placeholder")
 
     def save_product_info(self):
         """Validate and save product information."""
@@ -589,6 +706,7 @@ class ProductForm(QWidget):
             'product_name': self.product_name.text().strip(),
             'color_code': self.color_code.text().strip(),
             'color': self.color_code.text().strip(),  # For backward compatibility
+            'barcode': self._barcode,
             'batch_number': self.batch_number.text().strip(),
             'target_length': self.target_length.value(),
             'units': self.unit_group.checkedButton().text()
@@ -686,6 +804,7 @@ class ProductForm(QWidget):
                 self._populate_form_from_api(product_info)
                 self._set_search_status("Found", "#28a745", f"Found: {product_info.get('item_name', product_code)}")
                 self._reset_input_style()
+                logger.info(f"Successfully found product: {product_code} - {product_info.get('item_name', '')}")
                 
             else:
                 self._set_search_status("Not Found", "#ff4444", "Product not found")
@@ -772,14 +891,77 @@ class ProductForm(QWidget):
         
         self.color_code.setText(color_code)
         
+        # Extract barcode from new API response structure
+        # The new API provides barcode information in barcode_urls with two arrays:
+        # - existing_barcodes: barcodes that already exist in the system
+        # - potential_barcodes: barcodes that can be generated (with different quantities)
+        barcode = ""
+        barcode_source = ""
+        
+        # Priority 1: Try existing barcodes first (already generated/available)
+        if ("barcode_urls" in product_info and 
+            "existing_barcodes" in product_info["barcode_urls"] and
+            product_info["barcode_urls"]["existing_barcodes"]):
+            # Use first existing barcode
+            existing_barcode = product_info["barcode_urls"]["existing_barcodes"][0]
+            if isinstance(existing_barcode, dict):
+                barcode = existing_barcode.get("barcode_id", "")
+                barcode_source = "existing_barcodes"
+            else:
+                barcode = str(existing_barcode)
+                barcode_source = "existing_barcodes"
+        
+        # Priority 2: If no existing barcode, use first potential barcode 
+        elif ("barcode_urls" in product_info and 
+              "potential_barcodes" in product_info["barcode_urls"] and
+              product_info["barcode_urls"]["potential_barcodes"]):
+            # Use first potential barcode (usually quantity=1 which is most common)
+            potential_barcode = product_info["barcode_urls"]["potential_barcodes"][0]
+            if isinstance(potential_barcode, dict):
+                barcode = potential_barcode.get("barcode_id", "")
+                barcode_source = "potential_barcodes"
+        
+        # Priority 3: Fallback to legacy barcode fields if new structure not available
+        # This ensures backward compatibility with older API versions
+        if not barcode:
+            if "barcode" in product_info:
+                barcode = str(product_info["barcode"]).strip()
+                barcode_source = "legacy_barcode"
+            elif "barcode_id" in product_info:
+                barcode = str(product_info["barcode_id"]).strip()
+                barcode_source = "legacy_barcode_id"
+        
+        # Set barcode field
+        self._barcode = barcode.strip() if barcode else ""
+        
+        # Log barcode extraction details
+        if self._barcode:
+            logger.info(f"Extracted barcode '{self._barcode}' from {barcode_source} for product {product_info.get('item_code', 'Unknown')}")
+        else:
+            logger.warning(f"No barcode found for product {product_info.get('item_code', 'Unknown')} - checked existing_barcodes, potential_barcodes, and legacy fields")
+        
         # Generate batch number with current date in YMD format
         current_date = datetime.now().strftime("%Y%m%d")
         self.batch_number.setText(current_date)
         
-        # Set default values for missing fields
-        # These might need to be adjusted based on your business logic
-        if self.target_length.value() == 0.0:
-            self.target_length.setValue(100.0)  # Default target length
+        # Load product image from API if available
+        if "image" in product_info and product_info["image"]:
+            # Image URL available from API
+            image_url = str(product_info["image"]).strip()
+            if image_url and image_url.lower() not in ['null', 'none', '']:
+                logger.info(f"Loading product image from API: {image_url}")
+                self.load_image(image_url)
+            else:
+                # Image field exists but is empty/null
+                logger.info("Image field is empty/null, loading default image")
+                self.load_default_image()
+        else:
+            # No image field in API response
+            logger.info("No image field in API response, loading default image")
+            self.load_default_image()
+        
+        # Keep target length at 0.0 - let user input manually
+        # No automatic default value setting - user must input target length manually
         
         # Default to Meter unit if not specified
         if not self.meter_radio.isChecked() and not self.yard_radio.isChecked():

@@ -460,11 +460,25 @@ class PrintPreviewDialog(QDialog):
             Qt.TransformationMode.SmoothTransformation
         )
         
-        # Draw left barcode
+        # Draw left barcode (Product Details QR)
         painter.drawImage(barcode_left_x, barcode_y, scaled_qr)
         
-        # Draw right barcode
-        painter.drawImage(barcode_right_x, barcode_y, scaled_qr)
+        # Generate API barcode for right side (if available)
+        api_barcode = self.product_info.get('barcode', '')
+        if api_barcode and api_barcode.strip():
+            # Generate barcode for API reference  
+            api_qr_image = self.generate_qr_code(api_barcode, use_internet_qr=False)
+            scaled_api_qr = api_qr_image.scaled(
+                barcode_size_px, 
+                barcode_size_px, 
+                Qt.AspectRatioMode.KeepAspectRatio, 
+                Qt.TransformationMode.SmoothTransformation
+            )
+            # Draw right barcode (API Reference)
+            painter.drawImage(barcode_right_x, barcode_y, scaled_api_qr)
+        else:
+            # If no API barcode, draw the same product details QR on the right
+            painter.drawImage(barcode_right_x, barcode_y, scaled_qr)
         
         painter.end()
 
