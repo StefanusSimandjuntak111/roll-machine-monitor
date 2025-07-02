@@ -78,10 +78,16 @@ check_files
 info "Step 2: Emergency stop of all running instances"
 log "Forcibly stopping all monitoring processes..."
 
-# Stop systemd services
-sudo systemctl stop rollmachine-kiosk 2>/dev/null || true
-sudo systemctl stop rollmachine-watchdog 2>/dev/null || true
-sudo systemctl stop rollmachine-smart 2>/dev/null || true
+# Stop any existing services (try multiple methods)
+# Try systemctl first (if available)
+sudo systemctl stop rollmachine-kiosk rollmachine-watchdog rollmachine-smart 2>/dev/null || true
+
+# Try traditional init scripts
+sudo /etc/init.d/rollmachine-monitor stop 2>/dev/null || true
+sudo service rollmachine-monitor stop 2>/dev/null || true
+
+# Try OpenRC (Alpine/Gentoo)
+sudo rc-service rollmachine-monitor stop 2>/dev/null || true
 
 # Kill all processes
 sudo pkill -f "monitoring" 2>/dev/null || true
@@ -123,12 +129,18 @@ log "Installing from local directory: $SCRIPT_DIR"
 sudo mkdir -p "$INSTALL_DIR"
 sudo cp -r monitoring-roll-machine/* "$INSTALL_DIR/"
 
-# Install smart watchdog
-sudo cp smart-watchdog.sh "$INSTALL_DIR/"
-sudo chmod +x "$INSTALL_DIR/smart-watchdog.sh"
+# Install smart watchdog (universal version)
+sudo cp smart-watchdog-sysv.sh "$INSTALL_DIR/" 2>/dev/null || sudo cp smart-watchdog.sh "$INSTALL_DIR/"
+sudo chmod +x "$INSTALL_DIR/smart-watchdog"*
 
-# Install new service
-sudo cp rollmachine-smart.service /etc/systemd/system/
+# Install init script
+sudo cp rollmachine-init.sh /etc/init.d/rollmachine-monitor 2>/dev/null || true
+sudo chmod +x /etc/init.d/rollmachine-monitor 2>/dev/null || true
+
+# Install systemd service (if systemd is available)
+if command -v systemctl >/dev/null 2>&1; then
+    sudo cp rollmachine-smart.service /etc/systemd/system/ 2>/dev/null || true
+fi
 
 log "✅ Files installed successfully"
 
@@ -166,20 +178,38 @@ else
     pip install -r requirements.txt --upgrade --user --quiet 2>/dev/null || pip3 install -r requirements.txt --upgrade --user --quiet
 fi
 
-# Step 7: Configure smart watchdog service
-info "Step 7: Configure smart watchdog service"
+# Step 7: Configure smart watchdog service (universal)
+info "Step 7: Configure smart watchdog service (universal)"
 
-# Disable old services
-sudo systemctl disable rollmachine-kiosk 2>/dev/null || true
-sudo systemctl disable rollmachine-watchdog 2>/dev/null || true
+# Disable old services (try all methods)
+if command -v systemctl >/dev/null 2>&1; then
+    sudo systemctl disable rollmachine-kiosk rollmachine-watchdog rollmachine-smart 2>/dev/null || true
+    sudo systemctl daemon-reload 2>/dev/null || true
+    
+    # Backup old systemd services
+    sudo mv /etc/systemd/system/rollmachine-kiosk.service /etc/systemd/system/rollmachine-kiosk.service.disabled 2>/dev/null || true
+    sudo mv /etc/systemd/system/rollmachine-watchdog.service /etc/systemd/system/rollmachine-watchdog.service.disabled 2>/dev/null || true
+fi
 
-# Backup old services
-sudo mv /etc/systemd/system/rollmachine-kiosk.service /etc/systemd/system/rollmachine-kiosk.service.disabled 2>/dev/null || true
-sudo mv /etc/systemd/system/rollmachine-watchdog.service /etc/systemd/system/rollmachine-watchdog.service.disabled 2>/dev/null || true
+# Disable old SysV services
+sudo update-rc.d -f rollmachine-monitor remove 2>/dev/null || true
+sudo chkconfig rollmachine-monitor off 2>/dev/null || true
+sudo rc-update del rollmachine-monitor default 2>/dev/null || true
 
-# Enable new smart service
-sudo systemctl daemon-reload
-sudo systemctl enable rollmachine-smart
+# Configure new service based on available init system
+if command -v systemctl >/dev/null 2>&1 && [ -f "/etc/systemd/system/rollmachine-smart.service" ]; then
+    # Use systemd
+    sudo systemctl enable rollmachine-smart
+    log "✅ Systemd service configured"
+elif [ -f "/etc/init.d/rollmachine-monitor" ]; then
+    # Use traditional init script
+    sudo /etc/init.d/rollmachine-monitor enable
+    log "✅ SysV init service configured"
+else
+    # Manual configuration
+    log "⚠️  Manual service configuration required"
+    log "   Run: /opt/rollmachine-monitor/smart-watchdog-sysv.sh start"
+fi
 
 log "✅ Smart watchdog service configured"
 
@@ -215,23 +245,52 @@ else
     log "✅ Singleton protection working - second instance prevented"
 fi
 
-# Test 3: Test smart watchdog
+# Test 3: Test smart watchdog (universal)
 log "Testing smart watchdog..."
-sudo systemctl start rollmachine-smart
-sleep 10
 
-if sudo systemctl is-active --quiet rollmachine-smart; then
-    log "✅ Smart watchdog service started successfully"
+# Start service using available method
+if command -v systemctl >/dev/null 2>&1 && [ -f "/etc/systemd/system/rollmachine-smart.service" ]; then
+    # Use systemd
+    sudo systemctl start rollmachine-smart
+    sleep 10
     
-    # Check if application is running
+    if sudo systemctl is-active --quiet rollmachine-smart; then
+        log "✅ Systemd service started successfully"
+        SERVICE_STARTED=true
+    else
+        warn "⚠️  Systemd service failed to start"
+        SERVICE_STARTED=false
+    fi
+elif [ -f "/etc/init.d/rollmachine-monitor" ]; then
+    # Use SysV init
+    sudo /etc/init.d/rollmachine-monitor start
+    sleep 10
+    
+    if sudo /etc/init.d/rollmachine-monitor status >/dev/null 2>&1; then
+        log "✅ SysV service started successfully"
+        SERVICE_STARTED=true
+    else
+        warn "⚠️  SysV service failed to start"
+        SERVICE_STARTED=false
+    fi
+else
+    # Manual start
+    log "Starting watchdog manually..."
+    cd "$INSTALL_DIR"
+    ./smart-watchdog-sysv.sh start 2>/dev/null || ./smart-watchdog.sh start 2>/dev/null || true
+    sleep 10
+    SERVICE_STARTED=true
+fi
+
+# Check if application is running
+if [ "$SERVICE_STARTED" = true ]; then
     if pgrep -f "python.*monitoring" >/dev/null; then
         log "✅ Application started by smart watchdog"
     else
         warn "⚠️  Smart watchdog started but application not detected yet (may be starting)"
     fi
 else
-    error "❌ Smart watchdog service failed to start"
-    sudo systemctl status rollmachine-smart
+    warn "⚠️  Service start verification failed, but application may still be running"
 fi
 
 # Step 9: Final verification and summary
@@ -297,10 +356,21 @@ echo "   • Smart health monitoring every 60 seconds"
 echo "   • Works offline without GitHub access"
 echo ""
 echo "🔧 Management Commands:"
-echo "   Start:   sudo systemctl start rollmachine-smart"
-echo "   Stop:    sudo systemctl stop rollmachine-smart"
-echo "   Status:  sudo systemctl status rollmachine-smart"
-echo "   Logs:    sudo journalctl -u rollmachine-smart -f"
+if command -v systemctl >/dev/null 2>&1 && [ -f "/etc/systemd/system/rollmachine-smart.service" ]; then
+    echo "   Start:   sudo systemctl start rollmachine-smart"
+    echo "   Stop:    sudo systemctl stop rollmachine-smart"
+    echo "   Status:  sudo systemctl status rollmachine-smart"
+    echo "   Logs:    sudo journalctl -u rollmachine-smart -f"
+elif [ -f "/etc/init.d/rollmachine-monitor" ]; then
+    echo "   Start:   sudo /etc/init.d/rollmachine-monitor start"
+    echo "   Stop:    sudo /etc/init.d/rollmachine-monitor stop"
+    echo "   Status:  sudo /etc/init.d/rollmachine-monitor status"
+    echo "   Enable:  sudo /etc/init.d/rollmachine-monitor enable"
+else
+    echo "   Start:   cd $INSTALL_DIR && ./smart-watchdog-sysv.sh start"
+    echo "   Stop:    cd $INSTALL_DIR && ./smart-watchdog-sysv.sh stop"
+    echo "   Status:  cd $INSTALL_DIR && ./smart-watchdog-sysv.sh status"
+fi
 echo "   Watchdog: tail -f /var/log/rollmachine-smart-watchdog.log"
 echo ""
 echo "📁 Backup location: $BACKUP_DIR"

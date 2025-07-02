@@ -5,8 +5,9 @@ This package fixes the multiple instance bug that causes application conflicts a
 
 ## 📦 Package Contents
 - `monitoring-roll-machine/` - Complete application with singleton protection
-- `smart-watchdog.sh` - Intelligent watchdog with idle detection  
-- `rollmachine-smart.service` - Systemd service configuration
+- `smart-watchdog-sysv.sh` - Universal intelligent watchdog (no systemctl needed)
+- `rollmachine-init.sh` - SysV/OpenRC init script for auto-start
+- `rollmachine-smart.service` - Systemd service (if systemd available)
 - `fix-multiple-instance-offline.sh` - Automated installation script
 
 ## 🚀 Quick Installation
@@ -60,10 +61,25 @@ sudo journalctl -u rollmachine-smart -f
 ```
 
 ## 🔧 Management Commands
+
+### If systemd is available:
 - Start: `sudo systemctl start rollmachine-smart`
-- Stop: `sudo systemctl stop rollmachine-smart`  
+- Stop: `sudo systemctl stop rollmachine-smart`
 - Status: `sudo systemctl status rollmachine-smart`
-- Logs: `tail -f /var/log/rollmachine-smart-watchdog.log`
+
+### If using SysV/OpenRC (antiX, Alpine, etc.):
+- Start: `sudo /etc/init.d/rollmachine-monitor start`
+- Stop: `sudo /etc/init.d/rollmachine-monitor stop`
+- Status: `sudo /etc/init.d/rollmachine-monitor status`
+- Enable: `sudo /etc/init.d/rollmachine-monitor enable`
+
+### Manual control:
+- Start: `cd /opt/rollmachine-monitor && ./smart-watchdog-sysv.sh start`
+- Stop: `cd /opt/rollmachine-monitor && ./smart-watchdog-sysv.sh stop`
+- Status: `cd /opt/rollmachine-monitor && ./smart-watchdog-sysv.sh status`
+
+### Logs:
+- Watchdog: `tail -f /var/log/rollmachine-smart-watchdog.log`
 
 ## 🚨 Key Features
 - Prevents multiple instances with file locking

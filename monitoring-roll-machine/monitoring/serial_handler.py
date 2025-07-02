@@ -50,6 +50,11 @@ class JSKSerialPort:
         try:
             if not self._serial or not self._serial.is_open:
                 self._serial = self._serial_class()
+                
+                # For mock serial, we need to explicitly call open()
+                if self.simulation_mode:
+                    self._serial.open()
+                
                 logger.info(f"Port {self.port} opened successfully")
         except Exception as e:
             logger.error(f"Error opening port {self.port}: {e}")
