@@ -6,8 +6,9 @@ import logging
 import subprocess
 import time
 import os
+import fcntl
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
@@ -30,6 +31,99 @@ from .settings_dialog import SettingsDialog
 from .connection_settings import ConnectionSettings
 
 logger = logging.getLogger(__name__)
+
+class SingletonLock:
+    """Singleton lock to prevent multiple instances."""
+    
+    def __init__(self, lock_file="/tmp/rollmachine_monitor.lock"):
+        self.lock_file = lock_file
+        self.lock_handle = None
+        
+    def acquire(self):
+        """Acquire exclusive lock."""
+        try:
+            self.lock_handle = open(self.lock_file, 'w')
+            fcntl.flock(self.lock_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            
+            # Write PID and timestamp
+            self.lock_handle.write(f"{os.getpid()}\n{datetime.now().isoformat()}\n")
+            self.lock_handle.flush()
+            
+            logger.info(f"Singleton lock acquired: {self.lock_file}")
+            return True
+            
+        except (IOError, OSError) as e:
+            logger.warning(f"Cannot acquire singleton lock: {e}")
+            if self.lock_handle:
+                self.lock_handle.close()
+                self.lock_handle = None
+            return False
+    
+    def release(self):
+        """Release lock."""
+        if self.lock_handle:
+            try:
+                fcntl.flock(self.lock_handle.fileno(), fcntl.LOCK_UN)
+                self.lock_handle.close()
+                if os.path.exists(self.lock_file):
+                    os.remove(self.lock_file)
+                logger.info("Singleton lock released")
+            except Exception as e:
+                logger.warning(f"Error releasing lock: {e}")
+            finally:
+                self.lock_handle = None
+
+class HeartbeatManager:
+    """Manages application heartbeat and idle detection."""
+    
+    def __init__(self, heartbeat_file="/tmp/rollmachine_heartbeat"):
+        self.heartbeat_file = heartbeat_file
+        self.last_activity = datetime.now()
+        self.data_count = 0
+        self.last_data_count = 0
+        
+        # Start heartbeat timer
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_heartbeat)
+        self.timer.start(10000)  # Update every 10 seconds
+    
+    def record_activity(self):
+        """Record user or data activity."""
+        self.last_activity = datetime.now()
+    
+    def record_data(self):
+        """Record data reception."""
+        self.data_count += 1
+        self.last_activity = datetime.now()
+    
+    def update_heartbeat(self):
+        """Update heartbeat file with current status."""
+        try:
+            status = {
+                'pid': os.getpid(),
+                'timestamp': datetime.now().isoformat(),
+                'last_activity': self.last_activity.isoformat(),
+                'data_count': self.data_count,
+                'idle_seconds': (datetime.now() - self.last_activity).total_seconds(),
+                'is_processing_data': self.data_count > self.last_data_count
+            }
+            
+            with open(self.heartbeat_file, 'w') as f:
+                import json
+                json.dump(status, f)
+            
+            self.last_data_count = self.data_count
+            
+        except Exception as e:
+            logger.warning(f"Failed to update heartbeat: {e}")
+    
+    def cleanup(self):
+        """Clean up heartbeat file."""
+        try:
+            if os.path.exists(self.heartbeat_file):
+                os.remove(self.heartbeat_file)
+        except Exception as e:
+            logger.warning(f"Failed to cleanup heartbeat: {e}")
 
 class MachineStatus(QGroupBox):
     """Panel for displaying machine status."""
@@ -185,6 +279,19 @@ class ModernMainWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
+        
+        # SINGLETON PROTECTION - Prevent multiple instances
+        self.singleton_lock = SingletonLock()
+        if not self.singleton_lock.acquire():
+            logger.error("Another instance is already running. Exiting.")
+            QMessageBox.critical(None, "Already Running", 
+                               "Roll Machine Monitor is already running.\n"
+                               "Only one instance is allowed at a time.")
+            sys.exit(1)
+        
+        # HEARTBEAT MANAGER - For idle detection and crash recovery
+        self.heartbeat = HeartbeatManager()
+        
         self.monitor: Optional[Monitor] = None
         self.config = load_config()
         
@@ -529,6 +636,9 @@ class ModernMainWindow(QMainWindow):
     
     def handle_data(self, data: Dict[str, Any]):
         """Handle data from monitor."""
+        # Record data activity for heartbeat
+        self.heartbeat.record_data()
+        
         self.monitoring_view.update_data(data)
     
     def handle_error(self, error: Exception):
@@ -622,6 +732,9 @@ class ModernMainWindow(QMainWindow):
     
     def keyPressEvent(self, event):
         """Override key press events to disable certain shortcuts in kiosk mode."""
+        # Record user activity
+        self.heartbeat.record_activity()
+        
         if self.is_kiosk_mode:
             # Disable ALT+F4, CTRL+Q, CTRL+W, ESC, etc.
             if (event.key() == Qt.Key.Key_F4 and event.modifiers() == Qt.KeyboardModifier.AltModifier) or \
@@ -634,6 +747,12 @@ class ModernMainWindow(QMainWindow):
         
         # Allow other keys
         super().keyPressEvent(event)
+    
+    def mousePressEvent(self, event):
+        """Record user activity on mouse clicks."""
+        # Record user activity
+        self.heartbeat.record_activity()
+        super().mousePressEvent(event)
     
     def closeEvent(self, event: QCloseEvent):
         """Handle application close - allow clean shutdown to prevent multiple instances."""
@@ -654,6 +773,16 @@ class ModernMainWindow(QMainWindow):
             logger.info("Configuration saved")
         except Exception as e:
             logger.warning(f"Error saving config: {e}")
+        
+        # Cleanup singleton lock and heartbeat
+        try:
+            if hasattr(self, 'heartbeat'):
+                self.heartbeat.cleanup()
+            if hasattr(self, 'singleton_lock'):
+                self.singleton_lock.release()
+            logger.info("Cleanup completed successfully")
+        except Exception as e:
+            logger.warning(f"Error during cleanup: {e}")
         
         # Accept close event to prevent multiple instances
         event.accept()
