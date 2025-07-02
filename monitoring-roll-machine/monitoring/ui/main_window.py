@@ -3,6 +3,9 @@ Main window for the monitoring application using Qt.
 """
 import sys
 import logging
+import subprocess
+import time
+import os
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any
@@ -185,8 +188,19 @@ class ModernMainWindow(QMainWindow):
         self.monitor: Optional[Monitor] = None
         self.config = load_config()
         
-        self.setWindowTitle("Roll Machine Monitor")
-        self.setWindowState(Qt.WindowState.WindowFullScreen)  # Start in fullscreen for kiosk mode
+        # KIOSK MODE CONFIGURATION
+        self.setWindowTitle("Roll Machine Monitor - Kiosk Mode")
+        
+        # Force fullscreen and disable window controls
+        self.setWindowState(Qt.WindowState.WindowFullScreen)
+        self.setWindowFlags(
+            Qt.WindowType.Window | 
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint
+        )
+        
+        # Disable close button and ALT+F4
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
         
         # Set up the theme (True for dark, False for light)
         self.setup_theme(is_dark=False)  # Set to light theme
@@ -197,6 +211,16 @@ class ModernMainWindow(QMainWindow):
         self.main_layout = QVBoxLayout(self.central_widget)
         self.main_layout.setContentsMargins(20, 20, 20, 20)
         self.main_layout.setSpacing(20)
+        
+        # AUTO-RESTART MECHANISM
+        self.restart_timer = QTimer(self)
+        self.restart_timer.timeout.connect(self.auto_restart)
+        self.is_kiosk_mode = True  # Always in kiosk mode
+        
+        # Health check timer to ensure application stays running
+        self.health_timer = QTimer(self)
+        self.health_timer.timeout.connect(self.health_check)
+        self.health_timer.start(5000)  # Check every 5 seconds
         
         # Create header
         self.setup_header()
@@ -289,7 +313,7 @@ class ModernMainWindow(QMainWindow):
         header_layout.addStretch()
         
         # Add settings button
-        settings_btn = QPushButton("Settings")
+        settings_btn = QPushButton("⚙️ Settings")
         settings_btn.setStyleSheet("""
             QPushButton {
                 background-color: #0078d4;
@@ -297,6 +321,7 @@ class ModernMainWindow(QMainWindow):
                 border-radius: 5px;
                 padding: 8px 15px;
                 color: white;
+                font-size: 12px;
             }
             QPushButton:hover {
                 background-color: #1084d8;
@@ -351,6 +376,14 @@ class ModernMainWindow(QMainWindow):
         dialog.settings_updated.connect(self.handle_settings_update)
         dialog.exec()
     
+
+    
+
+    
+
+    
+
+    
     @Slot(dict)
     def handle_settings_update(self, settings: Dict[str, Any]):
         """Handle settings updates."""
@@ -371,12 +404,32 @@ class ModernMainWindow(QMainWindow):
             self.monitor.update_product_info(product_info)
     
     def toggle_monitoring(self):
-        """Toggle monitoring start/stop."""
+        """Toggle monitoring start/stop with auto-detection and mock mode."""
         if not self.monitor or not self.monitor.is_running:
             try:
-                port = self.config.get("serial_port", "COM1")
+                port = self.config.get("serial_port", "AUTO")
                 baudrate = self.config.get("baudrate", 19200)
+                use_mock = self.config.get("use_mock_data", False)
                 
+                # Auto-detect serial port
+                if port == "AUTO" or port == "":
+                    detected_port = self.auto_detect_port()
+                    if detected_port:
+                        port = detected_port
+                        logger.info(f"Auto-detected serial port: {port}")
+                    else:
+                        if not use_mock:
+                            logger.warning("No serial port found - enabling mock mode")
+                            self.config["use_mock_data"] = True
+                            use_mock = True
+                
+                # Use mock data if enabled or no port available
+                if use_mock or not port or port == "AUTO":
+                    logger.info("Starting in MOCK mode (no real serial connection)")
+                    self.start_mock_monitoring()
+                    return
+                
+                # Try real serial connection
                 serial_port = JSKSerialPort(port=port, baudrate=baudrate)
                 serial_port.open()
                 serial_port.enable_auto_recover()
@@ -388,16 +441,22 @@ class ModernMainWindow(QMainWindow):
                 )
                 
                 self.monitor.start()
-                self.connection_status.setText("Connected")
+                self.connection_status.setText(f"Connected ({port})")
                 self.connection_status.setStyleSheet("color: #4CAF50;")
+                logger.info(f"Real serial monitoring started on {port}")
                 
             except Exception as e:
                 logger.error(f"Error starting monitoring: {e}")
-                QMessageBox.critical(
-                    self,
-                    "Error",
-                    f"Failed to start monitoring: {str(e)}"
-                )
+                # Fallback to mock mode in kiosk mode
+                if self.is_kiosk_mode:
+                    logger.info("Kiosk mode: Falling back to mock data")
+                    self.start_mock_monitoring()
+                else:
+                    QMessageBox.critical(
+                        self,
+                        "Error",
+                        f"Failed to start monitoring: {str(e)}\n\nTip: Check serial port configuration or enable mock mode."
+                    )
         else:
             try:
                 self.monitor.stop()
@@ -426,12 +485,120 @@ class ModernMainWindow(QMainWindow):
             str(error)
         )
     
+    def auto_detect_port(self):
+        """Auto-detect available serial ports."""
+        import serial.tools.list_ports
+        
+        # Common port patterns for JSK3588
+        preferred_patterns = ['ttyUSB', 'ttyACM', 'COM']
+        
+        ports = serial.tools.list_ports.comports()
+        
+        # First try to find ports with preferred patterns
+        for pattern in preferred_patterns:
+            for port in ports:
+                if pattern in port.device:
+                    logger.info(f"Found preferred serial port: {port.device}")
+                    return port.device
+        
+        # If no preferred pattern found, return first available port
+        if ports:
+            logger.info(f"Found serial port: {ports[0].device}")
+            return ports[0].device
+        
+        logger.warning("No serial ports detected")
+        return None
+    
+    def start_mock_monitoring(self):
+        """Start monitoring with mock data for demo/testing."""
+        try:
+            # Use JSKSerialPort in simulation mode
+            mock_port = JSKSerialPort(
+                port="MOCK",
+                baudrate=19200,
+                simulation_mode=True,
+                simulate_errors=False
+            )
+            mock_port.open()
+            mock_port.enable_auto_recover()
+            
+            self.monitor = Monitor(
+                serial_port=mock_port,
+                on_data=self.handle_data,
+                on_error=self.handle_error
+            )
+            
+            self.monitor.start()
+            self.connection_status.setText("Mock Mode (Demo Data)")
+            self.connection_status.setStyleSheet("color: #FF9800;")  # Orange color
+            logger.info("Mock monitoring started successfully")
+            
+        except Exception as e:
+            logger.error(f"Failed to start mock monitoring: {e}")
+            self.connection_status.setText("Failed to Start")
+            self.connection_status.setStyleSheet("color: #F44336;")  # Red color
+    
+    def health_check(self):
+        """Health check to ensure application stays responsive."""
+        # Force window to stay on top and fullscreen
+        if not self.isFullScreen():
+            self.setWindowState(Qt.WindowState.WindowFullScreen)
+        
+        # Ensure window stays on top
+        self.raise_()
+        self.activateWindow()
+    
+    def auto_restart(self):
+        """Auto-restart the application after a delay."""
+        logger.info("Auto-restarting application in kiosk mode...")
+        
+        # Get current executable path
+        current_dir = Path(__file__).parent.parent
+        python_exec = sys.executable
+        
+        # Restart application
+        try:
+            subprocess.Popen([python_exec, "-m", "monitoring"], 
+                           cwd=current_dir.parent,
+                           start_new_session=True)
+            logger.info("New application instance started")
+            QApplication.quit()
+        except Exception as e:
+            logger.error(f"Failed to restart application: {e}")
+            # If restart fails, try to show the window again
+            self.show()
+            self.setWindowState(Qt.WindowState.WindowFullScreen)
+    
+    def keyPressEvent(self, event):
+        """Override key press events to disable certain shortcuts in kiosk mode."""
+        if self.is_kiosk_mode:
+            # Disable ALT+F4, CTRL+Q, CTRL+W, ESC, etc.
+            if (event.key() == Qt.Key.Key_F4 and event.modifiers() == Qt.KeyboardModifier.AltModifier) or \
+               (event.key() == Qt.Key.Key_Q and event.modifiers() == Qt.KeyboardModifier.ControlModifier) or \
+               (event.key() == Qt.Key.Key_W and event.modifiers() == Qt.KeyboardModifier.ControlModifier) or \
+               (event.key() == Qt.Key.Key_Escape):
+                logger.info("Close shortcut disabled in kiosk mode")
+                event.ignore()
+                return
+        
+        # Allow other keys
+        super().keyPressEvent(event)
+    
     def closeEvent(self, event: QCloseEvent):
-        """Handle application close."""
-        if self.monitor:
-            self.monitor.stop()
-        save_config(self.config)
-        event.accept()
+        """Handle application close - prevent close in kiosk mode or auto-restart."""
+        if self.is_kiosk_mode:
+            logger.info("Close event blocked in kiosk mode - scheduling auto-restart")
+            event.ignore()  # Prevent close
+            
+            # Hide window temporarily and restart after 3 seconds
+            self.hide()
+            self.restart_timer.start(3000)  # 3 second delay
+        else:
+            # Normal close
+            if self.monitor:
+                self.monitor.stop()
+            save_config(self.config)
+            event.accept()
 
 def main():
     """Main entry point."""
@@ -440,9 +607,44 @@ def main():
     # Set application style
     app.setStyle("Fusion")
     
-    # Create and show main window
+    # Create and show main window in kiosk mode
     window = ModernMainWindow()
-    window.showMaximized()  # Start maximized
+    
+    # Force fullscreen kiosk mode
+    window.show()
+    window.setWindowState(Qt.WindowState.WindowFullScreen)
+    window.raise_()
+    window.activateWindow()
+    
+    # Auto-start monitoring if possible
+    try:
+        window.toggle_monitoring()
+        logger.info("Auto-started monitoring in kiosk mode")
+    except Exception as e:
+        logger.warning(f"Could not auto-start monitoring: {e}")
+    
+    # Log kiosk mode info
+    logger.info("=" * 50)
+    logger.info("ROLL MACHINE MONITOR - KIOSK MODE ACTIVE")
+    logger.info("Features:")
+    logger.info("- Fullscreen mode (cannot be minimized)")
+    logger.info("- Auto-restart on close (3 second delay)")
+    logger.info("- Disabled close shortcuts (Alt+F4, Ctrl+Q, etc.)")
+    logger.info("- Health monitoring every 5 seconds")
+    logger.info("=" * 50)
+    
+    # To exit kiosk mode: Create file /tmp/exit_kiosk_mode
+    # Check for exit flag every 10 seconds
+    exit_timer = QTimer()
+    def check_exit_flag():
+        if os.path.exists("/tmp/exit_kiosk_mode"):
+            logger.info("Exit flag detected - disabling kiosk mode")
+            window.is_kiosk_mode = False
+            os.remove("/tmp/exit_kiosk_mode")
+            app.quit()
+    
+    exit_timer.timeout.connect(check_exit_flag)
+    exit_timer.start(10000)  # Check every 10 seconds
     
     sys.exit(app.exec())
 
