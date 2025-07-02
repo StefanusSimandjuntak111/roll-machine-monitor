@@ -100,6 +100,19 @@ check_memory_usage() {
 start_application() {
     log_message "Starting Roll Machine Monitor..."
     
+    # Check for recent restart attempts to prevent popup spam
+    RESTART_FLAG="/tmp/rollmachine_restart_attempt"
+    if [ -f "$RESTART_FLAG" ]; then
+        restart_age=$(( $(date +%s) - $(stat -c %Y "$RESTART_FLAG" 2>/dev/null || echo "0") ))
+        if [ "$restart_age" -lt 30 ]; then
+            log_message "Recent restart attempt detected (${restart_age}s ago), skipping to prevent popup spam"
+            return 1
+        fi
+    fi
+    
+    # Mark restart attempt
+    date +%s > "$RESTART_FLAG"
+    
     # Ensure no other instances
     if check_singleton_lock; then
         log_message "Another instance is already running (singleton lock exists)"

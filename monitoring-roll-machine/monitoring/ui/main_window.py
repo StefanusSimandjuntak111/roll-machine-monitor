@@ -38,6 +38,7 @@ class SingletonLock:
     def __init__(self, lock_file="/tmp/rollmachine_monitor.lock"):
         self.lock_file = lock_file
         self.lock_handle = None
+        self.popup_shown_file = "/tmp/rollmachine_popup_shown.flag"
         
     def acquire(self):
         """Acquire exclusive lock."""
@@ -49,6 +50,10 @@ class SingletonLock:
             self.lock_handle.write(f"{os.getpid()}\n{datetime.now().isoformat()}\n")
             self.lock_handle.flush()
             
+            # Clear the popup shown flag since we're the new primary instance
+            if os.path.exists(self.popup_shown_file):
+                os.remove(self.popup_shown_file)
+            
             logger.info(f"Singleton lock acquired: {self.lock_file}")
             return True
             
@@ -59,6 +64,30 @@ class SingletonLock:
                 self.lock_handle = None
             return False
     
+    def should_show_popup(self):
+        """Check if popup should be shown (only once per session)."""
+        if os.path.exists(self.popup_shown_file):
+            # Check if flag file is recent (less than 30 seconds old)
+            try:
+                flag_age = time.time() - os.path.getmtime(self.popup_shown_file)
+                if flag_age < 30:  # Only suppress for 30 seconds
+                    return False
+                else:
+                    # Flag is old, remove it and allow new popup
+                    os.remove(self.popup_shown_file)
+                    return True
+            except:
+                return True
+        return True
+    
+    def mark_popup_shown(self):
+        """Mark that popup has been shown."""
+        try:
+            with open(self.popup_shown_file, 'w') as f:
+                f.write(f"{os.getpid()}\n{datetime.now().isoformat()}\n")
+        except Exception as e:
+            logger.warning(f"Could not create popup flag file: {e}")
+    
     def release(self):
         """Release lock."""
         if self.lock_handle:
@@ -67,6 +96,9 @@ class SingletonLock:
                 self.lock_handle.close()
                 if os.path.exists(self.lock_file):
                     os.remove(self.lock_file)
+                # Also remove popup flag when releasing
+                if os.path.exists(self.popup_shown_file):
+                    os.remove(self.popup_shown_file)
                 logger.info("Singleton lock released")
             except Exception as e:
                 logger.warning(f"Error releasing lock: {e}")
@@ -284,9 +316,16 @@ class ModernMainWindow(QMainWindow):
         self.singleton_lock = SingletonLock()
         if not self.singleton_lock.acquire():
             logger.error("Another instance is already running. Exiting.")
-            QMessageBox.critical(None, "Already Running", 
-                               "Roll Machine Monitor is already running.\n"
-                               "Only one instance is allowed at a time.")
+            
+            # Only show popup if not shown recently (prevent spam)
+            if self.singleton_lock.should_show_popup():
+                self.singleton_lock.mark_popup_shown()
+                QMessageBox.critical(None, "Already Running", 
+                                   "Roll Machine Monitor is already running.\n"
+                                   "Only one instance is allowed at a time.")
+            else:
+                logger.info("Popup suppressed - already shown recently")
+            
             sys.exit(1)
         
         # HEARTBEAT MANAGER - For idle detection and crash recovery
