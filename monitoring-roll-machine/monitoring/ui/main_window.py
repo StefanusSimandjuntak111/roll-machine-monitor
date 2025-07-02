@@ -469,6 +469,18 @@ class ModernMainWindow(QMainWindow):
                         port = detected_port
                         logger.info(f"Auto-detected serial port: {port}")
                     else:
+                        # Show warning dialog when no port is detected
+                        reply = self.show_kiosk_dialog(
+                            "warning",
+                            "⚠️ No Serial Port Detected",
+                            "No serial communication port found!\n\n"
+                            "• Check if the JSK3588 machine is connected\n"
+                            "• Verify USB/Serial cable connection\n"
+                            "• Make sure drivers are installed\n\n"
+                            "The application will continue in DEMO MODE with simulated data.\n"
+                            "You can still test the interface and features."
+                        )
+                        
                         if not use_mock:
                             logger.warning("No serial port found - enabling mock mode")
                             self.config["use_mock_data"] = True
@@ -570,7 +582,14 @@ class ModernMainWindow(QMainWindow):
                 simulation_mode=True,
                 simulate_errors=False
             )
+            
+            # Open mock port and verify it's working
             mock_port.open()
+            
+            # Verify mock port is actually open
+            if not mock_port._serial or not hasattr(mock_port._serial, 'is_open') or not mock_port._serial.is_open:
+                raise Exception("Mock serial port failed to open properly")
+            
             mock_port.enable_auto_recover()
             
             self.monitor = Monitor(
@@ -580,14 +599,34 @@ class ModernMainWindow(QMainWindow):
             )
             
             self.monitor.start()
-            self.connection_status.setText("Mock Mode (Demo Data)")
-            self.connection_status.setStyleSheet("color: #FF9800;")  # Orange color
+            self.connection_status.setText("🔸 Mock Mode (Demo Data)")
+            self.connection_status.setStyleSheet("color: #FF9800; font-weight: bold;")  # Orange color
             logger.info("Mock monitoring started successfully")
+            
+            # Show info dialog about mock mode
+            self.show_kiosk_dialog(
+                "information",
+                "🔸 Demo Mode Active",
+                "Application is running in DEMO MODE with simulated data.\n\n"
+                "• All displayed values are generated automatically\n"
+                "• You can test all interface features\n"
+                "• Connect a real JSK3588 device for actual monitoring\n\n"
+                "Demo mode allows you to explore the application safely."
+            )
             
         except Exception as e:
             logger.error(f"Failed to start mock monitoring: {e}")
-            self.connection_status.setText("Failed to Start")
-            self.connection_status.setStyleSheet("color: #F44336;")  # Red color
+            self.connection_status.setText("❌ Failed to Start")
+            self.connection_status.setStyleSheet("color: #F44336; font-weight: bold;")  # Red color
+            
+            # Show error dialog if mock mode fails
+            self.show_kiosk_dialog(
+                "critical",
+                "❌ Mock Mode Failed",
+                f"Failed to start demonstration mode:\n\n{str(e)}\n\n"
+                "This may indicate a serious application error.\n"
+                "Please restart the application."
+            )
     
     def health_check(self):
         """Health check to ensure application stays responsive."""
