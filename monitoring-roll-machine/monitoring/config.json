@@ -1,4 +1,11 @@
 {
     "baudrate": 19200,
-    "serial_port": ""
+    "serial_port": "AUTO",
+    "auto_connect": true,
+    "use_mock_data": false,
+    "machine_name": "Roll Machine #1",
+    "operator": "Operator",
+    "shift": 1,
+    "reconnect_attempts": 3,
+    "reconnect_delay": 5
 }

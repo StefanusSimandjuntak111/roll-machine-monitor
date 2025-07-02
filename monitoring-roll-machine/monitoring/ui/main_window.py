@@ -212,15 +212,15 @@ class ModernMainWindow(QMainWindow):
         self.main_layout.setContentsMargins(20, 20, 20, 20)
         self.main_layout.setSpacing(20)
         
-        # AUTO-RESTART MECHANISM
-        self.restart_timer = QTimer(self)
-        self.restart_timer.timeout.connect(self.auto_restart)
+        # DISABLED AUTO-RESTART MECHANISM - CAUSES MULTIPLE INSTANCES
+        # self.restart_timer = QTimer(self)
+        # self.restart_timer.timeout.connect(self.auto_restart)
         self.is_kiosk_mode = True  # Always in kiosk mode
         
-        # Health check timer to ensure application stays running
-        self.health_timer = QTimer(self)
-        self.health_timer.timeout.connect(self.health_check)
-        self.health_timer.start(5000)  # Check every 5 seconds
+        # DISABLED HEALTH CHECK - CAN CAUSE PERFORMANCE ISSUES
+        # self.health_timer = QTimer(self)
+        # self.health_timer.timeout.connect(self.health_check)
+        # self.health_timer.start(5000)  # Check every 5 seconds
         
         # Create header
         self.setup_header()
@@ -427,14 +427,6 @@ class ModernMainWindow(QMainWindow):
         dialog.activateWindow()
         dialog.exec()
     
-
-    
-
-    
-
-    
-
-    
     @Slot(dict)
     def handle_settings_update(self, settings: Dict[str, Any]):
         """Handle settings updates."""
@@ -628,37 +620,6 @@ class ModernMainWindow(QMainWindow):
                 "Please restart the application."
             )
     
-    def health_check(self):
-        """Health check to ensure application stays responsive."""
-        # Force window to stay on top and fullscreen
-        if not self.isFullScreen():
-            self.setWindowState(Qt.WindowState.WindowFullScreen)
-        
-        # Ensure window stays on top
-        self.raise_()
-        self.activateWindow()
-    
-    def auto_restart(self):
-        """Auto-restart the application after a delay."""
-        logger.info("Auto-restarting application in kiosk mode...")
-        
-        # Get current executable path
-        current_dir = Path(__file__).parent.parent
-        python_exec = sys.executable
-        
-        # Restart application
-        try:
-            subprocess.Popen([python_exec, "-m", "monitoring"], 
-                           cwd=current_dir.parent,
-                           start_new_session=True)
-            logger.info("New application instance started")
-            QApplication.quit()
-        except Exception as e:
-            logger.error(f"Failed to restart application: {e}")
-            # If restart fails, try to show the window again
-            self.show()
-            self.setWindowState(Qt.WindowState.WindowFullScreen)
-    
     def keyPressEvent(self, event):
         """Override key press events to disable certain shortcuts in kiosk mode."""
         if self.is_kiosk_mode:
@@ -675,20 +636,28 @@ class ModernMainWindow(QMainWindow):
         super().keyPressEvent(event)
     
     def closeEvent(self, event: QCloseEvent):
-        """Handle application close - prevent close in kiosk mode or auto-restart."""
-        if self.is_kiosk_mode:
-            logger.info("Close event blocked in kiosk mode - scheduling auto-restart")
-            event.ignore()  # Prevent close
-            
-            # Hide window temporarily and restart after 3 seconds
-            self.hide()
-            self.restart_timer.start(3000)  # 3 second delay
-        else:
-            # Normal close
-            if self.monitor:
+        """Handle application close - allow clean shutdown to prevent multiple instances."""
+        logger.info("Application close requested")
+        
+        # Always allow clean shutdown to prevent multiple instances
+        # Stop monitoring gracefully
+        if hasattr(self, 'monitor') and self.monitor:
+            try:
                 self.monitor.stop()
+                logger.info("Monitor stopped gracefully")
+            except Exception as e:
+                logger.warning(f"Error stopping monitor: {e}")
+        
+        # Save configuration
+        try:
             save_config(self.config)
-            event.accept()
+            logger.info("Configuration saved")
+        except Exception as e:
+            logger.warning(f"Error saving config: {e}")
+        
+        # Accept close event to prevent multiple instances
+        event.accept()
+        logger.info("Application closed cleanly")
 
 def main():
     """Main entry point."""
@@ -718,9 +687,9 @@ def main():
     logger.info("ROLL MACHINE MONITOR - KIOSK MODE ACTIVE")
     logger.info("Features:")
     logger.info("- Fullscreen mode (cannot be minimized)")
-    logger.info("- Auto-restart on close (3 second delay)")
+    logger.info("- Clean shutdown to prevent multiple instances")
     logger.info("- Disabled close shortcuts (Alt+F4, Ctrl+Q, etc.)")
-    logger.info("- Health monitoring every 5 seconds")
+    logger.info("- Safe session management")
     logger.info("=" * 50)
     
     # To exit kiosk mode: Create file /tmp/exit_kiosk_mode
