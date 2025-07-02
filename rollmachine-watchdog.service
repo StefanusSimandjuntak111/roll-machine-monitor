@@ -1,0 +1,20 @@
+[Unit]
+Description=Roll Machine Monitor Watchdog
+Documentation=https://github.com/rollmachine/monitor
+After=rollmachine-kiosk.service
+BindsTo=rollmachine-kiosk.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/opt/rollmachine-monitor/watchdog.sh
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rollmachine-watchdog
+
+[Install]
+WantedBy=graphical.target 
