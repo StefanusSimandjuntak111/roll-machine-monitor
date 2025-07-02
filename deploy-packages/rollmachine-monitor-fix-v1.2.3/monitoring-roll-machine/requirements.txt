@@ -1,0 +1,28 @@
+# UI Framework
+PySide6>=6.6.0  # Modern Qt framework with Python bindings
+pyqtgraph>=0.13.3  # High-performance graphing library for Qt
+
+# Serial Communication
+pyserial>=3.5
+
+# Config & Environment
+python-dotenv>=1.0.0
+pyyaml>=6.0.1  # YAML config support
+appdirs>=1.4.4  # Cross-platform app directories
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-qt>=4.2.0  # Qt-specific testing support
+
+# Linting & Formatting
+black>=23.7.0
+flake8>=6.1.0
+mypy>=1.5.1
+
+# Build
+pyinstaller>=5.0.0 
+
+# QR Code Generation
+qrcode>=7.4.2
+Pillow>=10.0.0  # Required for QR code image generation 
