@@ -434,8 +434,8 @@ class ProductForm(QWidget):
         # Check if port is selected
         settings = self.window().findChild(ConnectionSettings)
         if not settings or not settings.get_selected_port():
-            QMessageBox.warning(
-                self,
+            self._show_kiosk_dialog(
+                "warning",
                 "Port Not Selected",
                 "Please select a serial port before starting monitoring."
             )
@@ -499,8 +499,8 @@ class ProductForm(QWidget):
             
         if self.target_length.value() <= 0:
             self.show_error(self.target_length, "Panjang belum di set! Masukkan target panjang yang valid.")
-            QMessageBox.warning(
-                self,
+            self._show_kiosk_dialog(
+                "warning",
                 "Target Length Required",
                 "Panjang belum di set!\n\nSilakan masukkan target panjang minimal 1 meter sebelum melanjutkan."
             )
@@ -508,8 +508,8 @@ class ProductForm(QWidget):
             
         if self.target_length.value() < 1:
             self.show_error(self.target_length, "Target panjang minimal 1 meter")
-            QMessageBox.warning(
-                self,
+            self._show_kiosk_dialog(
+                "warning",
                 "Target Length Too Small",
                 "Target panjang terlalu kecil!\n\nMinimal panjang yang diizinkan adalah 1 meter."
             )
@@ -517,6 +517,46 @@ class ProductForm(QWidget):
             
         return True
         
+    def _show_kiosk_dialog(self, dialog_type: str, title: str, message: str) -> int:
+        """Show a dialog that stays on top in kiosk mode."""
+        dialog = QMessageBox(self)
+        
+        # Set dialog type
+        if dialog_type == "critical":
+            dialog.setIcon(QMessageBox.Icon.Critical)
+        elif dialog_type == "warning":
+            dialog.setIcon(QMessageBox.Icon.Warning)
+        elif dialog_type == "question":
+            dialog.setIcon(QMessageBox.Icon.Question)
+        else:
+            dialog.setIcon(QMessageBox.Icon.Information)
+        
+        dialog.setWindowTitle(title)
+        dialog.setText(message)
+        
+        # Force dialog to stay on top and be modal
+        dialog.setWindowFlags(
+            Qt.WindowType.Dialog |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.WindowSystemMenuHint |
+            Qt.WindowType.WindowTitleHint
+        )
+        
+        # Set standard buttons
+        if dialog_type == "question":
+            dialog.setStandardButtons(
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            dialog.setDefaultButton(QMessageBox.StandardButton.No)
+        else:
+            dialog.setStandardButtons(QMessageBox.StandardButton.Ok)
+        
+        # Ensure dialog appears in front
+        dialog.raise_()
+        dialog.activateWindow()
+        
+        return dialog.exec()
+    
     def show_error(self, widget: QWidget, message: str):
         """Show error styling and tooltip for a widget."""
         widget.setStyleSheet("""

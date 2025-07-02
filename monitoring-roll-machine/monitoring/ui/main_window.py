@@ -370,10 +370,61 @@ class ModernMainWindow(QMainWindow):
         """Update dynamic display elements."""
         self.clock_label.setText(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     
+    def show_kiosk_dialog(self, dialog_type: str, title: str, message: str) -> int:
+        """Show a dialog that stays on top in kiosk mode."""
+        dialog = QMessageBox(self)
+        
+        # Set dialog type
+        if dialog_type == "critical":
+            dialog.setIcon(QMessageBox.Icon.Critical)
+        elif dialog_type == "warning":
+            dialog.setIcon(QMessageBox.Icon.Warning)
+        elif dialog_type == "question":
+            dialog.setIcon(QMessageBox.Icon.Question)
+        else:
+            dialog.setIcon(QMessageBox.Icon.Information)
+        
+        dialog.setWindowTitle(title)
+        dialog.setText(message)
+        
+        # Force dialog to stay on top and be modal
+        dialog.setWindowFlags(
+            Qt.WindowType.Dialog |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.WindowSystemMenuHint |
+            Qt.WindowType.WindowTitleHint
+        )
+        
+        # Set standard buttons
+        if dialog_type == "question":
+            dialog.setStandardButtons(
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            dialog.setDefaultButton(QMessageBox.StandardButton.No)
+        else:
+            dialog.setStandardButtons(QMessageBox.StandardButton.Ok)
+        
+        # Ensure dialog appears in front
+        dialog.raise_()
+        dialog.activateWindow()
+        
+        return dialog.exec()
+    
     def show_settings(self):
         """Show the settings dialog."""
         dialog = SettingsDialog(self.config)
+        
+        # Force settings dialog to stay on top too
+        dialog.setWindowFlags(
+            Qt.WindowType.Dialog |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.WindowSystemMenuHint |
+            Qt.WindowType.WindowTitleHint
+        )
+        
         dialog.settings_updated.connect(self.handle_settings_update)
+        dialog.raise_()
+        dialog.activateWindow()
         dialog.exec()
     
 
@@ -452,8 +503,8 @@ class ModernMainWindow(QMainWindow):
                     logger.info("Kiosk mode: Falling back to mock data")
                     self.start_mock_monitoring()
                 else:
-                    QMessageBox.critical(
-                        self,
+                    self.show_kiosk_dialog(
+                        "critical",
                         "Error",
                         f"Failed to start monitoring: {str(e)}\n\nTip: Check serial port configuration or enable mock mode."
                     )
@@ -466,8 +517,8 @@ class ModernMainWindow(QMainWindow):
                 
             except Exception as e:
                 logger.error(f"Error stopping monitoring: {e}")
-                QMessageBox.critical(
-                    self,
+                self.show_kiosk_dialog(
+                    "critical",
                     "Error",
                     f"Failed to stop monitoring: {str(e)}"
                 )
@@ -479,9 +530,9 @@ class ModernMainWindow(QMainWindow):
     def handle_error(self, error: Exception):
         """Handle error from monitor."""
         logger.error(f"Monitor error: {error}")
-        QMessageBox.warning(
-            self,
-            "Monitor Error",
+        self.show_kiosk_dialog(
+            "warning",
+            "Monitor Error", 
             str(error)
         )
     

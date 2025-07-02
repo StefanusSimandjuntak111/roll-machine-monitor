@@ -64,6 +64,14 @@ class PrintPreviewDialog(QDialog):
         """Set up the print preview dialog UI."""
         self.setWindowTitle("Print Preview")
         
+        # Force dialog to stay on top in kiosk mode
+        self.setWindowFlags(
+            Qt.WindowType.Dialog |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.WindowSystemMenuHint |
+            Qt.WindowType.WindowTitleHint
+        )
+        
         # Calculate window size to maintain 1:1 aspect ratio
         screen_size = self.screen().size()
         preview_size = min(screen_size.width() * 0.55, screen_size.height() * 0.55)
@@ -71,6 +79,10 @@ class PrintPreviewDialog(QDialog):
         window_height = preview_size + 80  # Extra space for buttons
         
         self.resize(int(window_width), int(window_height))
+        
+        # Ensure dialog appears in front
+        self.raise_()
+        self.activateWindow()
         
         # Main layout
         layout = QVBoxLayout(self)
