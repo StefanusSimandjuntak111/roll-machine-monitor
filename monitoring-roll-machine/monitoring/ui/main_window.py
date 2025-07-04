@@ -384,6 +384,8 @@ class ModernMainWindow(QMainWindow):
         
         # Connect signals
         self.product_form.product_updated.connect(self.handle_product_update)
+        self.product_form.start_monitoring.connect(self.toggle_monitoring)
+        logger.info("FIXED: Connected start_monitoring signal to toggle_monitoring")
     
     def setup_theme(self, is_dark: bool = True):
         """Set up theme colors and styling."""
@@ -593,45 +595,30 @@ class ModernMainWindow(QMainWindow):
             self.monitor.update_product_info(product_info)
     
     def toggle_monitoring(self):
-        """Toggle monitoring start/stop with auto-detection and mock mode."""
+        """Toggle monitoring start/stop with FORCED real serial connection."""
         if not self.monitor or not self.monitor.is_running:
             try:
-                port = self.config.get("serial_port", "AUTO")
+                # FORCE: Always use real port, disable auto fallback to mock
+                port = self.config.get("serial_port", "/dev/ttyUSB0")
                 baudrate = self.config.get("baudrate", 19200)
-                use_mock = self.config.get("use_mock_data", False)
+                use_mock = False  # FORCE: Never use mock mode
                 
-                # Auto-detect serial port
+                # FORCE: If config says AUTO, use detected port
                 if port == "AUTO" or port == "":
                     detected_port = self.auto_detect_port()
                     if detected_port:
                         port = detected_port
                         logger.info(f"Auto-detected serial port: {port}")
                     else:
-                        # Show warning dialog when no port is detected
-                        reply = self.show_kiosk_dialog(
-                            "warning",
-                            "⚠️ No Serial Port Detected",
-                            "No serial communication port found!\n\n"
-                            "• Check if the JSK3588 machine is connected\n"
-                            "• Verify USB/Serial cable connection\n"
-                            "• Make sure drivers are installed\n\n"
-                            "The application will continue in DEMO MODE with simulated data.\n"
-                            "You can still test the interface and features."
-                        )
-                        
-                        if not use_mock:
-                            logger.warning("No serial port found - enabling mock mode")
-                            self.config["use_mock_data"] = True
-                            use_mock = True
+                        # FORCE: Use /dev/ttyUSB0 as fallback instead of mock
+                        port = "/dev/ttyUSB0"
+                        logger.warning(f"No port detected, forcing: {port}")
                 
-                # Use mock data if enabled or no port available
-                if use_mock or not port or port == "AUTO":
-                    logger.info("Starting in MOCK mode (no real serial connection)")
-                    self.start_mock_monitoring()
-                    return
+                # FORCE: Always try real connection, never mock
+                logger.info(f"FORCED real serial connection to: {port}")
                 
                 # Try real serial connection
-                serial_port = JSKSerialPort(port=port, baudrate=baudrate)
+                serial_port = JSKSerialPort(port=port, baudrate=baudrate, simulation_mode=False)
                 serial_port.open()
                 serial_port.enable_auto_recover()
                 
@@ -642,22 +629,27 @@ class ModernMainWindow(QMainWindow):
                 )
                 
                 self.monitor.start()
-                self.connection_status.setText(f"Connected ({port})")
-                self.connection_status.setStyleSheet("color: #4CAF50;")
-                logger.info(f"Real serial monitoring started on {port}")
+                self.connection_status.setText(f"✅ REAL Connection ({port})")
+                self.connection_status.setStyleSheet("color: #4CAF50; font-weight: bold;")
+                logger.info(f"REAL serial monitoring started on {port}")
                 
             except Exception as e:
-                logger.error(f"Error starting monitoring: {e}")
-                # Fallback to mock mode in kiosk mode
-                if self.is_kiosk_mode:
-                    logger.info("Kiosk mode: Falling back to mock data")
-                    self.start_mock_monitoring()
-                else:
-                    self.show_kiosk_dialog(
-                        "critical",
-                        "Error",
-                        f"Failed to start monitoring: {str(e)}\n\nTip: Check serial port configuration or enable mock mode."
-                    )
+                logger.error(f"Error starting REAL monitoring: {e}")
+                # FORCE: Show error but do NOT fallback to mock mode
+                self.connection_status.setText(f"❌ Connection Failed")
+                self.connection_status.setStyleSheet("color: #F44336; font-weight: bold;")
+                
+                self.show_kiosk_dialog(
+                    "critical",
+                    "❌ Real Connection Failed",
+                    f"Failed to connect to real device:\n\n{str(e)}\n\n"
+                    f"Attempted port: {port}\n\n"
+                    "Check:\n"
+                    "• Device connection\n"
+                    "• User permissions (dialout group)\n"
+                    "• Port accessibility\n\n"
+                    "DEMO MODE DISABLED - Fix connection to continue."
+                )
         else:
             try:
                 self.monitor.stop()
@@ -712,62 +704,6 @@ class ModernMainWindow(QMainWindow):
         
         logger.warning("No serial ports detected")
         return None
-    
-    def start_mock_monitoring(self):
-        """Start monitoring with mock data for demo/testing."""
-        try:
-            # Use JSKSerialPort in simulation mode
-            mock_port = JSKSerialPort(
-                port="MOCK",
-                baudrate=19200,
-                simulation_mode=True,
-                simulate_errors=False
-            )
-            
-            # Open mock port and verify it's working
-            mock_port.open()
-            
-            # Verify mock port is actually open
-            if not mock_port._serial or not hasattr(mock_port._serial, 'is_open') or not mock_port._serial.is_open:
-                raise Exception("Mock serial port failed to open properly")
-            
-            mock_port.enable_auto_recover()
-            
-            self.monitor = Monitor(
-                serial_port=mock_port,
-                on_data=self.handle_data,
-                on_error=self.handle_error
-            )
-            
-            self.monitor.start()
-            self.connection_status.setText("🔸 Mock Mode (Demo Data)")
-            self.connection_status.setStyleSheet("color: #FF9800; font-weight: bold;")  # Orange color
-            logger.info("Mock monitoring started successfully")
-            
-            # Show info dialog about mock mode
-            self.show_kiosk_dialog(
-                "information",
-                "🔸 Demo Mode Active",
-                "Application is running in DEMO MODE with simulated data.\n\n"
-                "• All displayed values are generated automatically\n"
-                "• You can test all interface features\n"
-                "• Connect a real JSK3588 device for actual monitoring\n\n"
-                "Demo mode allows you to explore the application safely."
-            )
-            
-        except Exception as e:
-            logger.error(f"Failed to start mock monitoring: {e}")
-            self.connection_status.setText("❌ Failed to Start")
-            self.connection_status.setStyleSheet("color: #F44336; font-weight: bold;")  # Red color
-            
-            # Show error dialog if mock mode fails
-            self.show_kiosk_dialog(
-                "critical",
-                "❌ Mock Mode Failed",
-                f"Failed to start demonstration mode:\n\n{str(e)}\n\n"
-                "This may indicate a serious application error.\n"
-                "Please restart the application."
-            )
     
     def keyPressEvent(self, event):
         """Override key press events to disable certain shortcuts in kiosk mode."""

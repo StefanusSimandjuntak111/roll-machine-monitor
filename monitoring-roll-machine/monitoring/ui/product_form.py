@@ -431,17 +431,11 @@ class ProductForm(QWidget):
             
     def start_monitoring_with_save(self):
         """Save product info and start monitoring."""
-        # Check if port is selected (AUTO is considered valid)
-        settings = self.window().findChild(ConnectionSettings)
-        selected_port = settings.get_selected_port() if settings else ""
+        # COMPLETE FIX: REMOVE ALL PORT VALIDATION - ALWAYS ALLOW MONITORING
+        # The port will be auto-detected or forced to /dev/ttyUSB0 in main_window.py
         
-        if not selected_port:
-            self._show_kiosk_dialog(
-                "warning",
-                "Port Not Selected",
-                "Please select a serial port before starting monitoring."
-            )
-            return
+        logger.info("FORCE START: Bypassing all port validation checks")
+        logger.info("Port auto-detection will be handled by main_window.py")
             
         if self.validate_inputs():
             # Create product info dictionary with consistent field names
