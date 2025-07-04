@@ -10,6 +10,7 @@ from PySide6.QtCore import Qt
 import serial.tools.list_ports
 import logging
 from typing import Optional
+from ..serial_handler import auto_detect_serial_ports
 
 logger = logging.getLogger(__name__)
 
@@ -52,12 +53,17 @@ class ConnectionSettings(QGroupBox):
         """Refresh the list of available serial ports."""
         try:
             self.port_combo.clear()
-            ports = list(serial.tools.list_ports.comports())
+            
+            # Add AUTO option first (default)
+            self.port_combo.addItem("AUTO (Auto-detect)")
+            
+            # Get available ports using our auto-detection
+            ports = auto_detect_serial_ports()
             for port in ports:
-                self.port_combo.addItem(port.device)
+                self.port_combo.addItem(port)
             
             if not ports:
-                self.port_combo.addItem("No ports available")
+                self.port_combo.addItem("No additional ports found")
                 
         except Exception as e:
             logger.error(f"Error refreshing ports: {e}")
@@ -66,4 +72,13 @@ class ConnectionSettings(QGroupBox):
     def get_selected_port(self) -> str:
         """Get the currently selected port."""
         port = self.port_combo.currentText()
-        return port if port != "No ports available" and port != "Error getting ports" else "" 
+        
+        # Handle AUTO option
+        if port.startswith("AUTO"):
+            return "AUTO"
+        
+        # Handle error cases
+        if port in ["No additional ports found", "Error getting ports"]:
+            return "AUTO"  # Fallback to AUTO
+        
+        return port 

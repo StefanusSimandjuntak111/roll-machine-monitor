@@ -685,7 +685,7 @@ class ModernMainWindow(QMainWindow):
         logger.error(f"Monitor error: {error}")
         self.show_kiosk_dialog(
             "warning",
-            "Monitor Error", 
+            "Monitor Error",
             str(error)
         )
     
@@ -824,7 +824,7 @@ class ModernMainWindow(QMainWindow):
             logger.warning(f"Error during cleanup: {e}")
         
         # Accept close event to prevent multiple instances
-        event.accept()
+            event.accept()
         logger.info("Application closed cleanly")
 
 def main():

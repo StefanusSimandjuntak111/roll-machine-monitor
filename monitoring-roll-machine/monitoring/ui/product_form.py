@@ -431,9 +431,11 @@ class ProductForm(QWidget):
             
     def start_monitoring_with_save(self):
         """Save product info and start monitoring."""
-        # Check if port is selected
+        # Check if port is selected (AUTO is considered valid)
         settings = self.window().findChild(ConnectionSettings)
-        if not settings or not settings.get_selected_port():
+        selected_port = settings.get_selected_port() if settings else ""
+        
+        if not selected_port:
             self._show_kiosk_dialog(
                 "warning",
                 "Port Not Selected",
