@@ -1,7 +1,8 @@
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QComboBox,
     QPushButton, QFrame, QLabel, QHBoxLayout, QTabWidget,
-    QLineEdit, QRadioButton, QButtonGroup, QSpinBox, QGroupBox
+    QLineEdit, QRadioButton, QButtonGroup, QSpinBox, QGroupBox,
+    QMessageBox
 )
 from PySide6.QtCore import Qt, Signal
 from typing import Dict, Any
@@ -26,6 +27,17 @@ class SettingsDialog(QDialog):
         self.setWindowTitle("Settings")
         self.setMinimumWidth(500)
         self.setMinimumHeight(400)
+        
+        # Set window flags for proper dialog behavior
+        self.setWindowFlags(
+            Qt.WindowType.Dialog |
+            Qt.WindowType.WindowSystemMenuHint |
+            Qt.WindowType.WindowTitleHint |
+            Qt.WindowType.WindowCloseButtonHint
+        )
+        
+        # Set modal behavior
+        self.setModal(True)
         
         layout = QVBoxLayout(self)
         layout.setSpacing(20)
@@ -76,7 +88,7 @@ class SettingsDialog(QDialog):
         button_layout.addWidget(save_btn)
         
         cancel_btn = QPushButton("Cancel")
-        cancel_btn.clicked.connect(self.reject)
+        cancel_btn.clicked.connect(self.cancel_settings)
         cancel_btn.setStyleSheet(self.get_button_style("danger"))
         button_layout.addWidget(cancel_btn)
         
@@ -368,10 +380,14 @@ class SettingsDialog(QDialog):
     def refresh_ports(self):
         """Refresh the list of available serial ports."""
         try:
+            logger.info("Refreshing serial ports...")
             self.port_combo.clear()
             ports = serial.tools.list_ports.comports()
+            
+            logger.info(f"Found {len(ports)} serial ports")
             for port in ports:
                 self.port_combo.addItem(port.device)
+                logger.info(f"Added port: {port.device}")
                 
             # Set current port if available
             current_port = self.current_settings.get("serial_port")
@@ -379,27 +395,82 @@ class SettingsDialog(QDialog):
                 index = self.port_combo.findText(current_port)
                 if index >= 0:
                     self.port_combo.setCurrentIndex(index)
+                    logger.info(f"Set current port to: {current_port}")
+                else:
+                    logger.warning(f"Current port {current_port} not found in available ports")
+            else:
+                logger.info("No current port set")
                     
         except Exception as e:
             logger.error(f"Error refreshing ports: {e}")
+            # Add a default port option if refresh fails
+            self.port_combo.addItem("No ports available")
     
     def save_settings(self):
         """Save the current settings."""
         try:
+            logger.info("Saving settings...")
+            
+            # Validate inputs
+            tolerance_text = self.tolerance_input.text().strip()
+            if not tolerance_text:
+                tolerance_text = "3"
+            
+            try:
+                tolerance = float(tolerance_text)
+                if tolerance < 0 or tolerance > 100:
+                    raise ValueError("Tolerance must be between 0 and 100")
+            except ValueError as e:
+                logger.error(f"Invalid tolerance value: {tolerance_text}")
+                raise ValueError(f"Invalid tolerance value: {tolerance_text}. Must be a number between 0-100")
+            
+            # Get decimal format
+            decimal_format = self.decimal_combo.currentText()
+            decimal_points_map = {"#": 0, "#.#": 1, "#.##": 2}
+            if decimal_format not in decimal_points_map:
+                raise ValueError(f"Invalid decimal format: {decimal_format}")
+            
+            # Get rounding method
+            rounding = "UP" if self.round_up_radio.isChecked() else "DOWN"
+            
+            # Get port and baudrate
+            serial_port = self.port_combo.currentText()
+            try:
+                baudrate = int(self.baudrate_combo.currentText())
+            except ValueError:
+                raise ValueError(f"Invalid baudrate: {self.baudrate_combo.currentText()}")
+            
             settings = {
                 # Port settings
-                "serial_port": self.port_combo.currentText(),
-                "baudrate": int(self.baudrate_combo.currentText()),
+                "serial_port": serial_port,
+                "baudrate": baudrate,
                 
                 # Page settings
-                "length_tolerance": float(self.tolerance_input.text() or "3"),
-                "decimal_points": {"#": 0, "#.#": 1, "#.##": 2}[self.decimal_combo.currentText()],
-                "rounding": "UP" if self.round_up_radio.isChecked() else "DOWN"
+                "length_tolerance": tolerance,
+                "decimal_points": decimal_points_map[decimal_format],
+                "rounding": rounding
             }
             
+            logger.info(f"Settings to save: {settings}")
             self.settings_updated.emit(settings)
+            logger.info("Settings saved successfully")
             self.accept()
             
         except ValueError as e:
             logger.error(f"Error saving settings: {e}")
-            # You could show an error dialog here 
+            # Show error message to user
+            QMessageBox.critical(self, "Settings Error", str(e))
+        except Exception as e:
+            logger.error(f"Unexpected error saving settings: {e}")
+            QMessageBox.critical(self, "Settings Error", f"Unexpected error: {str(e)}")
+    
+    def cancel_settings(self):
+        """Cancel settings and close dialog."""
+        logger.info("Settings cancelled by user")
+        self.reject()
+    
+    def closeEvent(self, event):
+        """Handle close event (X button)."""
+        logger.info("Settings dialog closed by X button")
+        self.reject()
+        event.accept() 
