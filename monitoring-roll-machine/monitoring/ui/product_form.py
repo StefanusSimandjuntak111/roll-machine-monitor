@@ -225,13 +225,13 @@ class ProductForm(QWidget):
         self.batch_number.setStyleSheet(input_style)
         form_layout.addRow("Batch Number:", self.batch_number)
         
-        # Target Length with buttons
+        # Current Length with buttons
         length_container = QWidget()
         length_layout = QHBoxLayout(length_container)
         length_layout.setSpacing(5)  # Reduced spacing
         length_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Target Length Input
+        # Current Length Input
         self.target_length = QDoubleSpinBox()
         self.target_length.setRange(0, 100000)
         self.target_length.setDecimals(2)
@@ -295,7 +295,7 @@ class ProductForm(QWidget):
         self.minus_button.setFixedSize(55, 40)
         length_layout.addWidget(self.minus_button)
         
-        form_layout.addRow("Target Length:", length_container)
+        form_layout.addRow("Current Length:", length_container)
         
         # Unit Selection with Radio Buttons
         unit_container = QWidget()
@@ -494,20 +494,20 @@ class ProductForm(QWidget):
             return False
             
         if self.target_length.value() <= 0:
-            self.show_error(self.target_length, "Panjang belum di set! Masukkan target panjang yang valid.")
+            self.show_error(self.target_length, "Panjang belum di set! Masukkan current panjang yang valid.")
             self._show_kiosk_dialog(
                 "warning",
-                "Target Length Required",
-                "Panjang belum di set!\n\nSilakan masukkan target panjang minimal 1 meter sebelum melanjutkan."
+                "Current Length Required",
+                "Panjang belum di set!\n\nSilakan masukkan current panjang minimal 1 meter sebelum melanjutkan."
             )
             return False
             
         if self.target_length.value() < 1:
-            self.show_error(self.target_length, "Target panjang minimal 1 meter")
+            self.show_error(self.target_length, "Current panjang minimal 1 meter")
             self._show_kiosk_dialog(
                 "warning",
-                "Target Length Too Small",
-                "Target panjang terlalu kecil!\n\nMinimal panjang yang diizinkan adalah 1 meter."
+                "Current Length Too Small",
+                "Current panjang terlalu kecil!\n\nMinimal panjang yang diizinkan adalah 1 meter."
             )
             return False
             
