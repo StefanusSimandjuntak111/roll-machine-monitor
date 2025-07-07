@@ -95,7 +95,8 @@ def parse_fields(data: bytes) -> Dict[str, Any]:
         
         # Parse D6 flags according to JSK3588 documentation
         factor_code = d6 & 0x0F  # Lower 4 bits determine factor
-        unit = "yard" if (d6 & 0x10) else "meter"  # bit 4: unit (0=meter, 1=yard)
+        unit_bit = (d6 & 0x10) >> 4  # bit 4: unit (0=meter, 1=yard)
+        unit = "yard" if unit_bit else "meter"
         
         # Determine factor based on factor_code (01&0F)
         if factor_code == 0x00:

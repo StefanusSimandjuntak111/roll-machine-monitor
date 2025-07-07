@@ -652,6 +652,22 @@ class ProductForm(QWidget):
             self._is_updating = True
             self.target_length.setValue(round(current_length, 2))
             self._is_updating = False
+    
+    def update_unit_from_monitoring(self, unit: str):
+        """Update unit radio button based on monitoring data."""
+        if not self._is_updating:
+            self._is_updating = True
+            
+            if unit.lower() == "yard":
+                if not self.yard_radio.isChecked():
+                    self.yard_radio.setChecked(True)
+                    self._current_unit = "Yard"
+            elif unit.lower() == "meter":
+                if not self.meter_radio.isChecked():
+                    self.meter_radio.setChecked(True)
+                    self._current_unit = "Meter"
+            
+            self._is_updating = False
 
     def load_image(self, url):
         """Load image from URL and display it."""

@@ -732,7 +732,9 @@ class ModernMainWindow(QMainWindow):
         # Update target length input with current length
         if hasattr(self, 'product_form') and self.product_form:
             current_length = data.get('length_meters', 0.0)
+            unit = data.get('unit', 'meter')
             self.product_form.update_target_with_current_length(current_length)
+            self.product_form.update_unit_from_monitoring(unit)
     
     def handle_error(self, error: Exception):
         """Handle error from monitor."""
