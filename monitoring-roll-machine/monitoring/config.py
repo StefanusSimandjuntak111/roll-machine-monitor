@@ -12,7 +12,7 @@ DEFAULT_CONFIG = {
     "serial_port": "",
     "baudrate": 19200,
     "length_tolerance": 3.0,
-    "decimal_points": 2,
+    "decimal_points": 1,  # Maps to "#.#" format
     "rounding": "UP"
 }
 

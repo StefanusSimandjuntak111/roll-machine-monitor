@@ -242,11 +242,14 @@ class SettingsDialog(QDialog):
         
         # 2. Decimal Point
         self.decimal_combo = QComboBox()
-        self.decimal_combo.addItems(["1", "2", "3"])
-        current_decimal = self.current_settings.get("decimal_points", 2)
-        self.decimal_combo.setCurrentText(str(current_decimal))
+        self.decimal_combo.addItems(["#", "#.#", "#.##"])
+        current_decimal = self.current_settings.get("decimal_points", 1)
+        # Map decimal points to display format
+        decimal_map = {0: "#", 1: "#.#", 2: "#.##"}
+        current_format = decimal_map.get(current_decimal, "#.#")
+        self.decimal_combo.setCurrentText(current_format)
         self.decimal_combo.currentTextChanged.connect(self.update_conversion_preview)
-        settings_form.addRow("Decimal Points:", self.decimal_combo)
+        settings_form.addRow("Decimal Format:", self.decimal_combo)
         
         # 3. Rounding
         rounding_group = QGroupBox("Rounding Method")
@@ -308,8 +311,12 @@ class SettingsDialog(QDialog):
         try:
             # Get current values
             tolerance = float(self.tolerance_input.text() or "3")
-            decimal_points = int(self.decimal_combo.currentText())
+            decimal_format = self.decimal_combo.currentText()
             rounding = "UP" if self.round_up_radio.isChecked() else "DOWN"
+            
+            # Map decimal format to decimal points
+            decimal_points_map = {"#": 0, "#.#": 1, "#.##": 2}
+            decimal_points = decimal_points_map.get(decimal_format, 1)
             
             # Calculate conversion factor (example: 65 yard/meter)
             base_value = 65.0
@@ -386,7 +393,7 @@ class SettingsDialog(QDialog):
                 
                 # Page settings
                 "length_tolerance": float(self.tolerance_input.text() or "3"),
-                "decimal_points": int(self.decimal_combo.currentText()),
+                "decimal_points": {"#": 0, "#.#": 1, "#.##": 2}[self.decimal_combo.currentText()],
                 "rounding": "UP" if self.round_up_radio.isChecked() else "DOWN"
             }
             

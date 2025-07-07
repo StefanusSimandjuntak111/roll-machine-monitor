@@ -1,6 +1,9 @@
 {
     "serial_port": "COM6",
     "baudrate": 19200,
+    "length_tolerance": 3.0,
+    "decimal_points": 2,
+    "rounding": "UP",
     "timeout": 1.0,
     "use_mock_data": true,
     "poll_interval": 1.0,
