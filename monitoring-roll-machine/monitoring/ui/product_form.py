@@ -646,6 +646,13 @@ class ProductForm(QWidget):
         # Clear any error styling when user interacts
         self.clear_error(self.target_length)
 
+    def update_target_with_current_length(self, current_length: float):
+        """Update target length input with current length from monitoring."""
+        if not self._is_updating:
+            self._is_updating = True
+            self.target_length.setValue(round(current_length, 2))
+            self._is_updating = False
+
     def load_image(self, url):
         """Load image from URL and display it."""
         try:

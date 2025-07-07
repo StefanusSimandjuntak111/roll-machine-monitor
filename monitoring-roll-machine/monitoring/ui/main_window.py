@@ -728,6 +728,11 @@ class ModernMainWindow(QMainWindow):
         self.heartbeat.record_data()
         
         self.monitoring_view.update_data(data)
+        
+        # Update target length input with current length
+        if hasattr(self, 'product_form') and self.product_form:
+            current_length = data.get('length_meters', 0.0)
+            self.product_form.update_target_with_current_length(current_length)
     
     def handle_error(self, error: Exception):
         """Handle error from monitor."""

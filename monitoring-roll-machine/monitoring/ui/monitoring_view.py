@@ -62,8 +62,8 @@ class MonitoringView(QWidget):
         batch_card, self.batch_value_label = self.create_info_card("Batch Number", "Not Set")
         info_grid.addWidget(batch_card, 1, 1)
         
-        # Target card
-        target_card, self.target_value_label = self.create_info_card("Target Length", "Not Set")
+        # Current Length card (renamed from Target Length)
+        target_card, self.target_value_label = self.create_info_card("Current Length", "0.00 m")
         info_grid.addWidget(target_card, 1, 2)
         
         layout.addLayout(info_grid)
@@ -193,8 +193,8 @@ class MonitoringView(QWidget):
         serial_layout.addWidget(serial_group)
         splitter.addWidget(serial_widget)
         
-        # Set splitter proportions (70% graphs, 30% serial)
-        splitter.setSizes([700, 300])
+        # Set splitter proportions (100% graphs, 0% serial - hidden)
+        splitter.setSizes([1000, 0])
         
         layout.addWidget(splitter)
     
@@ -248,7 +248,9 @@ class MonitoringView(QWidget):
         if self.batch_value_label:
             self.batch_value_label.setText(data.get('batch_number', 'Not Set'))
         if self.target_value_label:
-            self.target_value_label.setText(f"{data.get('target_length', 0.0):.1f} m")
+            # Display current length instead of target length
+            length_meters = data.get('length_meters', 0.0)
+            self.target_value_label.setText(f"{length_meters:.2f} m")
         
         # Update graphs with parsed data
         current_time = datetime.now().timestamp()
