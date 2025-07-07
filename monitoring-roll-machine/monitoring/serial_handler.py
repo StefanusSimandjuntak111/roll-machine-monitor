@@ -131,7 +131,7 @@ class JSKSerialPort:
         # Enhanced features from serial_tool.py
         self.reader_thread: Optional[SerialReader] = None
         self.auto_send_timer: Optional[QTimer] = None
-        self.auto_send_interval = 1000  # ms
+        self.auto_send_interval = 100  # ms
         self.auto_send_command = "55 AA 02 00 00"  # Query Status
         self.auto_send_active = False
         

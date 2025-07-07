@@ -22,7 +22,7 @@ class Monitor:
         poll_interval: float = 1.0,
         auto_send_enabled: bool = True,
         auto_send_command: str = "55 AA 02 00 00",
-        auto_send_interval: int = 1000
+        auto_send_interval: int = 100
     ) -> None:
         self.serial_port = serial_port
         self.on_data = on_data

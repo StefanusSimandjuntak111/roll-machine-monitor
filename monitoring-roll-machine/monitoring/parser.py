@@ -166,8 +166,8 @@ def parse_fields(data: bytes) -> Dict[str, Any]:
                 "length": {
                     "raw": f"{data[1]:02X} {data[2]:02X} {data[3]:02X}",
                     "value": current_count_raw,
-                    "calculated": f"{current_count:.3f} {unit}",
-                    "description": f"Length = {current_count_raw} × {factor} = {current_count:.3f} {unit}"
+                    "calculated": f"{current_count:.2f} {unit}",
+                    "description": f"Length = {current_count_raw} × {factor} = {current_count:.2f} {unit}"
                 },
                 "speed": {
                     "raw": f"{data[4]:02X} {data[5]:02X}",
@@ -208,7 +208,7 @@ def format_packet_table(packet: bytes) -> str:
 
 | Field         | Nilai        |
 | ------------- | ------------ |
-| **Panjang**   | `{fields['length_meters']:.3f} m`     |
+| **Panjang**   | `{fields['length_meters']:.2f} m`     |
 | **Kecepatan** | `{fields['speed_text']}`   |
 | **Faktor**    | `{fields['factor']}`      |
 | **Unit**      | {fields['unit'].title()}        |

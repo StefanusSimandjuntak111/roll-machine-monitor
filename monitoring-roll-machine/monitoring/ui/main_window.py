@@ -682,7 +682,7 @@ class ModernMainWindow(QMainWindow):
                     on_serial_data=self.handle_serial_data,
                     auto_send_enabled=True,
                     auto_send_command="55 AA 02 00 00",
-                    auto_send_interval=1000
+                    auto_send_interval=100
                 )
                 
                 self.monitor.start()

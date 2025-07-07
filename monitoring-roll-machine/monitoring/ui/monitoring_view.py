@@ -230,7 +230,7 @@ class MonitoringView(QWidget):
         if self.length_value_label:
             # Use parsed length from JSK3588 packet
             length_meters = data.get('length_meters', 0.0)
-            self.length_value_label.setText(f"{length_meters:.3f} m")
+            self.length_value_label.setText(f"{length_meters:.2f} m")
         
         if self.speed_value_label:
             # Use parsed speed from JSK3588 packet
