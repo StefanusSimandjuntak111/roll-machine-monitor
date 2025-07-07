@@ -270,8 +270,28 @@ class MonitoringView(QWidget):
             self.speed_data = self.speed_data[-60:]
             self.length_data = self.length_data[-60:]
         
-        self.speed_curve.setData(self.time_data, self.speed_data)
-        self.length_curve.setData(self.time_data, self.length_data)
+        # Safely update graphs - check if objects still exist
+        try:
+            if hasattr(self, 'speed_curve') and self.speed_curve is not None:
+                self.speed_curve.setData(self.time_data, self.speed_data)
+        except Exception as e:
+            # If speed curve is deleted, recreate it
+            try:
+                self.speed_curve = self.speed_plot.plot(pen='g')
+                self.speed_curve.setData(self.time_data, self.speed_data)
+            except:
+                pass  # Ignore if plot widget is also deleted
+        
+        try:
+            if hasattr(self, 'length_curve') and self.length_curve is not None:
+                self.length_curve.setData(self.time_data, self.length_data)
+        except Exception as e:
+            # If length curve is deleted, recreate it
+            try:
+                self.length_curve = self.length_plot.plot(pen='b')
+                self.length_curve.setData(self.time_data, self.length_data)
+            except:
+                pass  # Ignore if plot widget is also deleted
     
     @Slot(str)
     def add_serial_data(self, data: str):
@@ -318,4 +338,28 @@ class MonitoringView(QWidget):
     def clear_serial_display(self):
         """Clear the serial data display."""
         if self.serial_display:
-            self.serial_display.clear() 
+            self.serial_display.clear()
+    
+    def cleanup(self):
+        """Clean up resources to prevent memory leaks."""
+        try:
+            # Clear plot data
+            if hasattr(self, 'speed_curve') and self.speed_curve is not None:
+                self.speed_curve.clear()
+                self.speed_curve = None
+            if hasattr(self, 'length_curve') and self.length_curve is not None:
+                self.length_curve.clear()
+                self.length_curve = None
+            
+            # Clear data lists
+            self.time_data.clear()
+            self.speed_data.clear()
+            self.length_data.clear()
+            
+            # Clear display
+            if self.serial_display:
+                self.serial_display.clear()
+                
+        except Exception as e:
+            # Ignore cleanup errors
+            pass 

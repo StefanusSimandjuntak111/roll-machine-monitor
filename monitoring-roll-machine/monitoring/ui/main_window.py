@@ -835,6 +835,8 @@ class ModernMainWindow(QMainWindow):
                 self.heartbeat.cleanup()
             if hasattr(self, 'singleton_lock'):
                 self.singleton_lock.release()
+            if hasattr(self, 'monitoring_view'):
+                self.monitoring_view.cleanup()
             logger.info("Cleanup completed successfully")
         except Exception as e:
             logger.warning(f"Error during cleanup: {e}")
