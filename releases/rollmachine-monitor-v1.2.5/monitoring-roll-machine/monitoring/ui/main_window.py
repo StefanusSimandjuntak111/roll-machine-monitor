@@ -6,8 +6,7 @@ import logging
 import subprocess
 import time
 import os
-import platform
-import tempfile
+import fcntl
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
@@ -34,53 +33,22 @@ from .connection_settings import ConnectionSettings
 logger = logging.getLogger(__name__)
 
 class SingletonLock:
-    """Cross-platform singleton lock to prevent multiple instances."""
+    """Singleton lock to prevent multiple instances."""
     
-    def __init__(self, lock_file: Optional[str] = None):
-        if lock_file is None:
-            # Use temp directory for cross-platform compatibility
-            temp_dir = tempfile.gettempdir()
-            self.lock_file = os.path.join(temp_dir, "rollmachine_monitor.lock")
-            self.popup_shown_file = os.path.join(temp_dir, "rollmachine_popup_shown.flag")
-        else:
-            self.lock_file = lock_file
-            self.popup_shown_file = lock_file.replace('.lock', '_popup_shown.flag')
-        
+    def __init__(self, lock_file="/tmp/rollmachine_monitor.lock"):
+        self.lock_file = lock_file
         self.lock_handle = None
+        self.popup_shown_file = "/tmp/rollmachine_popup_shown.flag"
         
     def acquire(self):
-        """Acquire exclusive lock using cross-platform method."""
+        """Acquire exclusive lock."""
         try:
-            # Create lock file with PID
-            pid = os.getpid()
-            timestamp = datetime.now().isoformat()
+            self.lock_handle = open(self.lock_file, 'w')
+            fcntl.flock(self.lock_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             
-            # Check if another instance is running
-            if os.path.exists(self.lock_file):
-                try:
-                    with open(self.lock_file, 'r') as f:
-                        existing_pid = f.readline().strip()
-                        existing_timestamp = f.readline().strip()
-                    
-                    # Check if PID is still running
-                    if self._is_pid_running(existing_pid):
-                        logger.warning(f"Another instance (PID {existing_pid}) is already running")
-                        return False
-                    else:
-                        # PID not running, remove stale lock
-                        logger.info(f"Removing stale lock file from PID {existing_pid}")
-                        os.remove(self.lock_file)
-                except Exception as e:
-                    logger.warning(f"Error reading existing lock: {e}")
-                    # Remove corrupted lock file
-                    if os.path.exists(self.lock_file):
-                        os.remove(self.lock_file)
-            
-            # Create new lock file
-            with open(self.lock_file, 'w') as f:
-                f.write(f"{pid}\n{timestamp}\n")
-            
-            self.lock_handle = open(self.lock_file, 'r')
+            # Write PID and timestamp
+            self.lock_handle.write(f"{os.getpid()}\n{datetime.now().isoformat()}\n")
+            self.lock_handle.flush()
             
             # Clear the popup shown flag since we're the new primary instance
             if os.path.exists(self.popup_shown_file):
@@ -94,22 +62,6 @@ class SingletonLock:
             if self.lock_handle:
                 self.lock_handle.close()
                 self.lock_handle = None
-            return False
-    
-    def _is_pid_running(self, pid_str: str) -> bool:
-        """Check if a process ID is still running (cross-platform)."""
-        try:
-            pid = int(pid_str)
-            if platform.system() == "Windows":
-                # Windows: use tasklist
-                result = subprocess.run(['tasklist', '/FI', f'PID eq {pid}'], 
-                                      capture_output=True, text=True, shell=True)
-                return str(pid) in result.stdout
-            else:
-                # Unix-like: use kill -0
-                os.kill(pid, 0)
-                return True
-        except (ValueError, OSError, subprocess.SubprocessError):
             return False
     
     def should_show_popup(self):
@@ -140,6 +92,7 @@ class SingletonLock:
         """Release lock."""
         if self.lock_handle:
             try:
+                fcntl.flock(self.lock_handle.fileno(), fcntl.LOCK_UN)
                 self.lock_handle.close()
                 if os.path.exists(self.lock_file):
                     os.remove(self.lock_file)
@@ -155,14 +108,8 @@ class SingletonLock:
 class HeartbeatManager:
     """Manages application heartbeat and idle detection."""
     
-    def __init__(self, heartbeat_file: Optional[str] = None):
-        if heartbeat_file is None:
-            # Use temp directory for cross-platform compatibility
-            temp_dir = tempfile.gettempdir()
-            self.heartbeat_file = os.path.join(temp_dir, "rollmachine_heartbeat")
-        else:
-            self.heartbeat_file = heartbeat_file
-            
+    def __init__(self, heartbeat_file="/tmp/rollmachine_heartbeat"):
+        self.heartbeat_file = heartbeat_file
         self.last_activity = datetime.now()
         self.data_count = 0
         self.last_data_count = 0
@@ -678,11 +625,7 @@ class ModernMainWindow(QMainWindow):
                 self.monitor = Monitor(
                     serial_port=serial_port,
                     on_data=self.handle_data,
-                    on_error=self.handle_error,
-                    on_serial_data=self.handle_serial_data,
-                    auto_send_enabled=True,
-                    auto_send_command="55 AA 02 00 00",
-                    auto_send_interval=1000
+                    on_error=self.handle_error
                 )
                 
                 self.monitor.start()
@@ -737,24 +680,6 @@ class ModernMainWindow(QMainWindow):
             "Monitor Error",
             str(error)
         )
-    
-    def handle_serial_data(self, data: str):
-        """Handle real-time serial data for display."""
-        # Add to monitoring view serial display
-        if hasattr(self, 'monitoring_view') and self.monitoring_view:
-            self.monitoring_view.add_serial_data(data)
-            
-            # If this is RX data, add packet analysis
-            if "RX:" in data:
-                # Extract hex data from RX line
-                try:
-                    hex_part = data.split("RX: ")[1].strip()
-                    self.monitoring_view.add_packet_analysis(hex_part)
-                except:
-                    pass  # Ignore if parsing fails
-        
-        # Record data activity for heartbeat
-        self.heartbeat.record_data()
     
     def auto_detect_port(self):
         """Auto-detect available serial ports."""
@@ -871,15 +796,14 @@ def main():
     logger.info("- Safe session management")
     logger.info("=" * 50)
     
-    # To exit kiosk mode: Create file in temp directory
-    exit_flag_path = os.path.join(tempfile.gettempdir(), "exit_kiosk_mode")
+    # To exit kiosk mode: Create file /tmp/exit_kiosk_mode
     # Check for exit flag every 10 seconds
     exit_timer = QTimer()
     def check_exit_flag():
-        if os.path.exists(exit_flag_path):
+        if os.path.exists("/tmp/exit_kiosk_mode"):
             logger.info("Exit flag detected - disabling kiosk mode")
             window.is_kiosk_mode = False
-            os.remove(exit_flag_path)
+            os.remove("/tmp/exit_kiosk_mode")
             app.quit()
     
     exit_timer.timeout.connect(check_exit_flag)

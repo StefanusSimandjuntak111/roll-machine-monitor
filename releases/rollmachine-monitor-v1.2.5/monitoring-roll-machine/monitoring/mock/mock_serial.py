@@ -115,11 +115,6 @@ class MockSerial:
         self._device = MockJSK3588Device(simulate_errors)
         self._read_buffer: List[int] = []
 
-    @property
-    def in_waiting(self) -> int:
-        """Return number of bytes waiting in input buffer."""
-        return len(self._read_buffer)
-
     def open(self) -> None:
         """Open port."""
         if self.is_open:

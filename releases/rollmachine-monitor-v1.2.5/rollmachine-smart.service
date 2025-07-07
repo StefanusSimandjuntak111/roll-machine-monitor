@@ -1,0 +1,48 @@
+[Unit]
+Description=Roll Machine Monitor (Smart Watchdog Mode)
+Documentation=https://github.com/hokgt/textilindo_roll_printer
+After=network.target graphical-session.target
+Wants=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=kiosk
+Group=rollmachine
+WorkingDirectory=/opt/rollmachine-monitor
+ExecStart=/opt/rollmachine-monitor/smart-watchdog.sh
+ExecStop=/bin/kill -TERM $MAINPID
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Environment variables
+Environment=DISPLAY=:0
+Environment=HOME=/home/kiosk
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+
+# Smart restart policy - let the watchdog handle restarts
+Restart=on-failure
+RestartSec=30
+StartLimitBurst=3
+StartLimitIntervalSec=300
+
+# Security settings for kiosk
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=false
+ReadWritePaths=/opt/rollmachine-monitor /var/log /tmp
+CapabilityBoundingSet=
+
+# Process settings
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+TimeoutStartSec=60
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rollmachine-smart
+
+[Install]
+WantedBy=graphical.target 

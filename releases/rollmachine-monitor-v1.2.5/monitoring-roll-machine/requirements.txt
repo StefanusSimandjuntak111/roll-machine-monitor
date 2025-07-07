@@ -8,10 +8,7 @@ appdirs>=1.4.4
 qrcode>=7.4.2
 Pillow>=10.0.0
 
-# Windows-specific dependencies
-pywin32>=306; sys_platform == "win32"
-
-# Development dependencies (install with pip install -r requirements.txt[dev])
+# Optional: Development dependencies (install with pip install -r requirements.txt[dev])
 # pytest>=7.4.0
 # pytest-cov>=4.1.0
 # pytest-qt>=4.2.0
