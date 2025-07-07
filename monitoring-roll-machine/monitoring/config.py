@@ -7,16 +7,29 @@ from typing import Dict, Any
 
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), "config.json")
 
+# Default configuration values
+DEFAULT_CONFIG = {
+    "serial_port": "",
+    "baudrate": 19200,
+    "length_tolerance": 3.0,
+    "decimal_points": 2,
+    "rounding": "UP"
+}
+
 def load_config() -> Dict[str, Any]:
     """Load konfigurasi dari file."""
+    config = DEFAULT_CONFIG.copy()
+    
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r") as f:
-                return json.load(f)
+                saved_config = json.load(f)
+                # Update with saved values, keeping defaults for missing keys
+                config.update(saved_config)
         except Exception as e:
             print(f"Error loading config: {e}")
-            return {}
-    return {}
+    
+    return config
 
 def save_config(config: Dict[str, Any]) -> None:
     """Simpan konfigurasi ke file."""
@@ -29,4 +42,8 @@ def save_config(config: Dict[str, Any]) -> None:
         with open(CONFIG_FILE, "w") as f:
             json.dump(serializable_config, f, indent=4)
     except Exception as e:
-        print(f"Error saving config: {e}") 
+        print(f"Error saving config: {e}")
+
+def get_default_config() -> Dict[str, Any]:
+    """Get default configuration values."""
+    return DEFAULT_CONFIG.copy() 
