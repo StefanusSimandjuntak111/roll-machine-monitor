@@ -384,24 +384,8 @@ class ProductForm(QWidget):
         self.reset_button = QPushButton("Reset Counter")
         self.reset_button.setObjectName("reset_button")
         self.reset_button.clicked.connect(self.reset_counter_with_save)
-        self.reset_button.setStyleSheet("""
-            QPushButton {
-                background-color: #dc3545;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                padding: 10px 20px;
-                font-size: 14px;
-                font-weight: bold;
-                min-height: 50px;
-            }
-            QPushButton:hover {
-                background-color: #c82333;
-            }
-            QPushButton:pressed {
-                background-color: #bd2130;
-            }
-        """)
+        # Gunakan style dan size policy yang sama dengan print_button
+        self.reset_button.setStyleSheet(action_button_style + "\n#reset_button { background-color: #dc3545; }\n#reset_button:hover { background-color: #c82333; }\n#reset_button:pressed { background-color: #bd2130; }")
         self.reset_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         buttons_layout.addWidget(self.reset_button)
         
@@ -447,25 +431,9 @@ class ProductForm(QWidget):
             pass
             
     def reset_counter_with_save(self):
-        """Save product info and reset counter."""
-        logger.info("RESET COUNTER: Sending reset command to device")
-            
-        if self.validate_inputs():
-            # Create product info dictionary with consistent field names
-            product_info = {
-                'product_code': self.product_code.text().strip(),
-                'product_name': self.product_name.text().strip(),
-                'color_code': self.color_code.text().strip(),
-                'color': self.color_code.text().strip(),  # For backward compatibility
-                'barcode': self._barcode,
-                'batch_number': self.batch_number.text().strip(),
-                'target_length': self.target_length.value(),
-                'units': self.unit_group.checkedButton().text()
-            }
-            # Emit the product_updated signal
-            self.product_updated.emit(product_info)
-            # Emit the reset_counter signal
-            self.reset_counter.emit()
+        """Langsung reset counter tanpa validasi input apapun."""
+        logger.info("RESET COUNTER: Sending reset command to device (no validation)")
+        self.reset_counter.emit()
         
     def print_product_info(self):
         """Print product information."""

@@ -1,7 +1,7 @@
 import sys
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, 
                              QTableWidgetItem, QHeaderView, QLabel, QPushButton,
-                             QFrame, QScrollArea)
+                             QFrame, QScrollArea, QSizePolicy)
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QFont, QColor
 from datetime import datetime
@@ -62,6 +62,11 @@ class LoggingTableWidget(QWidget):
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        
+        # Set table height to match product form card
+        self.table.setMinimumHeight(200)  # Minimum height
+        self.table.setMaximumHeight(300)  # Maximum height
+        self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         
         # Set column widths
         header = self.table.horizontalHeader()
