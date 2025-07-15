@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QComboBox,
     QPushButton, QFrame, QLabel, QHBoxLayout, QTabWidget,
     QLineEdit, QRadioButton, QButtonGroup, QSpinBox, QGroupBox,
-    QMessageBox, QCheckBox
+    QMessageBox, QCheckBox, QWidget
 )
 from PySide6.QtCore import Qt, Signal, QTimer
 from typing import Dict, Any
@@ -70,6 +70,7 @@ class SettingsDialog(QDialog):
         self.create_port_settings_tab()
         self.create_port_management_tab()
         self.create_page_settings_tab()
+        self.create_api_settings_tab()
         
         layout.addWidget(self.tab_widget)
         
@@ -491,6 +492,214 @@ class SettingsDialog(QDialog):
         # Initialize conversion preview
         self.update_conversion_preview()
     
+    def create_api_settings_tab(self):
+        """Create the API Settings tab."""
+        api_tab = QWidget()
+        api_layout = QVBoxLayout(api_tab)
+        
+        # API Settings Frame
+        api_frame = QFrame()
+        api_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        api_frame.setStyleSheet("""
+            QFrame {
+                background-color: #2d2d2d;
+                border: 1px solid #555555;
+                border-radius: 8px;
+                padding: 15px;
+            }
+        """)
+        
+        api_form = QFormLayout(api_frame)
+        api_form.setSpacing(15)
+        
+        # API URL Input
+        self.api_url_input = QLineEdit()
+        self.api_url_input.setPlaceholderText("https://api.example.com/products")
+        current_api_url = self.current_settings.get("api_url", "")
+        self.api_url_input.setText(current_api_url)
+        self.api_url_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #1e1e1e;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                padding: 8px;
+                color: white;
+                font-size: 12px;
+            }
+            QLineEdit:focus {
+                border: 2px solid #0078d4;
+            }
+        """)
+        api_form.addRow("API URL:", self.api_url_input)
+        
+        # API Status Display
+        self.api_status_label = QLabel("Not Connected")
+        self.api_status_label.setStyleSheet("""
+            QLabel {
+                color: #ff6b6b;
+                font-size: 12px;
+                padding: 5px;
+                background-color: #1e1e1e;
+                border-radius: 3px;
+                border: 1px solid #555555;
+            }
+        """)
+        api_form.addRow("Status:", self.api_status_label)
+        
+        # Test Connection Button
+        self.test_api_button = QPushButton("Test Connection")
+        self.test_api_button.setStyleSheet(self.get_button_style("secondary"))
+        self.test_api_button.clicked.connect(self.test_api_connection)
+        api_form.addRow("", self.test_api_button)
+        
+        # Save API Settings Button
+        self.save_api_button = QPushButton("Save API Settings")
+        self.save_api_button.setStyleSheet(self.get_button_style("primary"))
+        self.save_api_button.clicked.connect(self.save_api_settings)
+        api_form.addRow("", self.save_api_button)
+        
+        api_layout.addWidget(api_frame)
+        api_layout.addStretch()
+        
+        self.tab_widget.addTab(api_tab, "API Settings")
+        
+        # Update API status
+        self.update_api_status()
+    
+    def test_api_connection(self):
+        """Test the API connection."""
+        try:
+            api_url = self.api_url_input.text().strip()
+            if not api_url:
+                QMessageBox.warning(self, "API Test", "Please enter an API URL first.")
+                return
+            
+            # Import requests here to avoid dependency issues
+            import requests
+            
+            # Set required headers for the API
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": "token 61996278bcc8bbb:8a178a12b28e784"
+            }
+            
+            # Test the connection with headers and a dummy item_code parameter
+            test_url = f"{api_url}?item_code=BD-RED"
+            logger.info(f"Testing API connection to: {test_url}")
+            logger.info(f"Headers: {headers}")
+            
+            response = requests.get(test_url, headers=headers, timeout=10)
+            logger.info(f"Response status: {response.status_code}")
+            logger.info(f"Response content: {response.text[:200]}...")  # Log first 200 chars
+            
+            if response.status_code == 200:
+                QMessageBox.information(self, "API Test", "Connection successful!")
+                self.api_status_label.setText("Connected")
+                self.api_status_label.setStyleSheet("""
+                    QLabel {
+                        color: #4caf50;
+                        font-size: 12px;
+                        padding: 5px;
+                        background-color: #1e1e1e;
+                        border-radius: 3px;
+                        border: 1px solid #555555;
+                    }
+                """)
+            elif response.status_code == 404:
+                # 404 is expected for test item, but connection is working
+                QMessageBox.information(self, "API Test", "Connection successful! (404 is expected for test item)")
+                self.api_status_label.setText("Connected")
+                self.api_status_label.setStyleSheet("""
+                    QLabel {
+                        color: #4caf50;
+                        font-size: 12px;
+                        padding: 5px;
+                        background-color: #1e1e1e;
+                        border-radius: 3px;
+                        border: 1px solid #555555;
+                    }
+                """)
+            else:
+                QMessageBox.warning(self, "API Test", f"Connection failed. Status code: {response.status_code}")
+                self.api_status_label.setText("Connection Failed")
+                self.api_status_label.setStyleSheet("""
+                    QLabel {
+                        color: #ff9800;
+                        font-size: 12px;
+                        padding: 5px;
+                        background-color: #1e1e1e;
+                        border-radius: 3px;
+                        border: 1px solid #555555;
+                    }
+                """)
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"API connection error: {str(e)}")
+            QMessageBox.critical(self, "API Test", f"Connection error: {str(e)}")
+            self.api_status_label.setText("Connection Error")
+            self.api_status_label.setStyleSheet("""
+                QLabel {
+                    color: #ff6b6b;
+                    font-size: 12px;
+                    padding: 5px;
+                    background-color: #1e1e1e;
+                    border-radius: 3px;
+                    border: 1px solid #555555;
+                }
+            """)
+        except Exception as e:
+            logger.error(f"Unexpected API test error: {str(e)}")
+            QMessageBox.critical(self, "API Test", f"Unexpected error: {str(e)}")
+    
+    def save_api_settings(self):
+        """Save the API settings."""
+        try:
+            api_url = self.api_url_input.text().strip()
+            
+            # Validate URL format
+            if api_url and not (api_url.startswith('http://') or api_url.startswith('https://')):
+                QMessageBox.warning(self, "API Settings", "Please enter a valid URL starting with http:// or https://")
+                return
+            
+            # Update current settings
+            self.current_settings["api_url"] = api_url
+            
+            # Emit settings update signal
+            self.settings_updated.emit(self.current_settings)
+            
+            QMessageBox.information(self, "API Settings", "API settings saved successfully!")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "API Settings", f"Error saving API settings: {str(e)}")
+    
+    def update_api_status(self):
+        """Update the API connection status display."""
+        api_url = self.current_settings.get("api_url", "")
+        if api_url:
+            self.api_status_label.setText("Configured")
+            self.api_status_label.setStyleSheet("""
+                QLabel {
+                    color: #4caf50;
+                    font-size: 12px;
+                    padding: 5px;
+                    background-color: #1e1e1e;
+                    border-radius: 3px;
+                    border: 1px solid #555555;
+                }
+            """)
+        else:
+            self.api_status_label.setText("Not Configured")
+            self.api_status_label.setStyleSheet("""
+                QLabel {
+                    color: #ff6b6b;
+                    font-size: 12px;
+                    padding: 5px;
+                    background-color: #1e1e1e;
+                    border-radius: 3px;
+                    border: 1px solid #555555;
+                }
+            """)
+    
     def update_conversion_preview(self):
         """Update the conversion factor preview based on current settings."""
         try:
@@ -627,7 +836,10 @@ class SettingsDialog(QDialog):
                 # Page settings
                 "length_tolerance": tolerance,
                 "decimal_points": decimal_points_map[decimal_format],
-                "rounding": rounding
+                "rounding": rounding,
+                
+                # API settings
+                "api_url": self.current_settings.get("api_url", "")
             }
             
             logger.info(f"Settings to save: {settings}")

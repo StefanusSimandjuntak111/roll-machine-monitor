@@ -612,6 +612,21 @@ class ProductForm(QWidget):
             'target_length': self.target_length.value(),
             'unit': self.unit_group.checkedButton().text()
         }
+    
+    @property
+    def product_name_text(self) -> str:
+        """Get product name from form."""
+        return self.product_name.text().strip() if hasattr(self, 'product_name') else "Unknown"
+    
+    @property
+    def product_code_text(self) -> str:
+        """Get product code from form."""
+        return self.product_code.text().strip() if hasattr(self, 'product_code') else "Unknown"
+    
+    @property
+    def batch_text(self) -> str:
+        """Get batch from form."""
+        return self.batch_number.text().strip() if hasattr(self, 'batch_number') else "Unknown"
         
     def set_product_info(self, info: Dict[str, Any]):
         """Set product information in the form."""

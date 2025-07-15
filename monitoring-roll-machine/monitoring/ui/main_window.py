@@ -30,6 +30,7 @@ from .monitoring_view import MonitoringView
 from .product_form import ProductForm
 from .settings_dialog import SettingsDialog
 from .connection_settings import ConnectionSettings
+from .logging_table_widget import LoggingTableWidget
 
 logger = logging.getLogger(__name__)
 
@@ -387,6 +388,12 @@ class ModernMainWindow(QMainWindow):
         self.monitor: Optional[Monitor] = None
         self.config = load_config()
         
+        # Initialize production logging variables
+        self.last_print_time = None
+        self.last_roll_time = None
+        self.current_product_info = {}
+        self.production_start_time = None
+        
         # KIOSK MODE CONFIGURATION
         self.setWindowTitle("Roll Machine Monitor - Kiosk Mode")
         
@@ -546,6 +553,10 @@ class ModernMainWindow(QMainWindow):
         content_layout.addWidget(self.product_form, stretch=1)
         
         self.main_layout.addLayout(content_layout, stretch=1)
+        
+        # Add logging table below the cards
+        self.logging_table_widget = LoggingTableWidget()
+        self.main_layout.addWidget(self.logging_table_widget, stretch=2)
     
     def setup_status_bar(self):
         """Set up the status bar with connection status and other info."""
@@ -735,6 +746,58 @@ class ModernMainWindow(QMainWindow):
             unit = data.get('unit', 'meter')
             self.product_form.update_target_with_current_length(current_length)
             self.product_form.update_unit_from_monitoring(unit)
+        
+        # Handle production logging
+        self.handle_production_logging(data)
+    
+    def handle_production_logging(self, data: Dict[str, Any]):
+        """Handle production logging when print events occur."""
+        try:
+            current_time = datetime.now()
+            length = data.get('length_meters', 0.0)
+            
+            # Detect print event (when length increases significantly)
+            if self.last_print_time is None:
+                self.last_print_time = current_time
+                self.production_start_time = current_time
+                self.current_product_info = {
+                    'product_name': self.product_form.product_name_text,
+                    'product_code': self.product_form.product_code_text,
+                    'product_length': length,
+                    'batch': self.product_form.batch_text
+                }
+            else:
+                # Check if this is a new print cycle (length reset or significant change)
+                length_diff = abs(length - self.current_product_info.get('product_length', 0))
+                
+                if length_diff > 0.1:  # Significant length change indicates new print
+                    # Calculate times
+                    time_to_print = (current_time - (self.production_start_time or current_time)).total_seconds()
+                    time_to_roll = (current_time - (self.last_print_time or current_time)).total_seconds()
+                    
+                    # Log the production data
+                    if hasattr(self, 'logging_table_widget') and self.logging_table_widget:
+                        self.logging_table_widget.add_production_entry(
+                            product_name=self.current_product_info.get('product_name', 'Unknown'),
+                            product_code=self.current_product_info.get('product_code', 'Unknown'),
+                            product_length=self.current_product_info.get('product_length', 0.0),
+                            batch=self.current_product_info.get('batch', 'Unknown'),
+                            time_to_print=time_to_print,
+                            time_to_roll=time_to_roll
+                        )
+                    
+                    # Update for next cycle
+                    self.last_print_time = current_time
+                    self.production_start_time = current_time
+                    self.current_product_info = {
+                        'product_name': self.product_form.product_name_text,
+                        'product_code': self.product_form.product_code_text,
+                        'product_length': length,
+                        'batch': self.product_form.batch_text
+                    }
+                    
+        except Exception as e:
+            logger.error(f"Error in production logging: {e}")
     
     def handle_error(self, error: Exception):
         """Handle error from monitor."""
@@ -863,12 +926,13 @@ def main():
     window.raise_()
     window.activateWindow()
     
-    # Auto-start monitoring if possible
-    try:
-        window.toggle_monitoring()
-        logger.info("Auto-started monitoring in kiosk mode")
-    except Exception as e:
-        logger.warning(f"Could not auto-start monitoring: {e}")
+    # Auto-start monitoring if possible (disabled for testing)
+    # try:
+    #     window.toggle_monitoring()
+    #     logger.info("Auto-started monitoring in kiosk mode")
+    # except Exception as e:
+    #     logger.warning(f"Could not auto-start monitoring: {e}")
+    logger.info("Auto-start monitoring disabled for testing")
     
     # Log kiosk mode info
     logger.info("=" * 50)

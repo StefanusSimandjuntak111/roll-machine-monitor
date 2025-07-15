@@ -1,301 +1,169 @@
 #!/usr/bin/env python3
 """
 Roll Machine Monitor Windows Service
-Runs the monitoring application as a Windows service
+====================================
+
+This module provides Windows service functionality for the Roll Machine Monitor application.
+It allows the application to run as a Windows service with automatic start/stop capabilities.
+
+Requirements:
+- pywin32 (for Windows service functionality)
+- The main application modules
+
+Usage:
+    python rollmachine-service.py install    # Install the service
+    python rollmachine-service.py start      # Start the service
+    python rollmachine-service.py stop       # Stop the service
+    python rollmachine-service.py remove     # Remove the service
+    python rollmachine-service.py debug      # Run in debug mode
 """
 
-import sys
 import os
+import sys
 import time
 import logging
+import threading
 from pathlib import Path
+
+# Add the parent directory to the path to import the main application
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
     import win32serviceutil
     import win32service
     import win32event
     import servicemanager
+    import socket
 except ImportError:
-    print("Error: pywin32 is required for Windows service functionality")
-    print("Install with: pip install pywin32")
+    print("ERROR: pywin32 not installed!")
+    print("Please install pywin32: pip install pywin32")
+    sys.exit(1)
+
+try:
+    from monitoring.monitor import RollMachineMonitor
+    from monitoring.logging_utils import setup_logging
+except ImportError as e:
+    print(f"ERROR: Failed to import application modules: {e}")
+    print("Please ensure the application is properly installed.")
     sys.exit(1)
 
 
-class RollMachineMonitorService(win32serviceutil.ServiceFramework):
-    """Windows service for Roll Machine Monitor"""
+class RollMachineService(win32serviceutil.ServiceFramework):
+    """
+    Windows service class for Roll Machine Monitor.
+    
+    This service runs the main monitoring application in the background
+    and handles Windows service lifecycle events.
+    """
     
     _svc_name_ = "RollMachineMonitor"
-    _svc_display_name_ = "Roll Machine Monitor Service"
+    _svc_display_name_ = "Roll Machine Monitor"
     _svc_description_ = "Industrial monitoring application for JSK3588 roll machines"
     
     def __init__(self, args):
+        """Initialize the service."""
         win32serviceutil.ServiceFramework.__init__(self, args)
-        self.hWaitStop = win32event.CreateEvent(None, 0, 0, None)
-        self.is_running = True
-        
-        # Get application directory
-        self.app_dir = Path(__file__).parent.parent
-        self.venv_python = self.app_dir / "venv" / "Scripts" / "python.exe"
-        self.log_file = self.app_dir / "logs" / "service.log"
-        
-        # Ensure log directory exists
-        self.log_file.parent.mkdir(exist_ok=True)
+        self.stop_event = win32event.CreateEvent(None, 0, 0, None)
+        self.monitor = None
+        self.monitor_thread = None
+        self.is_running = False
         
         # Setup logging
+        self.setup_service_logging()
+        
+    def setup_service_logging(self):
+        """Setup logging for the service."""
+        log_dir = Path(__file__).parent.parent / "logs"
+        log_dir.mkdir(exist_ok=True)
+        
+        log_file = log_dir / "service.log"
+        
         logging.basicConfig(
             level=logging.INFO,
-            format='%(asctime)s [SERVICE] %(levelname)s: %(message)s',
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             handlers=[
-                logging.FileHandler(self.log_file),
-                logging.StreamHandler()
+                logging.FileHandler(log_file),
+                logging.StreamHandler(sys.stdout)
             ]
         )
-        self.logger = logging.getLogger(__name__)
         
+        self.logger = logging.getLogger("RollMachineService")
+        self.logger.info("Service logging initialized")
+    
     def SvcStop(self):
-        """Stop the service"""
+        """Stop the service."""
         self.logger.info("Service stop requested")
         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
+        win32event.SetEvent(self.stop_event)
         self.is_running = False
-        win32event.SetEvent(self.hWaitStop)
         
+        if self.monitor:
+            self.logger.info("Stopping monitor...")
+            self.monitor.stop()
+    
     def SvcDoRun(self):
-        """Main service entry point"""
+        """Run the service."""
+        self.logger.info("Service starting...")
+        self.is_running = True
+        
         try:
-            self.logger.info("Roll Machine Monitor Service starting...")
-            servicemanager.LogMsg(
-                servicemanager.EVENTLOG_INFORMATION_TYPE,
-                servicemanager.PYS_SERVICE_STARTED,
-                (self._svc_name_, '')
-            )
+            # Change to application directory
+            app_dir = Path(__file__).parent.parent
+            os.chdir(app_dir)
+            self.logger.info(f"Changed to application directory: {app_dir}")
             
-            self.main_loop()
+            # Initialize and start the monitor
+            self.monitor = RollMachineMonitor()
+            self.logger.info("Monitor initialized")
             
-        except Exception as e:
-            self.logger.error(f"Service error: {e}", exc_info=True)
-            servicemanager.LogMsg(
-                servicemanager.EVENTLOG_ERROR_TYPE,
-                servicemanager.PYS_SERVICE_STOPPED,
-                (self._svc_name_, str(e))
-            )
-        finally:
-            self.logger.info("Roll Machine Monitor Service stopped")
+            # Start monitor in a separate thread
+            self.monitor_thread = threading.Thread(target=self.run_monitor)
+            self.monitor_thread.daemon = True
+            self.monitor_thread.start()
             
-    def main_loop(self):
-        """Main service loop"""
-        self.logger.info("Service main loop started")
-        
-        # Verify application exists
-        if not self.venv_python.exists():
-            self.logger.error(f"Python executable not found: {self.venv_python}")
-            return
+            self.logger.info("Service started successfully")
             
-        monitoring_dir = self.app_dir / "monitoring"
-        if not monitoring_dir.exists():
-            self.logger.error(f"Monitoring application not found: {monitoring_dir}")
-            return
-            
-        self.logger.info(f"Using Python: {self.venv_python}")
-        self.logger.info(f"Application directory: {self.app_dir}")
-        
-        # Change to application directory
-        os.chdir(str(self.app_dir))
-        
-        # Start monitoring process
-        process = None
-        restart_count = 0
-        max_restarts = 10
-        
-        while self.is_running:
-            try:
-                if process is None or process.poll() is not None:
-                    # Process not running, start it
-                    if restart_count >= max_restarts:
-                        self.logger.error(f"Maximum restart attempts ({max_restarts}) reached")
-                        break
-                        
-                    self.logger.info(f"Starting monitoring application (attempt {restart_count + 1})")
-                    
-                    import subprocess
-                    process = subprocess.Popen(
-                        [str(self.venv_python), "-m", "monitoring"],
-                        cwd=str(self.app_dir),
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        creationflags=subprocess.CREATE_NO_WINDOW
-                    )
-                    
-                    restart_count += 1
-                    self.logger.info(f"Monitoring application started with PID {process.pid}")
-                
-                # Wait for stop event or process to exit
-                result = win32event.WaitForSingleObject(self.hWaitStop, 5000)  # 5 second timeout
-                
-                if result == win32event.WAIT_OBJECT_0:
-                    # Stop event signaled
-                    self.logger.info("Stop event received")
+            # Wait for stop event
+            while self.is_running:
+                # Check if stop event is signaled
+                if win32event.WaitForSingleObject(self.stop_event, 1000) == win32event.WAIT_OBJECT_0:
                     break
                     
-                # Check if process is still running
-                if process and process.poll() is not None:
-                    # Process has exited
-                    returncode = process.returncode
-                    self.logger.warning(f"Monitoring application exited with code {returncode}")
+                # Check if monitor thread is still alive
+                if not self.monitor_thread.is_alive():
+                    self.logger.error("Monitor thread died unexpectedly")
+                    break
                     
-                    if returncode != 0:
-                        # Non-zero exit, wait before restart
-                        self.logger.info("Waiting 10 seconds before restart...")
-                        time.sleep(10)
-                    
-                    process = None
-                    
-            except Exception as e:
-                self.logger.error(f"Error in main loop: {e}", exc_info=True)
-                time.sleep(5)
-                
-        # Clean up
-        if process and process.poll() is None:
-            self.logger.info("Terminating monitoring application...")
-            try:
-                process.terminate()
-                process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                self.logger.warning("Process did not terminate gracefully, killing...")
-                process.kill()
-                
-        self.logger.info("Service main loop ended")
-
-
-def install_service():
-    """Install the Windows service"""
-    try:
-        # Add current directory to Python path
-        script_path = os.path.abspath(__file__)
-        
-        win32serviceutil.InstallService(
-            RollMachineMonitorService,
-            RollMachineMonitorService._svc_name_,
-            RollMachineMonitorService._svc_display_name_,
-            startType=win32service.SERVICE_AUTO_START,
-            description=RollMachineMonitorService._svc_description_
-        )
-        
-        print(f"✅ Service '{RollMachineMonitorService._svc_display_name_}' installed successfully")
-        print(f"   Service will start automatically with Windows")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Failed to install service: {e}")
-        return False
-
-
-def remove_service():
-    """Remove the Windows service"""
-    try:
-        # Stop service if running
-        try:
-            win32serviceutil.StopService(RollMachineMonitorService._svc_name_)
-            print("🛑 Service stopped")
-        except:
-            pass
-            
-        # Remove service
-        win32serviceutil.RemoveService(RollMachineMonitorService._svc_name_)
-        print(f"✅ Service '{RollMachineMonitorService._svc_display_name_}' removed successfully")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Failed to remove service: {e}")
-        return False
-
-
-def start_service():
-    """Start the Windows service"""
-    try:
-        win32serviceutil.StartService(RollMachineMonitorService._svc_name_)
-        print(f"✅ Service '{RollMachineMonitorService._svc_display_name_}' started")
-        return True
-    except Exception as e:
-        print(f"❌ Failed to start service: {e}")
-        return False
-
-
-def stop_service():
-    """Stop the Windows service"""
-    try:
-        win32serviceutil.StopService(RollMachineMonitorService._svc_name_)
-        print(f"🛑 Service '{RollMachineMonitorService._svc_display_name_}' stopped")
-        return True
-    except Exception as e:
-        print(f"❌ Failed to stop service: {e}")
-        return False
-
-
-def service_status():
-    """Check service status"""
-    try:
-        import win32api
-        scm = win32service.OpenSCManager(None, None, win32service.SC_MANAGER_ENUMERATE_SERVICE)
-        try:
-            service = win32service.OpenService(scm, RollMachineMonitorService._svc_name_, win32service.SERVICE_QUERY_STATUS)
-            try:
-                status = win32service.QueryServiceStatus(service)
-                state = status[1]
-                
-                state_names = {
-                    win32service.SERVICE_STOPPED: "STOPPED",
-                    win32service.SERVICE_START_PENDING: "START_PENDING", 
-                    win32service.SERVICE_STOP_PENDING: "STOP_PENDING",
-                    win32service.SERVICE_RUNNING: "RUNNING",
-                    win32service.SERVICE_CONTINUE_PENDING: "CONTINUE_PENDING",
-                    win32service.SERVICE_PAUSE_PENDING: "PAUSE_PENDING",
-                    win32service.SERVICE_PAUSED: "PAUSED"
-                }
-                
-                state_name = state_names.get(state, f"UNKNOWN({state})")
-                print(f"Service Status: {state_name}")
-                
-                if state == win32service.SERVICE_RUNNING:
-                    print("✅ Service is running")
-                else:
-                    print("❌ Service is not running")
-                    
-                return state == win32service.SERVICE_RUNNING
-                
-            finally:
-                win32service.CloseServiceHandle(service)
+        except Exception as e:
+            self.logger.error(f"Service error: {e}", exc_info=True)
+            self.is_running = False
         finally:
-            win32service.CloseServiceHandle(scm)
-            
-    except Exception as e:
-        print(f"❌ Failed to check service status: {e}")
-        return False
+            self.logger.info("Service stopped")
+    
+    def run_monitor(self):
+        """Run the monitor in a separate thread."""
+        try:
+            self.logger.info("Starting monitor...")
+            self.monitor.start()
+        except Exception as e:
+            self.logger.error(f"Monitor error: {e}", exc_info=True)
+            self.is_running = False
+
+
+def main():
+    """Main entry point for the service."""
+    if len(sys.argv) == 1:
+        # Running as service
+        try:
+            servicemanager.Initialize()
+            servicemanager.PrepareToHostSingle(RollMachineService)
+            servicemanager.StartServiceCtrlDispatcher()
+        except win32service.error as e:
+            logging.error(f"Service error: {e}")
+    else:
+        # Command line arguments
+        win32serviceutil.HandleCommandLine(RollMachineService)
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        # Run as service
-        servicemanager.Initialize()
-        servicemanager.PrepareToHostSingle(RollMachineMonitorService)
-        servicemanager.StartServiceCtrlDispatcher()
-    else:
-        # Handle command line arguments
-        command = sys.argv[1].lower()
-        
-        if command == 'install':
-            install_service()
-        elif command == 'remove':
-            remove_service()
-        elif command == 'start':
-            start_service()
-        elif command == 'stop':
-            stop_service()
-        elif command == 'status':
-            service_status()
-        elif command == 'restart':
-            stop_service()
-            time.sleep(2)
-            start_service()
-        else:
-            print("Usage: rollmachine-service.py [install|remove|start|stop|restart|status]")
-            sys.exit(1) 
+    main()

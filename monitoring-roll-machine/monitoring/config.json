@@ -4,6 +4,7 @@
     "length_tolerance": 3.0,
     "decimal_points": 2,
     "rounding": "UP",
+    "api_url": "http://192.168.68.111:8001/api/method/frappe.utils.custom_api.get_product_detail",
     "timeout": 1.0,
     "use_mock_data": true,
     "poll_interval": 1.0,

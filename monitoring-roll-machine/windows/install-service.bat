@@ -1,105 +1,89 @@
 @echo off
 REM ===============================================
-REM Install Roll Machine Monitor Windows Service
+REM Roll Machine Monitor Service Installer v1.3.0
 REM ===============================================
 
 setlocal EnableDelayedExpansion
 
+REM Set application directory
+set APP_DIR=%~dp0..
+cd /d "%APP_DIR%"
+
+echo ==========================================
+echo Installing Roll Machine Monitor Service...
+echo ==========================================
 echo.
-echo ======================================================
-echo 🔧 Installing Roll Machine Monitor Windows Service
-echo ======================================================
-echo.
-
-REM Get the installation directory (parent of windows folder)
-set "APP_DIR=%~dp0.."
-set "VENV_PYTHON=%APP_DIR%\venv\Scripts\python.exe"
-set "SERVICE_SCRIPT=%~dp0rollmachine-service.py"
-
-REM Check if running as administrator
-net session >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo ❌ This script must be run as Administrator
-    echo    Right-click and select "Run as administrator"
-    echo.
-    pause
-    exit /b 1
-)
-
-echo ✅ Running as Administrator
 
 REM Check if virtual environment exists
-if not exist "%VENV_PYTHON%" (
-    echo ❌ Python virtual environment not found!
-    echo    Expected: %VENV_PYTHON%
-    echo    Please run setup-environment.bat first
+if not exist "venv\Scripts\python.exe" (
+    echo ERROR: Virtual environment not found!
+    echo Please run the installer to set up the environment properly.
     echo.
     pause
     exit /b 1
 )
 
-echo ✅ Python virtual environment found
-
-REM Check if service script exists
-if not exist "%SERVICE_SCRIPT%" (
-    echo ❌ Service script not found!
-    echo    Expected: %SERVICE_SCRIPT%
-    echo.
-    pause
-    exit /b 1
+REM Check if service already exists and remove it
+sc query RollMachineMonitor >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    echo Service already exists. Stopping and removing old service...
+    sc stop RollMachineMonitor >nul 2>&1
+    timeout /t 3 >nul
+    sc delete RollMachineMonitor >nul 2>&1
+    timeout /t 2 >nul
 )
 
-echo ✅ Service script found
+REM Create the service
+echo Creating Windows service...
+sc create RollMachineMonitor binPath= "\"%APP_DIR%\venv\Scripts\python.exe\" \"%APP_DIR%\run_app.py\"" start= auto DisplayName= "Roll Machine Monitor" Description= "Industrial monitoring application for JSK3588 roll machines"
 
-REM Stop existing service if it exists
-echo 🛑 Stopping existing service (if any)...
-"%VENV_PYTHON%" "%SERVICE_SCRIPT%" stop >nul 2>&1
-
-REM Remove existing service if it exists
-echo 🧹 Removing existing service (if any)...
-"%VENV_PYTHON%" "%SERVICE_SCRIPT%" remove >nul 2>&1
-
-REM Install the service
-echo 📦 Installing Windows service...
-"%VENV_PYTHON%" "%SERVICE_SCRIPT%" install
 if %ERRORLEVEL% neq 0 (
-    echo ❌ Failed to install service
-    echo.
+    echo ERROR: Failed to create service!
+    echo This might be due to permission issues.
+    echo Please ensure the installer is run as Administrator.
     pause
     exit /b 1
 )
+
+echo ✅ Service created successfully
+echo.
+
+REM Configure service recovery options
+echo Configuring service recovery options...
+sc failure RollMachineMonitor reset= 86400 actions= restart/60000/restart/60000/restart/60000
+
+if %ERRORLEVEL% neq 0 (
+    echo WARNING: Failed to configure service recovery options
+) else (
+    echo ✅ Service recovery configured
+)
+
+echo.
 
 REM Start the service
-echo 🚀 Starting service...
-"%VENV_PYTHON%" "%SERVICE_SCRIPT%" start
+echo Starting service...
+sc start RollMachineMonitor
+
 if %ERRORLEVEL% neq 0 (
-    echo ❌ Failed to start service
-    echo.
-    pause
-    exit /b 1
+    echo WARNING: Failed to start service automatically
+    echo Service will start on next system boot
+) else (
+    echo ✅ Service started successfully
 )
 
-REM Check service status
-echo 🔍 Checking service status...
-"%VENV_PYTHON%" "%SERVICE_SCRIPT%" status
-
 echo.
-echo ======================================================
-echo 🎉 Service Installation Completed!
-echo ======================================================
+echo ==========================================
+echo Service installation completed!
+echo ==========================================
 echo.
-echo ✅ Roll Machine Monitor Service has been installed
-echo ✅ Service is set to start automatically with Windows
-echo ✅ Service is currently running
+echo Service name: RollMachineMonitor
+echo Service status: Auto-start
+echo Recovery: Automatic restart on failure
 echo.
-echo 📋 Service Management Commands:
-echo    Start:   "%VENV_PYTHON%" "%SERVICE_SCRIPT%" start
-echo    Stop:    "%VENV_PYTHON%" "%SERVICE_SCRIPT%" stop
-echo    Restart: "%VENV_PYTHON%" "%SERVICE_SCRIPT%" restart
-echo    Status:  "%VENV_PYTHON%" "%SERVICE_SCRIPT%" status
-echo.
-echo 📝 Service logs are saved to:
-echo    %APP_DIR%\logs\service.log
+echo You can manage the service using:
+echo - Services.msc
+echo - sc query RollMachineMonitor
+echo - sc start/stop RollMachineMonitor
 echo.
 
-pause 
+endlocal

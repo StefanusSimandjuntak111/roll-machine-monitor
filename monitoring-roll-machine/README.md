@@ -2,6 +2,58 @@
 
 A modern Qt-based application for monitoring fabric roll machines. This application provides real-time monitoring of machine status, product information management, and data export capabilities.
 
+## Project Structure
+
+```
+monitoring-roll-machine/
+├── build-scripts/         # Build scripts and installer files
+│   ├── installer-windows.iss
+│   ├── build-windows-complete.bat
+│   ├── create-offline-windows-bundle.py
+│   └── ...
+│
+├── docs/                  # Documentation files
+│   ├── RELEASE_NOTES_v1.2.6.md
+│   ├── JSK3588.md
+│   ├── SERIAL_TOOL_GUIDE.md
+│   └── ...
+│
+├── scripts/               # Utility scripts (batch, shell)
+│   ├── start_app.bat
+│   ├── start_kiosk.sh
+│   ├── exit_kiosk.sh
+│   └── ...
+│
+├── tools/                 # Python utility tools
+│   ├── serial_tool.py
+│   ├── checksum_calculator.py
+│   └── ...
+│
+├── tests-integration/     # Integration and UI tests
+│   ├── test_ui.py
+│   ├── test_kiosk.py
+│   ├── test_ports.py
+│   └── ...
+│
+├── tests/                 # Unit tests
+│
+├── monitoring/            # Main application code
+│   ├── __init__.py
+│   ├── __main__.py
+│   ├── config.py
+│   ├── monitor.py
+│   └── ...
+│
+├── windows/               # Windows-specific files
+├── releases/              # Release packages
+├── logs/                  # Log files
+├── exports/               # Exported data
+├── requirements.txt       # Python dependencies
+├── setup.py               # Package setup
+├── pyproject.toml         # Project configuration
+└── run_app.py             # Application entry point
+```
+
 ## Features
 
 - Modern dark theme UI optimized for 24/7 operation
@@ -49,7 +101,16 @@ A modern Qt-based application for monitoring fabric roll machines. This applicat
 
 1. Start the application:
    ```bash
-   monitoring-roll-machine
+   python run_app.py
+   ```
+   
+   Or use the provided scripts:
+   ```bash
+   # Windows
+   scripts\start_app.bat
+   
+   # Linux/AntiX (Kiosk mode)
+   ./scripts/start_kiosk.sh
    ```
 
 2. Configure serial connection:
@@ -73,27 +134,33 @@ A modern Qt-based application for monitoring fabric roll machines. This applicat
 
 ### Running Tests
 ```bash
-pytest
+# Unit tests
+pytest tests/
+
+# Integration tests
+pytest tests-integration/
 ```
 
 ### Building Executable
 ```bash
 # Windows
-pyinstaller monitoring-roll-machine/build_exe.py
+python build-scripts/build_exe.py
 
-# Linux
-pyinstaller --onefile monitoring-roll-machine/build_exe.py
+# Full Windows installer
+build-scripts\build-windows-complete.bat
 ```
 
 ## Configuration
 
-The application uses a YAML configuration file located at:
-- Windows: `%APPDATA%/monitoring-roll-machine/config.yaml`
-- Linux: `~/.config/monitoring-roll-machine/config.yaml`
+The application uses a JSON configuration file located at:
+- Default: `monitoring/config.json`
+- Windows: `%APPDATA%/monitoring-roll-machine/config.json`
+- Linux: `~/.config/monitoring-roll-machine/config.json`
 
 ## Logging
 
 Log files are stored in:
+- Default: `logs/`
 - Windows: `%APPDATA%/monitoring-roll-machine/logs/`
 - Linux: `~/.local/share/monitoring-roll-machine/logs/`
 

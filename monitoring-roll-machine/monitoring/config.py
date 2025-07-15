@@ -13,7 +13,8 @@ DEFAULT_CONFIG = {
     "baudrate": 19200,
     "length_tolerance": 3.0,
     "decimal_points": 1,  # Maps to "#.#" format
-    "rounding": "UP"
+    "rounding": "UP",
+    "api_url": "http://192.168.68.111:8001/api/method/frappe.utils.custom_api.get_product_detail"  # API URL for product data
 }
 
 def load_config() -> Dict[str, Any]:

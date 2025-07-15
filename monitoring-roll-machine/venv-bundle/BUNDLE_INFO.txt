@@ -1,0 +1,11 @@
+Roll Machine Monitor Offline Bundle
+===================================
+
+This bundle contains:
+- Pre-built Python virtual environment
+- All required Python packages
+- Ready for offline installation
+
+Created: D:\Apps\monitoring-roll-machine\monitoring-roll-machine
+Python version: 3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]
+Bundle size: 672548653 bytes
