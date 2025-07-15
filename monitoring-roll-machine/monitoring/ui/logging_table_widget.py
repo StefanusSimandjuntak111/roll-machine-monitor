@@ -111,11 +111,11 @@ class LoggingTableWidget(QWidget):
         self.setLayout(layout)
         
     def setup_timer(self):
-        """Setup timer untuk auto-refresh setiap 30 detik"""
+        """Setup timer untuk auto-refresh setiap 5 menit (300000 ms)"""
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.refresh_table)
-        self.refresh_timer.start(30000)  # 30 seconds
-        
+        self.refresh_timer.start(300000)  # 5 minutes
+
     def refresh_table(self):
         """Refresh tabel dengan data terbaru"""
         try:
@@ -124,6 +124,10 @@ class LoggingTableWidget(QWidget):
             self.status_label.setText(f"Data terakhir diperbarui: {datetime.now().strftime('%H:%M:%S')} - {len(data)} entri")
         except Exception as e:
             self.status_label.setText(f"Error memuat data: {str(e)}")
+
+    # Public method to allow manual refresh from outside (e.g., after print)
+    def manual_refresh(self):
+        self.refresh_table()
             
     def populate_table(self, data):
         """Populate table dengan data"""

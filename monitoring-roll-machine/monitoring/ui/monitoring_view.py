@@ -12,7 +12,7 @@ from datetime import datetime
 class MonitoringView(QWidget):
     """Main monitoring view with real-time data display."""
     
-    def __init__(self):
+    def __init__(self, logging_table_widget=None):
         super().__init__()
         
         # Initialize data storage
@@ -30,6 +30,7 @@ class MonitoringView(QWidget):
         
         # Serial data display
         self.serial_display: Optional[QTextEdit] = None
+        self.logging_table_widget = logging_table_widget
         
         self.setup_ui()
         
@@ -67,6 +68,10 @@ class MonitoringView(QWidget):
         info_grid.addWidget(target_card, 1, 2)
         
         layout.addLayout(info_grid)
+        
+        # Tambahkan logging table widget jika ada
+        if self.logging_table_widget is not None:
+            layout.addWidget(self.logging_table_widget)
         
         # Create splitter for graphs and serial data
         splitter = QSplitter(Qt.Orientation.Horizontal)

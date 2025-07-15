@@ -444,8 +444,8 @@ class ModernMainWindow(QMainWindow):
         
         # Connect signals
         self.product_form.product_updated.connect(self.handle_product_update)
-        self.product_form.start_monitoring.connect(self.toggle_monitoring)
-        logger.info("FIXED: Connected start_monitoring signal to toggle_monitoring")
+        self.product_form.reset_counter.connect(self.reset_counter)
+        logger.info("Connected reset_counter signal to reset_counter function")
     
     def setup_theme(self, is_dark: bool = True):
         """Set up theme colors and styling."""
@@ -544,8 +544,10 @@ class ModernMainWindow(QMainWindow):
         """Set up the main content area with monitoring view and product form."""
         content_layout = QHBoxLayout()
         
-        # Create and add monitoring view
-        self.monitoring_view = MonitoringView()
+        # Create and add logging table widget
+        self.logging_table_widget = LoggingTableWidget()
+        # Create and add monitoring view, passing logging table widget
+        self.monitoring_view = MonitoringView(logging_table_widget=self.logging_table_widget)
         content_layout.addWidget(self.monitoring_view, stretch=2)
         
         # Create and add product form
@@ -553,10 +555,7 @@ class ModernMainWindow(QMainWindow):
         content_layout.addWidget(self.product_form, stretch=1)
         
         self.main_layout.addLayout(content_layout, stretch=1)
-        
-        # Add logging table below the cards
-        self.logging_table_widget = LoggingTableWidget()
-        self.main_layout.addWidget(self.logging_table_widget, stretch=2)
+        # Hapus baris: self.main_layout.addWidget(self.logging_table_widget, stretch=2)
     
     def setup_status_bar(self):
         """Set up the status bar with connection status and other info."""
@@ -657,6 +656,48 @@ class ModernMainWindow(QMainWindow):
         logger.info(f"Product info updated: {product_info}")
         if self.monitor:
             self.monitor.update_product_info(product_info)
+    
+    @Slot()
+    def reset_counter(self):
+        """Reset counter by sending command 55 AA 01 00 00 00 to device."""
+        try:
+            if self.monitor and self.monitor.is_running:
+                # Send reset command: 55 AA 01 00 00 00
+                reset_command = "55 AA 01 00 00 00"
+                logger.info(f"Sending reset counter command: {reset_command}")
+                
+                # Send command through serial port
+                if hasattr(self.monitor, 'serial_port') and self.monitor.serial_port:
+                    self.monitor.serial_port.send_hex(reset_command)
+                    logger.info("Reset counter command sent successfully")
+                    
+                    # Show success message
+                    self.show_kiosk_dialog(
+                        "information",
+                        "Reset Counter",
+                        "Reset counter command sent successfully!\n\nDevice will reset current collection data to zero and return current data."
+                    )
+                else:
+                    logger.error("Serial port not available for reset command")
+                    self.show_kiosk_dialog(
+                        "warning",
+                        "Reset Failed",
+                        "Cannot send reset command: Serial port not available."
+                    )
+            else:
+                logger.warning("Monitor not running, cannot send reset command")
+                self.show_kiosk_dialog(
+                    "warning",
+                    "Reset Failed",
+                    "Cannot send reset command: Monitor not running.\n\nPlease ensure device is connected and monitoring is active."
+                )
+        except Exception as e:
+            logger.error(f"Error sending reset command: {e}")
+            self.show_kiosk_dialog(
+                "critical",
+                "Reset Error",
+                f"Error sending reset command:\n\n{str(e)}"
+            )
     
     def toggle_monitoring(self):
         """Toggle monitoring start/stop with FORCED real serial connection."""
@@ -785,6 +826,8 @@ class ModernMainWindow(QMainWindow):
                             time_to_print=time_to_print,
                             time_to_roll=time_to_roll
                         )
+                        # Refresh table after print
+                        self.logging_table_widget.manual_refresh()
                     
                     # Update for next cycle
                     self.last_print_time = current_time
@@ -926,13 +969,12 @@ def main():
     window.raise_()
     window.activateWindow()
     
-    # Auto-start monitoring if possible (disabled for testing)
-    # try:
-    #     window.toggle_monitoring()
-    #     logger.info("Auto-started monitoring in kiosk mode")
-    # except Exception as e:
-    #     logger.warning(f"Could not auto-start monitoring: {e}")
-    logger.info("Auto-start monitoring disabled for testing")
+    # Auto-start monitoring if possible (PRODUCTION MODE)
+    try:
+        window.toggle_monitoring()
+        logger.info("Auto-started monitoring in kiosk mode")
+    except Exception as e:
+        logger.warning(f"Could not auto-start monitoring: {e}")
     
     # Log kiosk mode info
     logger.info("=" * 50)

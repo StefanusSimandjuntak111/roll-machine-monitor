@@ -77,7 +77,7 @@ class ProductForm(QWidget):
     
     # Signals
     product_updated = Signal(dict)
-    start_monitoring = Signal()  # Signal for starting monitoring
+    reset_counter = Signal()  # Signal for resetting counter
     
     # Konstanta konversi
     METER_TO_YARD = 1.09361
@@ -380,13 +380,30 @@ class ProductForm(QWidget):
             }
         """
         
-        # Start Button
-        self.start_button = QPushButton("Start Monitoring")
-        self.start_button.setObjectName("start_button")
-        self.start_button.clicked.connect(self.start_monitoring_with_save)
-        self.start_button.setStyleSheet(action_button_style)
-        self.start_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        buttons_layout.addWidget(self.start_button)
+        # Reset Counter Button
+        self.reset_button = QPushButton("Reset Counter")
+        self.reset_button.setObjectName("reset_button")
+        self.reset_button.clicked.connect(self.reset_counter_with_save)
+        self.reset_button.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 10px 20px;
+                font-size: 14px;
+                font-weight: bold;
+                min-height: 50px;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+            QPushButton:pressed {
+                background-color: #bd2130;
+            }
+        """)
+        self.reset_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        buttons_layout.addWidget(self.reset_button)
         
         # Print Button
         self.print_button = QPushButton("Print")
@@ -429,13 +446,9 @@ class ProductForm(QWidget):
             # Value changed by user, no need to convert
             pass
             
-    def start_monitoring_with_save(self):
-        """Save product info and start monitoring."""
-        # COMPLETE FIX: REMOVE ALL PORT VALIDATION - ALWAYS ALLOW MONITORING
-        # The port will be auto-detected or forced to /dev/ttyUSB0 in main_window.py
-        
-        logger.info("FORCE START: Bypassing all port validation checks")
-        logger.info("Port auto-detection will be handled by main_window.py")
+    def reset_counter_with_save(self):
+        """Save product info and reset counter."""
+        logger.info("RESET COUNTER: Sending reset command to device")
             
         if self.validate_inputs():
             # Create product info dictionary with consistent field names
@@ -451,8 +464,8 @@ class ProductForm(QWidget):
             }
             # Emit the product_updated signal
             self.product_updated.emit(product_info)
-            # Emit the start_monitoring signal
-            self.start_monitoring.emit()
+            # Emit the reset_counter signal
+            self.reset_counter.emit()
         
     def print_product_info(self):
         """Print product information."""
