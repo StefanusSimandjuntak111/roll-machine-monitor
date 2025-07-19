@@ -1,0 +1,12 @@
+VERSION: 1.2.5
+RELEASE_DATE: 2025-01-07
+DESCRIPTION: JSK3588 Protocol Enhancement & Dependency Fix Release
+FEATURES:
+- Fixed COM byte handling for JSK3588 responses
+- Added complete command set (01, 02, 04, 10-13)
+- Improved checksum validation
+- Enhanced serial communication reliability
+- Fixed dependency installation issues
+- Added robust dependency installation script
+- Improved setup.py with all required dependencies
+- Better virtual environment handling 

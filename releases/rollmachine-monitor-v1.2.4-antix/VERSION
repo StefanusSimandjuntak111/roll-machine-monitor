@@ -1,0 +1,8 @@
+ROLL_MACHINE_MONITOR_VERSION=1.2.4-PATCHED
+BUILD_DATE=2025-01-07
+BUILD_FOR=antiX
+FEATURES=auto_detection,enhanced_ui,fixed_validation,kiosk_mode,DEMO_MODE_DISABLED
+PACKAGE_TYPE=deployment
+PYTHON_VERSION=3.9+
+SUPPORTED_OS=antiX,Ubuntu,Debian,Linux
+PATCH_NOTES=Force disabled demo mode fallback, real serial connection only 

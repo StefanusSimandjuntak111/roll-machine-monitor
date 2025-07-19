@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+
+# Virtual environments
+env/
+.venv/
+venv/
+ENV/
+
+# Logs
+logs/
+*.log
+
+# IDE/Editor
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Build artifacts and packages
+build/
+dist/
+*.tar.gz
+*.zip
+*.sha256
+
+# Extracted package directories
+rollmachine-monitor-installer-*/
+installer_package/
+
+# OS files
+.DS_Store
+Thumbs.db
+.directory
+
+# Config files with sensitive data
+.env
+config.ini
+
+# Test coverage
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+
+# Export files (can be kept locally but not in repo)
+exports/
+*.csv
+*.xlsx 

@@ -1,0 +1,48 @@
+[Unit]
+Description=Roll Machine Monitor Kiosk Mode
+Documentation=https://github.com/rollmachine/monitor
+After=network.target graphical-session.target
+Wants=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=kiosk
+Group=rollmachine
+WorkingDirectory=/opt/rollmachine-monitor
+ExecStart=/opt/rollmachine-monitor/kiosk-startup.sh
+ExecStop=/bin/kill -TERM $MAINPID
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Environment variables
+Environment=DISPLAY=:0
+Environment=HOME=/home/kiosk
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+
+# Restart configuration - NEVER GIVE UP!
+Restart=always
+RestartSec=3
+StartLimitBurst=0
+
+# Security settings for kiosk
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=false
+ReadWritePaths=/opt/rollmachine-monitor /var/log /tmp
+CapabilityBoundingSet=
+
+# Process settings
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+TimeoutStartSec=60
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rollmachine-kiosk
+
+[Install]
+WantedBy=graphical.target
+Also=rollmachine-watchdog.service 

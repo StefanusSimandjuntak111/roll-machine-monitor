@@ -1,0 +1,190 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtualenv
+env/
+.venv/
+venv/
+ENV/
+
+# Logs - Comprehensive logging exclusions
+logs/
+*.log
+*.log.*
+log/
+logging/
+*.out
+*.err
+*.trace
+*.debug
+*.info
+*.warn
+*.error
+*.fatal
+
+# IDE/editor
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Test/coverage
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# Releases and distribution files - Comprehensive exclusion
+releases/
+release/
+dist/
+build-scripts/releases/
+build-scripts/temp_bundle/
+build-scripts/RollMachineMonitor-*-Windows-Offline/
+build-scripts/RollMachineMonitor-*-Windows-Offline.zip
+build-scripts/RollMachineMonitor-*-Windows-Offline.rar
+build-scripts/RollMachineMonitor-*-Windows-Offline.7z
+build-scripts/RollMachineMonitor-*-Windows-Offline.tar.gz
+build-scripts/RollMachineMonitor-*-Windows-Offline.tar.bz2
+
+# Compressed files - All formats
+*.zip
+*.rar
+*.7z
+*.tar
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.gz
+*.bz2
+*.xz
+*.lzma
+*.cab
+*.iso
+*.dmg
+*.pkg
+*.deb
+*.rpm
+*.msi
+*.exe
+*.msm
+*.msp
+*.app
+*.dmg
+*.pkg
+*.deb
+*.rpm
+*.snap
+*.flatpak
+*.appimage
+
+# Large files (>2MB) to avoid Git LFS
+# This will be handled by Git attributes, but we can also exclude common large file patterns
+*.iso
+*.vmdk
+*.vdi
+*.vhd
+*.vhdx
+*.qcow2
+*.raw
+*.img
+*.bin
+*.dat
+*.dump
+*.backup
+*.bak
+*.old
+*.tmp
+*.temp
+*.cache
+*.db
+*.sqlite
+*.sqlite3
+*.mdb
+*.accdb
+
+# Build artifacts and large files
+build-scripts/*.exe
+build-scripts/*.zip
+build-scripts/*.rar
+build-scripts/*.7z
+build-scripts/build-log-*.txt
+build-scripts/installer-*.exe
+build-scripts/installer-*.msi
+build-scripts/installer-*.dmg
+build-scripts/installer-*.pkg
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Config
+.env
+config.ini
+*.conf
+*.cfg
+*.config
+
+# Temporary and cache files
+*.tmp
+*.temp
+*.cache
+*.bak
+*.backup
+*.old
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+
+# Node.js (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Java (if any)
+*.class
+*.jar
+*.war
+*.ear
+
+# C/C++ (if any)
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.mdb
+*.accdb
+*.fdb
+*.gdb
+
+# Backup and archive files
+*.bak
+*.backup
+*.old
+*.orig
+*.rej
+*.swp
+*.swo
+*~ 
