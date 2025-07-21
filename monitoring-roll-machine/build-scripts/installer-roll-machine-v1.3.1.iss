@@ -125,7 +125,7 @@ Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#Setup
 Filename: "{app}\run_app.py"; Description: "Launch Roll Machine Monitor"; Flags: postinstall nowait skipifsilent; WorkingDir: "{app}"
 
 [Code]
-; Custom code for installation
+// Custom code for installation
 function InitializeSetup(): Boolean;
 begin
   Result := True;
