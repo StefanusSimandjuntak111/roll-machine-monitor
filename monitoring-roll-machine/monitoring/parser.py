@@ -154,7 +154,7 @@ def parse_fields(data: bytes) -> Dict[str, Any]:
             logger.info(f"Applied machine-specific correction: {current_count_raw} → {current_count}")
         else:
             # Use standard JSK3588 parsing for factor 0.1
-            current_count = current_count_raw * factor
+        current_count = current_count_raw * factor
         
         # Speed (2 bytes: D2 D1)
         current_speed_raw = int.from_bytes(data[4:6], 'big')
