@@ -11,6 +11,7 @@ import requests
 from io import BytesIO
 import logging
 from datetime import datetime
+import re
 
 from .connection_settings import ConnectionSettings
 from .print_preview import PrintPreviewDialog
@@ -685,6 +686,24 @@ class ProductForm(QWidget):
             self.target_length.setValue(round(current_length, 2))
             self._is_updating = False
     
+    def update_target_with_length_print(self, length_print_text: str):
+        """Update target length input with length print value (with tolerance applied)."""
+        if not self._is_updating:
+            self._is_updating = True
+            try:
+                # Extract numeric value from length print text (e.g., "1.34 m" -> 1.34)
+                match = re.search(r'(\d+\.?\d*)', length_print_text)
+                if match:
+                    length_value = float(match.group(1))
+                    self.target_length.setValue(round(length_value, 2))
+                    logger.info(f"Updated target length with length print value: {length_value}")
+                else:
+                    logger.warning(f"Could not extract numeric value from length print text: {length_print_text}")
+            except Exception as e:
+                logger.error(f"Error updating target length with length print: {e}")
+            finally:
+                self._is_updating = False
+
     def update_unit_from_monitoring(self, unit: str):
         """Update unit radio button based on monitoring data."""
         if not self._is_updating:

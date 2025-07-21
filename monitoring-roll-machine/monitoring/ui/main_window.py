@@ -773,34 +773,71 @@ class ModernMainWindow(QMainWindow):
         except Exception as e:
             logger.error(f"Error killing port connection: {e}")
     
+    def _needs_monitoring_restart(self, settings: Dict[str, Any]) -> bool:
+        """Check if settings require monitoring restart."""
+        restart_settings = ['serial_port', 'baudrate']
+        return any(key in settings for key in restart_settings)
+    
+    def _update_display_settings(self):
+        """Update display settings without restart - only affects current and future data."""
+        # Store settings change timestamp
+        self.settings_changed_at = datetime.now()
+        logger.info(f"Display settings updated at: {self.settings_changed_at}")
+        
+        # Update Length Print card immediately with new settings for current data
+        if hasattr(self, 'last_data'):
+            self.handle_data(self.last_data)
+        logger.info("Display settings updated without restart - affects current and future data only")
+
     @Slot(dict)
     def handle_settings_update(self, settings: Dict[str, Any]):
-        """Handle settings updates."""
+        """Handle settings updates with smart restart logic - only affects current and future data."""
         logger.info(f"Settings updated: {settings}")
         self.config.update(settings)
         save_config(self.config)
         
-        # Kill port connection before restart to avoid permission errors
-        self.kill_port_connection()
+        # Check if settings require monitoring restart
+        needs_restart = self._needs_monitoring_restart(settings)
         
-        # Restart monitoring with new settings
-        try:
-            logger.info("Restarting monitoring with new settings...")
-            self.toggle_monitoring()  # Start with new settings
+        if needs_restart:
+            # Port settings changed - need restart
+            logger.info("Port settings changed, restarting monitoring...")
+            self.kill_port_connection()
+            
+            # Store settings change timestamp for port settings
+            self.settings_changed_at = datetime.now()
+            
+            # Restart monitoring with new settings
+            try:
+                logger.info("Restarting monitoring with new settings...")
+                self.toggle_monitoring()  # Start with new settings
+                
+                # Show success message
+                self.show_kiosk_dialog(
+                    "information",
+                    "Settings Updated",
+                    "Port settings have been updated.\n\nMonitoring has been restarted with new configuration.\n\nNew settings will apply to current and future products only."
+                )
+                
+            except Exception as e:
+                logger.error(f"Error restarting monitoring: {e}")
+                self.show_kiosk_dialog(
+                    "warning",
+                    "Restart Failed",
+                    f"Settings saved but failed to restart monitoring:\n\n{str(e)}\n\nPlease try starting monitoring manually."
+                )
+        else:
+            # Only display settings changed - no restart needed
+            logger.info("Display settings updated, no restart needed")
+            
+            # Update Length Print immediately for current data
+            self._update_display_settings()
             
             # Show success message
             self.show_kiosk_dialog(
                 "information",
                 "Settings Updated",
-                "Settings have been updated successfully!\n\nMonitoring has been restarted with new configuration.\n\nLength tolerance and other settings are now active."
-            )
-            
-        except Exception as e:
-            logger.error(f"Error restarting monitoring: {e}")
-            self.show_kiosk_dialog(
-                "warning",
-                "Restart Failed",
-                f"Settings saved but failed to restart monitoring:\n\n{str(e)}\n\nPlease try starting monitoring manually."
+                "Display settings have been updated successfully!\n\nLength tolerance and formatting are now active.\n\nNew settings apply to current and future products only.\n\nNo connection interruption."
             )
     
     @Slot(dict)
@@ -942,6 +979,9 @@ class ModernMainWindow(QMainWindow):
         # Record data activity for heartbeat
         self.heartbeat.record_data()
         
+        # Store last data for immediate settings updates
+        self.last_data = data.copy()
+        
         # Check if cycle is closed and enable close cycle button if new data arrives
         if self.cycle_is_closed:
             # New data arrived, enable close cycle button for new cycle
@@ -972,11 +1012,11 @@ class ModernMainWindow(QMainWindow):
         
         self.monitoring_view.update_data(data)
         
-        # Update target length input with current length
+        # Update target length input with length print value (with tolerance)
         if hasattr(self, 'product_form') and self.product_form:
-            current_length = data.get('length_meters', 0.0)
             unit = data.get('unit', 'meter')
-            self.product_form.update_target_with_current_length(current_length)
+            # Use length print text (with tolerance) instead of raw current length
+            self.product_form.update_target_with_length_print(length_print_text)
             self.product_form.update_unit_from_monitoring(unit)
         
         # Handle production logging
@@ -1082,13 +1122,19 @@ class ModernMainWindow(QMainWindow):
             
             # Log the production data with cycle_time = None initially
             if hasattr(self, 'logging_table_widget') and self.logging_table_widget:
+                # Get current settings timestamp
+                settings_timestamp = None
+                if hasattr(self, 'settings_changed_at'):
+                    settings_timestamp = self.settings_changed_at.isoformat()
+                
                 self.logging_table_widget.add_production_entry(
                     product_name=product_name,
                     product_code=product_code,
                     product_length=product_length,
                     batch=batch,
                     cycle_time=cycle_time,  # Always None for Print
-                    roll_time=roll_time
+                    roll_time=roll_time,
+                    settings_timestamp=settings_timestamp  # When settings were last changed
                 )
                 # Refresh table after print
                 self.logging_table_widget.manual_refresh()

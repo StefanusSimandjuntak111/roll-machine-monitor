@@ -64,8 +64,9 @@ class LoggingTable:
                           product_length: float,
                           batch: str,
                           cycle_time: float | None,
-                          roll_time: float):
-        """Log production data with all required fields"""
+                          roll_time: float,
+                          settings_timestamp: str | None = None):
+        """Log production data with all required fields and settings timestamp"""
         data = {
             'product_name': product_name,
             'product_code': product_code,
@@ -73,6 +74,7 @@ class LoggingTable:
             'batch': batch,
             'cycle_time': cycle_time,  # Time from roll length reset to 0 until next reset to 0
             'roll_time': roll_time,    # Time from roll length starting at 0 until user clicks print
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now().isoformat(),
+            'settings_timestamp': settings_timestamp  # When settings were last changed before this entry
         }
         self.save_data(data) 

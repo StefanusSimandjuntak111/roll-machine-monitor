@@ -135,15 +135,16 @@ class LoggingTableWidget(QWidget):
                     item.setBackground(QColor(52, 152, 219))  # Blue highlight for dark theme
                     
     def add_production_entry(self, product_name, product_code, product_length, 
-                           batch, cycle_time, roll_time):
-        """Add new production entry to logging"""
+                           batch, cycle_time, roll_time, settings_timestamp=None):
+        """Add new production entry to logging with settings timestamp"""
         self.logging_table.log_production_data(
             product_name=product_name,
             product_code=product_code,
             product_length=product_length,
             batch=batch,
             cycle_time=cycle_time,
-            roll_time=roll_time
+            roll_time=roll_time,
+            settings_timestamp=settings_timestamp
         )
         self.refresh_table()
     
@@ -162,11 +163,11 @@ class LoggingTableWidget(QWidget):
                 try:
                     with open(filename, 'w', encoding='utf-8') as f:
                         json.dump(data, f, indent=2, ensure_ascii=False)
-                
-                # Refresh the table to show the update
-                self.refresh_table()
-                
-                logger.info(f"Updated last entry cycle time to: {cycle_time:.1f}s")
+                    
+                    # Refresh the table to show the update
+                    self.refresh_table()
+                    
+                    logger.info(f"Updated last entry cycle time to: {cycle_time:.1f}s")
                 except Exception as e:
                     logger.error(f"Error saving updated data to file: {e}")
             else:
