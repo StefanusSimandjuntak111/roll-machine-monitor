@@ -40,6 +40,13 @@ A comprehensive monitoring system for roll machine production with real-time dat
 - Comprehensive error handling
 - Logging and debugging support
 
+### ✅ **Length Tolerance Feature** (NEW)
+- **Length Print with tolerance**: Card Length Print menampilkan panjang dengan toleransi persentase
+- **Configurable settings**: Length tolerance, decimal format, dan rounding method
+- **Real-time preview**: Settings dialog menampilkan preview hasil perhitungan
+- **Formula**: `length_display = length_input * (1 - tolerance_percent / 100)`
+- **Rounding options**: UP (ceil) atau DOWN (floor) dengan format desimal yang dapat disesuaikan
+
 ## 🔧 Cycle Time Logic Implementation
 
 ### 📌 **How It Works:**

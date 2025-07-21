@@ -463,11 +463,11 @@ class SettingsDialog(QDialog):
         
         settings_form.addRow(rounding_group)
         
-        # 4. Conversion Factor Preview
-        preview_group = QGroupBox("Conversion Factor Preview")
+        # 4. Length Print Preview
+        preview_group = QGroupBox("Length Print Preview")
         preview_layout = QVBoxLayout(preview_group)
         
-        self.conversion_preview = QLabel("65.00 Yard / Meter")
+        self.conversion_preview = QLabel("100.0 Meter")
         self.conversion_preview.setStyleSheet("""
             QLabel {
                 color: #00ff00;
@@ -822,21 +822,37 @@ class SettingsDialog(QDialog):
             decimal_points_map = {"#": 0, "#.#": 1, "#.##": 2}
             decimal_points = decimal_points_map.get(decimal_format, 1)
             
-            # Calculate conversion factor (example: 65 yard/meter)
-            base_value = 65.0
+            # Calculate conversion factor (example: 100 meter)
+            base_value = 100.0
             
-            # Apply tolerance
+            # Apply tolerance formula: length_display = length_input * (1 - tolerance_percent / 100)
+            adjusted_value = base_value * (1 - tolerance / 100)
+            
+            # Apply rounding method
+            import math
             if rounding == "UP":
-                adjusted_value = base_value * (1 + tolerance / 100)
-            else:
-                adjusted_value = base_value * (1 - tolerance / 100)
+                # Ceiling function
+                if decimal_points == 0:
+                    adjusted_value = math.ceil(adjusted_value)
+                elif decimal_points == 1:
+                    adjusted_value = math.ceil(adjusted_value * 10) / 10
+                elif decimal_points == 2:
+                    adjusted_value = math.ceil(adjusted_value * 100) / 100
+            else:  # DOWN
+                # Floor function
+                if decimal_points == 0:
+                    adjusted_value = math.floor(adjusted_value)
+                elif decimal_points == 1:
+                    adjusted_value = math.floor(adjusted_value * 10) / 10
+                elif decimal_points == 2:
+                    adjusted_value = math.floor(adjusted_value * 100) / 100
             
             # Format with decimal points
             format_str = f"{{:.{decimal_points}f}}"
             formatted_value = format_str.format(adjusted_value)
             
-            # Update preview
-            self.conversion_preview.setText(f"{formatted_value} Yard / Meter")
+            # Update preview with unit
+            self.conversion_preview.setText(f"{formatted_value} Meter")
             
         except ValueError:
             self.conversion_preview.setText("Invalid input")

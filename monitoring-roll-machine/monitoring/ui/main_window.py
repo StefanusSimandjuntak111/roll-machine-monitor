@@ -664,6 +664,115 @@ class ModernMainWindow(QMainWindow):
         dialog.activateWindow()
         dialog.exec()
     
+    def force_kill_com_port(self, port_name: str):
+        """Force kill COM port on Windows using command line tools."""
+        try:
+            import platform
+            if platform.system() != "Windows":
+                logger.info("Force kill COM port only available on Windows")
+                return
+            
+            logger.info(f"Force killing COM port: {port_name}")
+            
+            # Extract COM number (e.g., "COM4" -> "4")
+            if port_name.upper().startswith("COM"):
+                com_number = port_name[3:]
+            else:
+                logger.warning(f"Invalid COM port name: {port_name}")
+                return
+            
+            # Use mode command to check if port is in use
+            check_cmd = f'mode {port_name}'
+            try:
+                result = subprocess.run(check_cmd, shell=True, capture_output=True, text=True, timeout=5)
+                if "Error" in result.stderr or "Error" in result.stdout:
+                    logger.info(f"Port {port_name} is not in use or already available")
+                    return
+            except subprocess.TimeoutExpired:
+                logger.warning(f"Timeout checking port {port_name}")
+            
+            # Try to kill processes using the port
+            # Method 1: Use netstat to find processes using the port
+            netstat_cmd = f'netstat -ano | findstr {port_name}'
+            try:
+                result = subprocess.run(netstat_cmd, shell=True, capture_output=True, text=True, timeout=10)
+                if result.stdout:
+                    lines = result.stdout.strip().split('\n')
+                    for line in lines:
+                        if port_name.upper() in line.upper():
+                            # Extract PID from the last column
+                            parts = line.strip().split()
+                            if len(parts) >= 5:
+                                pid = parts[-1]
+                                try:
+                                    # Kill the process
+                                    kill_cmd = f'taskkill /PID {pid} /F'
+                                    logger.info(f"Killing process {pid} using {port_name}")
+                                    subprocess.run(kill_cmd, shell=True, capture_output=True, timeout=5)
+                                except Exception as e:
+                                    logger.warning(f"Failed to kill process {pid}: {e}")
+            except subprocess.TimeoutExpired:
+                logger.warning(f"Timeout finding processes using {port_name}")
+            
+            # Method 2: Use devcon to disable/enable the port (if available)
+            try:
+                # Try to disable and re-enable the port
+                disable_cmd = f'devcon disable "USB\\VID_*&PID_*"'
+                enable_cmd = f'devcon enable "USB\\VID_*&PID_*"'
+                
+                logger.info("Attempting to disable/enable USB devices...")
+                subprocess.run(disable_cmd, shell=True, capture_output=True, timeout=5)
+                import time
+                time.sleep(2)
+                subprocess.run(enable_cmd, shell=True, capture_output=True, timeout=5)
+                logger.info("USB devices disabled and re-enabled")
+            except Exception as e:
+                logger.debug(f"Devcon method not available: {e}")
+            
+            logger.info(f"Force kill completed for {port_name}")
+            
+        except Exception as e:
+            logger.error(f"Error force killing COM port {port_name}: {e}")
+
+    def kill_port_connection(self):
+        """Kill/close any existing port connection to avoid permission errors."""
+        try:
+            logger.info("Killing port connection before restart...")
+            
+            # Get current port name for force kill
+            current_port = self.config.get("serial_port", "")
+            
+            # Stop monitoring if running
+            if self.monitor and self.monitor.is_running:
+                logger.info("Stopping monitor...")
+                self.monitor.stop()
+                
+                # Wait a bit for cleanup
+                import time
+                time.sleep(1)
+                
+                # Close serial port if exists
+                if hasattr(self.monitor, 'serial_port') and self.monitor.serial_port:
+                    logger.info("Closing serial port...")
+                    try:
+                        self.monitor.serial_port.close()
+                        logger.info("Serial port closed successfully")
+                    except Exception as e:
+                        logger.warning(f"Error closing serial port: {e}")
+                
+                # Clear monitor reference
+                self.monitor = None
+                logger.info("Port connection killed successfully")
+            else:
+                logger.info("No active monitor to kill")
+            
+            # Force kill COM port on Windows if needed
+            if current_port and current_port.upper().startswith("COM"):
+                self.force_kill_com_port(current_port)
+                
+        except Exception as e:
+            logger.error(f"Error killing port connection: {e}")
+    
     @Slot(dict)
     def handle_settings_update(self, settings: Dict[str, Any]):
         """Handle settings updates."""
@@ -671,10 +780,28 @@ class ModernMainWindow(QMainWindow):
         self.config.update(settings)
         save_config(self.config)
         
-        # Restart monitoring if active
-        if self.monitor and self.monitor.is_running:
-            self.toggle_monitoring()  # Stop
+        # Kill port connection before restart to avoid permission errors
+        self.kill_port_connection()
+        
+        # Restart monitoring with new settings
+        try:
+            logger.info("Restarting monitoring with new settings...")
             self.toggle_monitoring()  # Start with new settings
+            
+            # Show success message
+            self.show_kiosk_dialog(
+                "information",
+                "Settings Updated",
+                "Settings have been updated successfully!\n\nMonitoring has been restarted with new configuration.\n\nLength tolerance and other settings are now active."
+            )
+            
+        except Exception as e:
+            logger.error(f"Error restarting monitoring: {e}")
+            self.show_kiosk_dialog(
+                "warning",
+                "Restart Failed",
+                f"Settings saved but failed to restart monitoring:\n\n{str(e)}\n\nPlease try starting monitoring manually."
+            )
     
     @Slot(dict)
     def handle_product_update(self, product_info: Dict[str, Any]):
@@ -831,6 +958,18 @@ class ModernMainWindow(QMainWindow):
             # Reset cycle closed flag
             self.cycle_is_closed = False
         
+        # Calculate length print with tolerance before updating monitoring view
+        fields = data.get('fields', {})
+        current_count = fields.get('current_count', 0.0)
+        unit = fields.get('unit', 'meter')
+        
+        # Calculate length print with tolerance
+        length_print_text = self.calculate_length_print(current_count, unit)
+        
+        # Add length print to data for monitoring view
+        data['length_print_text'] = length_print_text
+        data['length_print_value'] = current_count  # Keep original value for internal use
+        
         self.monitoring_view.update_data(data)
         
         # Update target length input with current length
@@ -882,11 +1021,11 @@ class ModernMainWindow(QMainWindow):
                         self.logging_table_widget.manual_refresh()
                         
                         # Show user feedback
-                        self.show_kiosk_dialog(
-                            "information",
-                            "Cycle Time Updated",
-                            f"Previous product cycle time has been updated to {previous_cycle_time:.1f}s\n\nThis happened automatically when the new product started (length = 0.01)."
-                        )
+                        # self.show_kiosk_dialog(
+                        #     "information",
+                        #     "Cycle Time Updated",
+                        #     f"Previous product cycle time has been updated to {previous_cycle_time:.1f}s\n\nThis happened automatically when the new product started (length = 0.01)."
+                        # )
                 
                 # Store this start time for cycle time calculation (after updating previous product)
                 self.last_product_start_time = current_time
@@ -1204,6 +1343,63 @@ class ModernMainWindow(QMainWindow):
         # Accept close event to prevent multiple instances
         event.accept()
         logger.info("Application closed cleanly")
+
+    def calculate_length_print(self, current_length: float, unit: str) -> str:
+        """Calculate length print with tolerance based on settings."""
+        try:
+            # Get tolerance settings from config
+            tolerance_percent = self.config.get("length_tolerance", 0.0)
+            decimal_points = self.config.get("decimal_points", 1)
+            rounding_method = self.config.get("rounding", "UP")
+            
+            # If no tolerance is set, return current length as is
+            if tolerance_percent <= 0:
+                # Format with decimal points
+                format_str = f"{{:.{decimal_points}f}}"
+                if unit == 'yard':
+                    return f"{format_str.format(current_length)} yard"
+                else:
+                    return f"{format_str.format(current_length)} m"
+            
+            # Apply tolerance formula: length_display = length_input * (1 - tolerance_percent / 100)
+            length_with_tolerance = current_length * (1 - tolerance_percent / 100)
+            
+            # Apply rounding method
+            import math
+            if rounding_method == "UP":
+                # Ceiling function
+                if decimal_points == 0:
+                    length_with_tolerance = math.ceil(length_with_tolerance)
+                elif decimal_points == 1:
+                    length_with_tolerance = math.ceil(length_with_tolerance * 10) / 10
+                elif decimal_points == 2:
+                    length_with_tolerance = math.ceil(length_with_tolerance * 100) / 100
+            else:  # DOWN
+                # Floor function
+                if decimal_points == 0:
+                    length_with_tolerance = math.floor(length_with_tolerance)
+                elif decimal_points == 1:
+                    length_with_tolerance = math.floor(length_with_tolerance * 10) / 10
+                elif decimal_points == 2:
+                    length_with_tolerance = math.floor(length_with_tolerance * 100) / 100
+            
+            # Format with decimal points
+            format_str = f"{{:.{decimal_points}f}}"
+            formatted_length = format_str.format(length_with_tolerance)
+            
+            # Return with unit
+            if unit == 'yard':
+                return f"{formatted_length} yard"
+            else:
+                return f"{formatted_length} m"
+                
+        except Exception as e:
+            logger.error(f"Error calculating length print: {e}")
+            # Fallback to current length without tolerance
+            if unit == 'yard':
+                return f"{current_length:.2f} yard"
+            else:
+                return f"{current_length:.2f} m"
 
 def main():
     """Main entry point."""

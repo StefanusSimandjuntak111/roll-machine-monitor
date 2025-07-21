@@ -261,16 +261,9 @@ class MonitoringView(QWidget):
         if self.batch_value_label:
             self.batch_value_label.setText(data.get('batch_number', 'Not Set'))
         if self.target_value_label:
-            # Display current length in original unit instead of target length
-            fields = data.get('fields', {})
-            current_count = fields.get('current_count', 0.0)
-            unit = fields.get('unit', 'meter')
-            
-            # Format display with original unit
-            if unit == 'yard':
-                self.target_value_label.setText(f"{current_count:.2f} yard")
-            else:
-                self.target_value_label.setText(f"{current_count:.2f} m")
+            # Display length print with tolerance (calculated in main_window)
+            length_print_text = data.get('length_print_text', '0.00 m')
+            self.target_value_label.setText(length_print_text)
         
         # Update graphs with parsed data
         current_time = datetime.now().timestamp()
