@@ -162,11 +162,11 @@ class LoggingTableWidget(QWidget):
                 try:
                     with open(filename, 'w', encoding='utf-8') as f:
                         json.dump(data, f, indent=2, ensure_ascii=False)
-                
-                # Refresh the table to show the update
-                self.refresh_table()
-                
-                logger.info(f"Updated last entry cycle time to: {cycle_time:.1f}s")
+                    
+                    # Refresh the table to show the update
+                    self.refresh_table()
+                    
+                    logger.info(f"Updated last entry cycle time to: {cycle_time:.1f}s")
                 except Exception as e:
                     logger.error(f"Error saving updated data to file: {e}")
             else:
