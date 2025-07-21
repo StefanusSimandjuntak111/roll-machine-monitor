@@ -366,126 +366,100 @@ class ModernMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         
-        # SINGLETON PROTECTION - Prevent multiple instances
-        self.singleton_lock = SingletonLock()
-        if not self.singleton_lock.acquire():
-            logger.error("Another instance is already running. Exiting.")
-            
-            # Only show popup if not shown recently (prevent spam)
-            if self.singleton_lock.should_show_popup():
-                self.singleton_lock.mark_popup_shown()
-                QMessageBox.critical(None, "Already Running", 
-                                   "Roll Machine Monitor is already running.\n"
-                                   "Only one instance is allowed at a time.")
-            else:
-                logger.info("Popup suppressed - already shown recently")
-            
-            sys.exit(1)
-        
-        # Initialize cycle time tracking variables
+        # Initialize state variables
+        self.cycle_is_closed = False  # Track if current cycle is closed
         self.cycle_start_time = None
         self.roll_start_time = None
         self.last_length = 0.0
         self.current_product_info = {}
-        self.cycle_count = 0
-        self.product_start_times = []
-        self.pending_cycle_time = None
-        self.is_new_product_started = False
+        self.product_start_times = []  # List to store product start times
+        self.last_product_start_time = None  # Last product start time for cycle time calculation
+        self.is_new_product_started = False  # Flag to track if new product started
+        
+        # Load configuration
+        self.config = load_config()
+        
+        # Setup logging
+        setup_logging()
         
         # Initialize heartbeat manager
         self.heartbeat = HeartbeatManager()
         
-        # Initialize config
-        self.config = load_config()
+        # Initialize singleton lock
+        self.singleton_lock = SingletonLock()
         
-        # Initialize monitoring components
+        # Try to acquire singleton lock
+        if not self.singleton_lock.acquire():
+            # Another instance is running
+            if self.singleton_lock.should_show_popup():
+                QMessageBox.warning(
+                    self,
+                    "Application Already Running",
+                    "Another instance of Roll Machine Monitor is already running.\n\nOnly one instance can run at a time.",
+                    QMessageBox.StandardButton.Ok
+                )
+                self.singleton_lock.mark_popup_shown()
+            sys.exit(1)
+        
+        # Initialize UI components
         self.monitor = None
+        self.monitoring_view = None
+        self.product_form = None
         self.logging_table_widget = None
         
-        # Initialize production logging variables
-        self.last_print_time = None
-        self.last_roll_time = None
-        self.production_start_time = None
-        
-        # Setup cycle timeout timer (5-10 minutes for last roll detection)
-        self.cycle_timeout_timer = QTimer()
-        self.cycle_timeout_timer.timeout.connect(self.handle_cycle_timeout)
-        self.cycle_timeout_timer.setSingleShot(True)
-        
-        # KIOSK MODE CONFIGURATION
-        self.setWindowTitle("Roll Machine Monitor - Kiosk Mode")
-        
-        # Get screen dimensions for dynamic sizing
+        # Get screen dimensions for dynamic sizing (must be before setup_header)
         screen = QApplication.primaryScreen()
         screen_geometry = screen.geometry()
         self.screen_width = screen_geometry.width()
         self.screen_height = screen_geometry.height()
         
-        logger.info(f"Screen detected: {self.screen_width}x{self.screen_height}")
-        
-        # Force fullscreen and disable window controls
-        self.setWindowState(Qt.WindowState.WindowFullScreen)
-        self.setWindowFlags(
-            Qt.WindowType.Window | 
-            Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint
-        )
-        
-        # Disable close button and ALT+F4
-        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
-        
-        # Set up the theme (True for dark, False for light)
-        self.setup_theme(is_dark=True)  # Set to dark theme for better visibility
-        
-        # Create main widget and layout with dynamic margins based on screen size
+        # Create main widget and layout
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
         
-        # Calculate dynamic margins based on screen size
-        margin_percentage = 0.02  # 2% of screen size
-        dynamic_margin = max(10, min(50, int(min(self.screen_width, self.screen_height) * margin_percentage)))
-        spacing_percentage = 0.015  # 1.5% of screen size
-        dynamic_spacing = max(10, min(30, int(min(self.screen_width, self.screen_height) * spacing_percentage)))
-        
-        self.main_layout.setContentsMargins(dynamic_margin, dynamic_margin, dynamic_margin, dynamic_margin)
-        self.main_layout.setSpacing(dynamic_spacing)
-        
-        logger.info(f"Dynamic layout: margins={dynamic_margin}px, spacing={dynamic_spacing}px")
-        
-        # DISABLED AUTO-RESTART MECHANISM - CAUSES MULTIPLE INSTANCES
-        # self.restart_timer = QTimer(self)
-        # self.restart_timer.timeout.connect(self.auto_restart)
-        self.is_kiosk_mode = True  # Always in kiosk mode
-        
-        # DISABLED HEALTH CHECK - CAN CAUSE PERFORMANCE ISSUES
-        # self.health_timer = QTimer(self)
-        # self.health_timer.timeout.connect(self.health_check)
-        # self.health_timer.start(5000)  # Check every 5 seconds
-        
-        # Create header
+        # Setup UI
+        self.setup_theme()
         self.setup_header()
-        
-        # Create content area
         self.setup_content()
-        
-        # Create status bar
         self.setup_status_bar()
         
-        # Setup update timer
-        self.update_timer = QTimer()
-        self.update_timer.timeout.connect(self.update_display)
-        self.update_timer.start(1000)  # Update every second
-        
-        # Setup heartbeat cleanup
-        self.heartbeat.cleanup()
-        
         # Connect signals
-        self.product_form.product_updated.connect(self.handle_product_update)
+        self.product_form.close_cycle.connect(self.close_cycle)
         self.product_form.reset_counter.connect(self.reset_counter)
         self.product_form.print_logged.connect(self.handle_print_logging)
-        self.product_form.close_cycle.connect(self.close_cycle)
-        logger.info("Connected reset_counter signal to reset_counter function")
+        
+        # Setup timer for display updates
+        self.display_timer = QTimer()
+        self.display_timer.timeout.connect(self.update_display)
+        self.display_timer.start(100)  # Update every 100ms
+        
+        # Setup timer for heartbeat
+        self.heartbeat_timer = QTimer()
+        self.heartbeat_timer.timeout.connect(self.heartbeat.update_heartbeat)
+        self.heartbeat_timer.start(30000)  # Update every 30 seconds
+        
+        # Setup timer for exit flag check
+        self.exit_check_timer = QTimer()
+        self.exit_check_timer.timeout.connect(check_exit_flag)
+        self.exit_check_timer.start(1000)  # Check every second
+        
+        # Set window properties
+        self.setWindowTitle("Roll Machine Monitor")
+        self.setMinimumSize(1200, 800)
+        
+        # Center window on screen
+        x = (screen_geometry.width() - self.width()) // 2
+        y = (screen_geometry.height() - self.height()) // 2
+        self.move(x, y)
+        
+        # Show window
+        self.show()
+        
+        # Record startup activity
+        self.heartbeat.record_activity()
+        
+        logger.info("Main window initialized successfully")
     
     def setup_theme(self, is_dark: bool = True):
         """Set up theme colors and styling."""
@@ -846,6 +820,22 @@ class ModernMainWindow(QMainWindow):
         # Record data activity for heartbeat
         self.heartbeat.record_data()
         
+        # Check if cycle is closed and enable close cycle button if new data arrives
+        if self.cycle_is_closed:
+            # New data arrived, enable close cycle button for new cycle
+            if hasattr(self, 'product_form') and self.product_form:
+                self.product_form.close_cycle_button.setEnabled(True)
+                self.product_form.close_cycle_button.setText("Close Cycle")
+                self.product_form.close_cycle_button.setStyleSheet(
+                    "QPushButton { background-color: #6c757d; color: #ffffff; border: none; padding: 10px; border-radius: 5px; font-weight: bold; }\n"
+                    "QPushButton:hover { background-color: #5a6268; }\n"
+                    "QPushButton:pressed { background-color: #495057; }"
+                )
+                logger.info("Close cycle button enabled - new data received")
+            
+            # Reset cycle closed flag
+            self.cycle_is_closed = False
+        
         self.monitoring_view.update_data(data)
         
         # Update target length input with current length
@@ -1017,6 +1007,16 @@ class ModernMainWindow(QMainWindow):
     def close_cycle(self):
         """Close current cycle and get final cycle time for last product according to CYCLE_TIME.md."""
         try:
+            # Check if cycle is already closed
+            if self.cycle_is_closed:
+                logger.warning("Cycle is already closed, ignoring close cycle request")
+                self.show_kiosk_dialog(
+                    "warning",
+                    "Cycle Already Closed",
+                    "Current cycle is already closed.\n\nPlease wait for new data to start a new cycle."
+                )
+                return
+            
             current_time = datetime.now()
             
             # Calculate final cycle time for the last product
@@ -1042,7 +1042,7 @@ class ModernMainWindow(QMainWindow):
                     self.show_kiosk_dialog(
                         "information",
                         "Cycle Closed",
-                        f"Current cycle has been closed.\n\nFinal cycle time: {cycle_time:.1f}s\n\nThis represents the total time from when the last product started (length = 0.01) until now."
+                        f"Current cycle has been closed.\n\nFinal cycle time: {cycle_time:.1f}s\n\nAll counters have been reset.\n\nNew cycle will start when new data arrives."
                     )
                 else:
                     logger.warning("No cycle time calculated for close cycle")
@@ -1059,11 +1059,37 @@ class ModernMainWindow(QMainWindow):
                     "No logging table available.\n\nPlease print a product first before closing the cycle."
                 )
             
-            # Reset timing for next cycle
+            # Reset ALL timing and state variables for new cycle
             self.cycle_start_time = None
             self.roll_start_time = None
-            # DON'T reset product_start_times and last_product_start_time
+            self.last_length = 0.0
+            self.current_product_info = {}
+            self.product_start_times = []  # Reset product start times
+            self.last_product_start_time = None  # Reset last product start time
             self.is_new_product_started = False
+            self.cycle_is_closed = True  # Set cycle closed flag
+            
+            # Disable close cycle button
+            if hasattr(self, 'product_form') and self.product_form:
+                self.product_form.close_cycle_button.setEnabled(False)
+                self.product_form.close_cycle_button.setText("Cycle Closed")
+                self.product_form.close_cycle_button.setStyleSheet(
+                    "QPushButton { background-color: #6c757d; color: #ffffff; border: none; padding: 10px; border-radius: 5px; font-weight: bold; }\n"
+                    "QPushButton:disabled { background-color: #495057; color: #adb5bd; }"
+                )
+                logger.info("Close cycle button disabled")
+            
+            # Send reset command to device to reset counters
+            if self.monitor and self.monitor.is_running:
+                try:
+                    reset_command = "55 AA 01 00 00 00"
+                    logger.info(f"Sending reset counter command after close cycle: {reset_command}")
+                    
+                    if hasattr(self.monitor, 'serial_port') and self.monitor.serial_port:
+                        self.monitor.serial_port.send_hex(reset_command)
+                        logger.info("Reset counter command sent successfully after close cycle")
+                except Exception as e:
+                    logger.error(f"Error sending reset command after close cycle: {e}")
             
         except Exception as e:
             logger.error(f"Error in close cycle: {e}")
