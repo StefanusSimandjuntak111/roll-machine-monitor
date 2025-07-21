@@ -151,7 +151,7 @@ def parse_fields(data: bytes) -> Dict[str, Any]:
             # This is the user's machine format - all values are multiplied by 100
             current_count = current_count_raw / 100.0  # Convert any value → actual value
             factor_text = "×0.01 (machine-specific)"
-            logger.info(f"Applied machine-specific correction: {current_count_raw} → {current_count}")
+            logger.info(f"Applied machine-specific correction: {current_count_raw} -> {current_count}")
         else:
             # Use standard JSK3588 parsing for factor 0.1
             current_count = current_count_raw * factor

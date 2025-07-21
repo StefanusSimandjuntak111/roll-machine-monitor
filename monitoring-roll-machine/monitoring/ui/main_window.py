@@ -439,11 +439,6 @@ class ModernMainWindow(QMainWindow):
         self.heartbeat_timer.timeout.connect(self.heartbeat.update_heartbeat)
         self.heartbeat_timer.start(30000)  # Update every 30 seconds
         
-        # Setup timer for exit flag check
-        self.exit_check_timer = QTimer()
-        self.exit_check_timer.timeout.connect(check_exit_flag)
-        self.exit_check_timer.start(1000)  # Check every second
-        
         # Set window properties
         self.setWindowTitle("Roll Machine Monitor")
         self.setMinimumSize(1200, 800)
