@@ -43,11 +43,14 @@ echo    Output: %OUTPUT_NAME%
 REM Check if Inno Setup is available
 echo.
 echo 🔍 Checking Inno Setup Compiler...
-where iscc >nul 2>&1
+where iscc >nul 2>nul
 if %errorlevel% neq 0 (
     echo ❌ Inno Setup Compiler (iscc) not found in PATH
     echo    Please install Inno Setup 6.2+ and add to PATH
     echo    Download: https://jrsoftware.org/isdl.php
+    echo.
+    echo 💡 Alternative: You can build manually using:
+    echo    iscc installer-roll-machine-v1.3.2.iss
     pause
     exit /b 1
 )
