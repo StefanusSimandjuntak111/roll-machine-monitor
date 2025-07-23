@@ -127,10 +127,10 @@ class LoggingTableWidget(QWidget):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.table.setItem(row, col, item)
                 
-        # Highlight latest entry
+        # Highlight latest entry (now at row 0 since data is sorted descending)
         if data:
             for col in range(self.table.columnCount()):
-                item = self.table.item(len(data) - 1, col)
+                item = self.table.item(0, col)
                 if item:
                     item.setBackground(QColor(52, 152, 219))  # Blue highlight for dark theme
                     

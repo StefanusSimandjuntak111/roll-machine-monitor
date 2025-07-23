@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="monitoring-roll-machine",
-    version="1.2.5",
+    version="1.3.2",
     description="Roll Machine Monitoring System with JSK3588 Protocol Support",
     author="Roll Machine Monitor Team",
     packages=find_packages(),

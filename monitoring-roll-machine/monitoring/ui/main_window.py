@@ -11,6 +11,10 @@ import tempfile
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
+
+# Application version
+from ..version import get_version_string
+APP_VERSION = get_version_string()
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QLabel, QPushButton, QComboBox, QSpinBox,
@@ -538,9 +542,28 @@ class ModernMainWindow(QMainWindow):
         header_layout.addWidget(title_label)
         header_layout.addStretch()
         
+        # Add restart button with dynamic sizing
+        restart_btn = QPushButton("🔄 Restart")
+        button_font_size = max(10, min(20, int(dynamic_font_size * 0.6)))
+        restart_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #e74c3c;
+                border: none;
+                border-radius: 5px;
+                padding: {dynamic_padding//2}px {dynamic_padding}px;
+                color: white;
+                font-size: {button_font_size}px;
+                margin-right: {dynamic_padding//2}px;
+            }}
+            QPushButton:hover {{
+                background-color: #c0392b;
+            }}
+        """)
+        restart_btn.clicked.connect(self.restart_application)
+        header_layout.addWidget(restart_btn)
+        
         # Add settings button with dynamic sizing
         settings_btn = QPushButton("⚙️ Settings")
-        button_font_size = max(10, min(20, int(dynamic_font_size * 0.6)))
         settings_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: #0078d4;
@@ -600,6 +623,11 @@ class ModernMainWindow(QMainWindow):
         self.clock_label = QLabel()
         self.clock_label.setStyleSheet(f"color: white; font-size: {dynamic_status_font_size}px;")
         status_layout.addWidget(self.clock_label)
+        
+        # Add version label
+        self.version_label = QLabel(APP_VERSION)
+        self.version_label.setStyleSheet(f"color: #888888; font-size: {dynamic_status_font_size * 0.8}px; margin-left: 10px;")
+        status_layout.addWidget(self.version_label)
         
         self.main_layout.addWidget(status_frame)
     
@@ -663,6 +691,130 @@ class ModernMainWindow(QMainWindow):
         dialog.raise_()
         dialog.activateWindow()
         dialog.exec()
+    
+    def restart_application(self):
+        """Restart the application safely."""
+        try:
+            # Show confirmation dialog
+            reply = self.show_kiosk_dialog(
+                "question",
+                "Restart Application",
+                "Are you sure you want to restart the application?\n\nThis will close the current instance and start a new one."
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                logger.info("User confirmed application restart")
+                
+                # Clean up resources
+                self.cleanup_before_restart()
+                
+                # Create restart script
+                self.create_restart_script()
+                
+                # Close current application
+                QApplication.quit()
+                
+        except Exception as e:
+            logger.error(f"Error during restart: {e}")
+            self.show_kiosk_dialog(
+                "critical",
+                "Restart Error",
+                f"Error restarting application:\n\n{str(e)}"
+            )
+    
+    def cleanup_before_restart(self):
+        """Clean up resources before restart."""
+        try:
+            # Stop monitoring if running
+            if hasattr(self, 'monitor') and self.monitor and self.monitor.is_running:
+                logger.info("Stopping monitor before restart")
+                self.monitor.stop()
+            
+            # Clean up heartbeat
+            if hasattr(self, 'heartbeat'):
+                logger.info("Cleaning up heartbeat before restart")
+                self.heartbeat.cleanup()
+            
+            # Release singleton lock
+            if hasattr(self, 'singleton_lock'):
+                logger.info("Releasing singleton lock before restart")
+                self.singleton_lock.release()
+            
+            logger.info("Cleanup completed before restart")
+            
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
+    
+    def create_restart_script(self):
+        """Create a script to restart the application."""
+        try:
+            import sys
+            import os
+            
+            # Get the current script path
+            if getattr(sys, 'frozen', False):
+                # Running as compiled executable
+                app_path = sys.executable
+            else:
+                # Running as script - handle different cases
+                if len(sys.argv) > 0:
+                    if sys.argv[0].endswith('python.exe') or sys.argv[0].endswith('python'):
+                        # Running with python -m monitoring
+                        # Get the current working directory and create the command
+                        current_dir = os.getcwd()
+                        app_path = f'python -m monitoring'
+                        working_dir = current_dir
+                    else:
+                        # Running as direct script
+                        app_path = sys.argv[0]
+                        working_dir = os.path.dirname(os.path.abspath(app_path))
+                else:
+                    # Fallback
+                    app_path = 'python -m monitoring'
+                    working_dir = os.getcwd()
+            
+            # Create restart script content
+            if app_path.startswith('python'):
+                # For python -m monitoring command
+                restart_script_content = f'''@echo off
+REM Restart script for Roll Machine Monitor
+echo Restarting Roll Machine Monitor...
+timeout /t 2 /nobreak > nul
+cd /d "{working_dir}"
+{app_path}
+del "%~f0"
+'''
+            else:
+                # For direct executable
+                restart_script_content = f'''@echo off
+REM Restart script for Roll Machine Monitor
+echo Restarting Roll Machine Monitor...
+timeout /t 2 /nobreak > nul
+start "" "{app_path}"
+del "%~f0"
+'''
+            
+            # Write restart script to temp file
+            import tempfile
+            temp_dir = tempfile.gettempdir()
+            restart_script_path = os.path.join(temp_dir, "restart_roll_machine.bat")
+            
+            with open(restart_script_path, 'w') as f:
+                f.write(restart_script_content)
+            
+            # Execute restart script
+            import subprocess
+            subprocess.Popen(['cmd', '/c', restart_script_path], 
+                           creationflags=subprocess.CREATE_NEW_CONSOLE)
+            
+            logger.info(f"Restart script created: {restart_script_path}")
+            logger.info(f"App path: {app_path}")
+            logger.info(f"Working dir: {working_dir}")
+            
+        except Exception as e:
+            logger.error(f"Error creating restart script: {e}")
+            # Fallback: just quit and let user restart manually
+            logger.info("Fallback: quitting application for manual restart")
     
     def force_kill_com_port(self, port_name: str):
         """Force kill COM port on Windows using command line tools."""

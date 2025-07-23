@@ -54,9 +54,14 @@ class LoggingTable:
             logging.error(f"Error saving log data: {e}")
             
     def get_last_50_entries(self) -> List[Dict[str, Any]]:
-        """Get the last 50 entries from today's log"""
+        """Get the last 50 entries from today's log, sorted by timestamp descending (newest first)"""
         data = self.load_today_data()
-        return data[-self.max_entries:] if len(data) > self.max_entries else data
+        
+        # Sort data by timestamp in descending order (newest first)
+        sorted_data = sorted(data, key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        # Return the last max_entries (which are now the newest due to reverse sort)
+        return sorted_data[:self.max_entries] if len(sorted_data) > self.max_entries else sorted_data
         
     def log_production_data(self, 
                           product_name: str,
