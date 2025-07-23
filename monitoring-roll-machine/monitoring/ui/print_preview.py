@@ -24,6 +24,8 @@ from PIL.Image import Image
 from io import BytesIO
 import requests
 
+from ..config import load_config, calculate_print_length
+
 logger = logging.getLogger(__name__)
 
 class PrintPreviewDialog(QDialog):
@@ -32,9 +34,10 @@ class PrintPreviewDialog(QDialog):
     # Signal emitted when production is logged
     production_logged = Signal(dict)
     
-    def __init__(self, product_info: Dict[str, Any], parent=None):
+    def __init__(self, product_info: Dict[str, Any], parent=None, current_machine_length: float = None):
         super().__init__(parent)
         self.product_info = product_info
+        self.current_machine_length = current_machine_length
         self.printer = QPrinter(QPrinterInfo.defaultPrinter())
         
         # Set up custom page size (10x10cm) for Zebra label
@@ -79,7 +82,7 @@ class PrintPreviewDialog(QDialog):
         screen_size = self.screen().size()
         preview_size = min(screen_size.width() * 0.55, screen_size.height() * 0.55)
         window_width = preview_size
-        window_height = preview_size + 80  # Extra space for buttons
+        window_height = preview_size + 120  # Extra space for buttons and tolerance info
         
         self.resize(int(window_width), int(window_height))
         
@@ -91,6 +94,22 @@ class PrintPreviewDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
         layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Tolerance info label
+        self.tolerance_label = QLabel("Tolerance calculation info will appear here")
+        self.tolerance_label.setStyleSheet("""
+            QLabel {
+                color: #666666;
+                font-size: 12px;
+                padding: 5px;
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                text-align: center;
+            }
+        """)
+        self.tolerance_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.tolerance_label)
         
         # Preview widget in a fixed-size container
         preview_container = QWidget()
@@ -156,6 +175,9 @@ class PrintPreviewDialog(QDialog):
         button_layout.addStretch()
         
         layout.addLayout(button_layout)
+        
+        # Setup preview table and update tolerance info
+        self.setup_preview_table()
 
     def create_table(self) -> QTableWidget:
         """Create and configure the table widget."""
@@ -221,7 +243,7 @@ class PrintPreviewDialog(QDialog):
         labels = ["Color", "Length", "Roll No.", "Lot No."]
         values = [
             str(self.product_info.get('color_code', '1')),  # Use color_code field
-            f"{self.product_info.get('target_length', 0)} {self.product_info.get('units', 'Yard')}",
+            f"{self.product_info.get('print_length', self.product_info.get('target_length', 0))} {self.product_info.get('units', 'Yard')}",
             str(self.product_info.get('roll_number', '0')),
             str(self.product_info.get('batch_number', 'None'))  # Use batch_number as lot_number
         ]
@@ -243,7 +265,7 @@ class PrintPreviewDialog(QDialog):
         
         # Bottom section (Product Code with Length)
         bottom_font = QFont("Arial", 20, QFont.Weight.Bold)
-        length = self.product_info.get('target_length', 0)
+        length = self.product_info.get('print_length', self.product_info.get('target_length', 0))
         bottom_code = f"{product_code}-{length}"
         
         bottom_item = QTableWidgetItem(bottom_code)
@@ -339,41 +361,32 @@ class PrintPreviewDialog(QDialog):
             table_height_px
         )
         
-        # Calculate row heights
-        row_heights = [
-            int(table_height_px * 0.18),  # Header (18%)
-            int(table_height_px * 0.15),  # Product name (15%)
-            int(table_height_px * 0.13),  # Info rows (13% each)
-            int(table_height_px * 0.13),
-            int(table_height_px * 0.13),
-            int(table_height_px * 0.13),
-            int(table_height_px * 0.15)   # Bottom row (15%)
-        ]
+        # Calculate row heights (7 rows total)
+        row_heights = [int(table_height_px * ratio) for ratio in [0.15, 0.15, 0.12, 0.12, 0.12, 0.12, 0.22]]
+        
+        # Calculate column position (vertical line at 50%)
+        column_x = start_x + (table_width_px // 2)
         
         # Draw horizontal lines
         current_y = start_y
         for i, height in enumerate(row_heights):
-            current_y += height
             if i < len(row_heights) - 1:  # Don't draw line after last row
                 painter.drawLine(
                     start_x, 
-                    current_y, 
-                    int(start_x + table_width_px), 
-                    current_y
+                    current_y + height, 
+                    start_x + table_width_px, 
+                    current_y + height
                 )
+            current_y += height
         
-        # Draw vertical line for column separator (skip for header and bottom rows)
-        column_x = int(start_x + (table_width_px // 2))
-        
-        # Draw content
+        # Reset current_y for content drawing
         current_y = start_y
         
-        # Header - Product Code (merged across full width)
+        # Header section (Product Code)
         header_font = QFont("Arial", 28, QFont.Weight.Bold)
         painter.setFont(header_font)
-        painter.setPen(QPen(Qt.GlobalColor.black, 2))
         
-        product_code = self.product_info.get('product_code', 'PRD-0001')  # Default product code
+        product_code = self.product_info.get('product_code', 'DEFAULT')
         text_rect = QRectF(
             start_x, 
             current_y, 
@@ -383,7 +396,7 @@ class PrintPreviewDialog(QDialog):
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, product_code)
         current_y += row_heights[0]
         
-        # Product Name (merged across full width)
+        # Product Name section
         name_font = QFont("Arial", 24, QFont.Weight.Bold)
         painter.setFont(name_font)
         
@@ -409,10 +422,24 @@ class PrintPreviewDialog(QDialog):
         info_font = QFont("Arial", 20, QFont.Weight.Bold)
         painter.setFont(info_font)
         
+        # Load config for tolerance settings
+        config = load_config()
+        tolerance_percent = config.get("length_tolerance", 3.0)
+        decimal_points = config.get("decimal_points", 1)
+        rounding = config.get("rounding", "UP")
+        
+        # Calculate print length with tolerance
+        # Always use current machine length for print preview (same as print length)
+        if self.current_machine_length is not None:
+            target_length = self.current_machine_length
+        else:
+            target_length = self.product_info.get('target_length', 0)
+        print_length = calculate_print_length(target_length, tolerance_percent, decimal_points, rounding)
+        
         labels = ["Color", "Length", "Roll No.", "Lot No."]
         values = [
             str(self.product_info.get('color_code', '1')),  # Use color_code field
-            f"{self.product_info.get('target_length', 0)} {self.product_info.get('units', 'Yard')}",
+            f"{print_length:.{decimal_points}f} {self.product_info.get('units', 'Yard')}",
             str(self.product_info.get('roll_number', '0')),  # Default roll number: 0
             str(self.product_info.get('batch_number', 'None'))  # Use batch_number as lot_number
         ]
@@ -438,12 +465,11 @@ class PrintPreviewDialog(QDialog):
             
             current_y += row_heights[i + 2]
         
-        # Bottom section (Product Code with Length) - merged across full width
+        # Bottom section (Product Code with Print Length) - merged across full width
         bottom_font = QFont("Arial", 24, QFont.Weight.Bold)
         painter.setFont(bottom_font)
         
-        length = self.product_info.get('target_length', 0)
-        bottom_code = f"{product_code}-{length}"
+        bottom_code = f"{product_code}-{print_length:.{decimal_points}f}"
         
         text_rect = QRectF(
             start_x, 
@@ -463,8 +489,8 @@ class PrintPreviewDialog(QDialog):
         barcode_left_x = start_x + int((table_width_px * 0.25) - (barcode_size_px // 2))
         barcode_right_x = start_x + int((table_width_px * 0.75) - (barcode_size_px // 2))
         
-        # Generate QR code
-        qr_data = f"{product_code}-{length}"
+        # Generate QR code with print length
+        qr_data = f"{product_code}-{print_length:.{decimal_points}f}"
         qr_image = self.generate_qr_code(qr_data, use_internet_qr=False)
         
         # Scale QR code to desired size
@@ -478,22 +504,24 @@ class PrintPreviewDialog(QDialog):
         # Draw left barcode (Product Details QR)
         painter.drawImage(barcode_left_x, barcode_y, scaled_qr)
         
-        # Generate API barcode for right side (if available)
-        api_barcode = self.product_info.get('barcode', '')
-        if api_barcode and api_barcode.strip():
-            # Generate barcode for API reference  
-            api_qr_image = self.generate_qr_code(api_barcode, use_internet_qr=False)
-            scaled_api_qr = api_qr_image.scaled(
-                barcode_size_px, 
-                barcode_size_px, 
-                Qt.AspectRatioMode.KeepAspectRatio, 
-                Qt.TransformationMode.SmoothTransformation
-            )
-            # Draw right barcode (API Reference)
-            painter.drawImage(barcode_right_x, barcode_y, scaled_api_qr)
+        # Draw right barcode (Barcode Reference QR)
+        barcode_ref = self.product_info.get('barcode', '')
+        if barcode_ref:
+            # Use barcode reference if available
+            qr_data_right = str(barcode_ref)
         else:
-            # If no API barcode, draw the same product details QR on the right
-            painter.drawImage(barcode_right_x, barcode_y, scaled_qr)
+            # Fallback to product details
+            qr_data_right = f"{product_code}-{print_length:.{decimal_points}f}"
+        
+        qr_image_right = self.generate_qr_code(qr_data_right, use_internet_qr=False)
+        scaled_qr_right = qr_image_right.scaled(
+            barcode_size_px, 
+            barcode_size_px, 
+            Qt.AspectRatioMode.KeepAspectRatio, 
+            Qt.TransformationMode.SmoothTransformation
+        )
+        
+        painter.drawImage(barcode_right_x, barcode_y, scaled_qr_right)
         
         painter.end()
 
@@ -534,3 +562,32 @@ class PrintPreviewDialog(QDialog):
                 
         except Exception as e:
             logger.error(f"Error in print logging: {e}") 
+
+    def setup_preview_table(self):
+        """Set up the preview table with product information."""
+        # Create table using the existing create_table method
+        table = self.create_table()
+        
+        # Load config for tolerance settings
+        config = load_config()
+        tolerance_percent = config.get("length_tolerance", 3.0)
+        decimal_points = config.get("decimal_points", 1)
+        rounding = config.get("rounding", "UP")
+        
+        # Calculate print length with tolerance
+        # Always use current machine length for print preview (same as print length)
+        if self.current_machine_length is not None:
+            target_length = self.current_machine_length
+        else:
+            target_length = self.product_info.get('target_length', 0)
+        print_length = calculate_print_length(target_length, tolerance_percent, decimal_points, rounding)
+        
+        # Update product_info with print_length for use in setup_table_content
+        self.product_info['print_length'] = print_length
+        
+        # Setup table content using the existing method
+        self.setup_table_content(table)
+        
+        # Update tolerance info label
+        tolerance_info = f"Target: {target_length:.{decimal_points}f}m, Tolerance: {tolerance_percent}%, Print: {print_length:.{decimal_points}f}m"
+        self.tolerance_label.setText(tolerance_info) 

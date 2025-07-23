@@ -863,7 +863,7 @@ class ModernMainWindow(QMainWindow):
                     
                     # Reset cycle time variables
                     self.cycle_start_time = None
-                    self.roll_start_time = None
+                    self.roll_start_time = None  # Will be set when new product starts (length = 0.01)
                     self.last_length = 0.0
                     self.current_product_info = {}  # Reset current product info
                     # DON'T reset product_start_times - we need this for cycle time calculation
@@ -982,6 +982,12 @@ class ModernMainWindow(QMainWindow):
         # Store last data for immediate settings updates
         self.last_data = data.copy()
         
+        # Initialize roll_start_time on first data if not set
+        if hasattr(self, 'roll_start_time') and self.roll_start_time is None:
+            from datetime import datetime
+            self.roll_start_time = datetime.now()
+            logger.info(f"Initialized roll_start_time on first data: {self.roll_start_time}")
+        
         # Check if cycle is closed and enable close cycle button if new data arrives
         if self.cycle_is_closed:
             # New data arrived, enable close cycle button for new cycle
@@ -1018,6 +1024,8 @@ class ModernMainWindow(QMainWindow):
             # Use length print text (with tolerance) instead of raw current length
             self.product_form.update_target_with_length_print(length_print_text)
             self.product_form.update_unit_from_monitoring(unit)
+            # Set current machine length for print preview
+            self.product_form.set_current_machine_length(current_count)
         
         # Handle production logging
         self.handle_production_logging(data)
@@ -1141,9 +1149,13 @@ class ModernMainWindow(QMainWindow):
             
             logger.info(f"Print logged: {product_code} - Cycle: Empty (will be calculated later), Roll: {roll_time:.1f}s")
             
-            # Reset roll timing for next roll (cycle continues until next reset)
-            if hasattr(self, 'roll_start_time'):
-                self.roll_start_time = current_time
+            # Reset roll_start_time after print - roll time should stop and restart for next print
+            # This ensures each print has its own roll time from the last roll start
+            if hasattr(self, 'roll_start_time') and self.roll_start_time:
+                self.roll_start_time = None
+                logger.info(f"Print logged - roll time: {roll_time:.1f}s, roll_start_time reset to None")
+            else:
+                logger.info(f"Print logged - roll time: {roll_time:.1f}s, roll_start_time was already None")
                     
         except Exception as e:
             logger.error(f"Error in print logging: {e}")
@@ -1407,27 +1419,10 @@ class ModernMainWindow(QMainWindow):
                 else:
                     return f"{format_str.format(current_length)} m"
             
-            # Apply tolerance formula: length_display = length_input * (1 - tolerance_percent / 100)
-            length_with_tolerance = current_length * (1 - tolerance_percent / 100)
-            
-            # Apply rounding method
-            import math
-            if rounding_method == "UP":
-                # Ceiling function
-                if decimal_points == 0:
-                    length_with_tolerance = math.ceil(length_with_tolerance)
-                elif decimal_points == 1:
-                    length_with_tolerance = math.ceil(length_with_tolerance * 10) / 10
-                elif decimal_points == 2:
-                    length_with_tolerance = math.ceil(length_with_tolerance * 100) / 100
-            else:  # DOWN
-                # Floor function
-                if decimal_points == 0:
-                    length_with_tolerance = math.floor(length_with_tolerance)
-                elif decimal_points == 1:
-                    length_with_tolerance = math.floor(length_with_tolerance * 10) / 10
-                elif decimal_points == 2:
-                    length_with_tolerance = math.floor(length_with_tolerance * 100) / 100
+            # Apply CORRECT tolerance formula: P_roll = P_target / (1 - T/100)
+            # Import calculate_print_length from config
+            from monitoring.config import calculate_print_length
+            length_with_tolerance = calculate_print_length(current_length, tolerance_percent, decimal_points, rounding_method)
             
             # Format with decimal points
             format_str = f"{{:.{decimal_points}f}}"

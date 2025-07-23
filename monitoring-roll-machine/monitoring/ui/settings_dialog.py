@@ -825,8 +825,13 @@ class SettingsDialog(QDialog):
             # Calculate conversion factor (example: 100 meter)
             base_value = 100.0
             
-            # Apply tolerance formula: length_display = length_input * (1 - tolerance_percent / 100)
-            adjusted_value = base_value * (1 - tolerance / 100)
+            # Apply CORRECT tolerance formula: P_roll = P_target / (1 - T/100)
+            # Where: P_target = target length, T = tolerance percentage
+            # Example: P_roll = 100 / (1 - 5/100) = 100 / 0.95 ≈ 105.26 meter
+            if tolerance > 0:
+                adjusted_value = base_value / (1 - tolerance / 100)
+            else:
+                adjusted_value = base_value
             
             # Apply rounding method
             import math
@@ -851,8 +856,8 @@ class SettingsDialog(QDialog):
             format_str = f"{{:.{decimal_points}f}}"
             formatted_value = format_str.format(adjusted_value)
             
-            # Update preview with unit
-            self.conversion_preview.setText(f"{formatted_value} Meter")
+            # Update preview with unit and explanation
+            self.conversion_preview.setText(f"{formatted_value} Meter (Target: 100m, Tolerance: {tolerance}%)")
             
         except ValueError:
             self.conversion_preview.setText("Invalid input")

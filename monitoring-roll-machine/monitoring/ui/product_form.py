@@ -8,6 +8,7 @@ from PySide6.QtCore import Signal, Qt, QSize, QTimer, QThread
 from PySide6.QtGui import QFont, QPixmap
 from typing import Dict, Any, Optional
 import requests
+from requests.adapters import HTTPAdapter
 from io import BytesIO
 import logging
 from datetime import datetime
@@ -30,16 +31,28 @@ class ProductSearchWorker(QThread):
     # Class-level session for connection pooling
     _session = None
     
-    def __init__(self, product_code: str, api_url: str, headers: Dict[str, str]):
+    def __init__(self, product_code: str, api_url: str, headers: Dict[str, str], request_id: str):
         super().__init__()
         self.product_code = product_code
         self.api_url = api_url
         self.headers = headers
+        self.request_id = request_id  # Unique ID for this request
         
         # Initialize session if not exists
         if ProductSearchWorker._session is None:
             ProductSearchWorker._session = requests.Session()
             ProductSearchWorker._session.headers.update(headers)
+            # Optimize session for better performance
+            ProductSearchWorker._session.mount('http://', HTTPAdapter(
+                pool_connections=10,
+                pool_maxsize=20,
+                max_retries=1
+            ))
+            ProductSearchWorker._session.mount('https://', HTTPAdapter(
+                pool_connections=10,
+                pool_maxsize=20,
+                max_retries=1
+            ))
         
     def run(self):
         """Run the API call in background thread with JSON format."""
@@ -48,17 +61,28 @@ class ProductSearchWorker(QThread):
             if ProductSearchWorker._session is None:
                 ProductSearchWorker._session = requests.Session()
                 ProductSearchWorker._session.headers.update(self.headers)
+                # Optimize session for better performance
+                ProductSearchWorker._session.mount('http://', HTTPAdapter(
+                    pool_connections=10,
+                    pool_maxsize=20,
+                    max_retries=1
+                ))
+                ProductSearchWorker._session.mount('https://', HTTPAdapter(
+                    pool_connections=10,
+                    pool_maxsize=20,
+                    max_retries=1
+                ))
                 
             # Prepare JSON data
             json_data = {
                 "product_code": self.product_code
             }
             
-            # Make POST request with JSON data
+            # Make POST request with JSON data - reduced timeout to match Postman performance
             response = ProductSearchWorker._session.post(
                 self.api_url,
                 json=json_data,
-                timeout=15
+                timeout=5  # Reduced from 15 to 5 seconds for faster response
             )
             response.raise_for_status()
             data = response.json()
@@ -73,6 +97,8 @@ class ProductSearchWorker(QThread):
                 if products:
                     # Take first product
                     product_info = products[0]
+                    # Add request_id to product_info for thread safety
+                    product_info["_request_id"] = self.request_id
                     self.search_completed.emit(product_info)
                 else:
                     self.search_failed.emit("not_found", "Product not found")
@@ -104,19 +130,28 @@ class ProductForm(QWidget):
     API_BASE_URL = "http://localhost:8000/api/method/textile_plus.overrides.api.product.search_product"
     API_HEADERS = {
         "Content-Type": "application/json",
-        "Accept": "application/json"
+        "Authorization": "token 61996278bcc8bbb:8a178a12b28e784"
     }
+    
+    # Simple in-memory cache for product search results
+    _product_cache = {}
+    _cache_max_size = 100  # Maximum number of cached items
     
     def __init__(self):
         super().__init__()
-        self._is_updating = False  # Flag untuk mencegah recursive updates
-        self._current_unit = "Meter"  # Track current unit
-        self._search_timer = QTimer()  # Timer untuk delayed search
+        self._search_timer = QTimer()
         self._search_timer.setSingleShot(True)
         self._search_timer.timeout.connect(self._perform_product_search)
-        self._last_searched_code = ""  # Track last searched code to avoid duplicate searches
-        self._search_worker = None  # Current search worker thread
-        self._barcode = ""  # Store barcode data from API (not displayed in UI)
+        
+        self._search_worker = None
+        self._last_searched_code = ""
+        self._is_updating = False
+        self._barcode = ""
+        
+        # Thread safety for preventing race conditions
+        self._current_request_id = None
+        self._last_user_input = ""
+        
         self.setup_ui()
         
     def setup_ui(self):
@@ -482,7 +517,9 @@ class ProductForm(QWidget):
         }
         
         # Show print preview dialog
-        preview_dialog = PrintPreviewDialog(product_info, self)
+        # Pass current machine length if available
+        current_machine_length = getattr(self, '_current_machine_length', None)
+        preview_dialog = PrintPreviewDialog(product_info, self, current_machine_length)
         
         # Connect print logging signal to emit our signal
         preview_dialog.production_logged.connect(self.emit_print_logged)
@@ -696,7 +733,7 @@ class ProductForm(QWidget):
                 if match:
                     length_value = float(match.group(1))
                     self.target_length.setValue(round(length_value, 2))
-                    logger.info(f"Updated target length with length print value: {length_value}")
+                    # logger.info(f"Updated target length with length print value: {length_value}")
                 else:
                     logger.warning(f"Could not extract numeric value from length print text: {length_print_text}")
             except Exception as e:
@@ -719,6 +756,10 @@ class ProductForm(QWidget):
                     self._current_unit = "Meter"
             
             self._is_updating = False
+
+    def set_current_machine_length(self, current_length: float):
+        """Set the current machine length for print preview."""
+        self._current_machine_length = current_length
 
     def load_image(self, url):
         """Load image from URL and display it."""
@@ -831,35 +872,76 @@ class ProductForm(QWidget):
 
     def _on_product_code_changed(self):
         """Handle text change in product code input."""
-        # Reduce delay to 150ms for faster response
-        self._search_timer.start(150)  # Start timer for delayed search
+        # Track current user input
+        self._last_user_input = self.product_code.text().strip()
+        
+        # Reduce delay to 100ms for faster response (was 150ms)
+        self._search_timer.start(100)  # Start timer for delayed search
 
     def _on_product_code_finished(self):
         """Handle editing finished in product code input."""
         self._search_timer.stop()  # Stop timer
         self._perform_product_search()
 
+    def _get_cached_product(self, product_code: str) -> Optional[Dict[str, Any]]:
+        """Get product from cache if available."""
+        return self._product_cache.get(product_code)
+
+    def _cache_product(self, product_code: str, product_info: Dict[str, Any]):
+        """Cache product information."""
+        # Implement simple LRU-like cache management
+        if len(self._product_cache) >= self._cache_max_size:
+            # Remove oldest entry (simple approach - remove first item)
+            oldest_key = next(iter(self._product_cache))
+            del self._product_cache[oldest_key]
+        
+        self._product_cache[product_code] = product_info
+
+    def _cancel_current_search(self):
+        """Cancel current search worker and cleanup."""
+        if self._search_worker and self._search_worker.isRunning():
+            logger.info("Cancelling current search worker")
+            self._search_worker.terminate()
+            self._search_worker.wait(1000)  # Wait up to 1 second
+            if self._search_worker.isRunning():
+                logger.warning("Force killing search worker")
+                self._search_worker.terminate()
+                self._search_worker.wait()
+        
+        # Reset current request ID
+        self._current_request_id = None
+
     def _perform_product_search(self):
         """Perform product search with new API format (JSON)."""
         try:
             product_code = self.product_code.text().strip()
             
-            if len(product_code) < 3:
+            if len(product_code) < 4:
                 return
                 
             if product_code == self._last_searched_code:
                 return
                 
+            # Update last searched code and user input
             self._last_searched_code = product_code
+            self._last_user_input = product_code
+            
+            # Check cache first
+            cached_product = self._get_cached_product(product_code)
+            if cached_product:
+                logger.info(f"Product found in cache: {product_code}")
+                # Add request_id for consistency
+                cached_product["_request_id"] = "cache"
+                self._on_search_completed(cached_product)
+                return
+            
             self._set_search_status("Searching...", "#ffa500", "Searching for product...")
             
             # Set loading style for product code input
             self.product_code.setStyleSheet(self.loading_style)
             
             # Cancel previous search if running
-            if self._search_worker and self._search_worker.isRunning():
-                self._search_worker.terminate()
-                self._search_worker.wait()
+            self._cancel_current_search()
             
             # Get API settings from config or use defaults
             api_url = self.get_api_url()
@@ -876,8 +958,13 @@ class ProductForm(QWidget):
             if api_key:
                 headers["Authorization"] = f"token {api_key}"
             
+            # Generate a unique request ID
+            import uuid
+            request_id = str(uuid.uuid4())
+            self._current_request_id = request_id
+            
             # Start new search in background thread with new format
-            self._search_worker = ProductSearchWorker(product_code, api_url, headers)
+            self._search_worker = ProductSearchWorker(product_code, api_url, headers, request_id)
             self._search_worker.search_completed.connect(self._on_search_completed)
             self._search_worker.search_failed.connect(self._on_search_failed)
             self._search_worker.start()
@@ -888,12 +975,45 @@ class ProductForm(QWidget):
             
     def _on_search_completed(self, product_info: Dict[str, Any]):
         """Handle successful search completion."""
+        # Thread safety check - only process if this is the current request
+        request_id = product_info.get("_request_id")
+        current_user_input = self.product_code.text().strip()
+        
+        # Check if this result is still relevant
+        if (request_id != self._current_request_id and 
+            request_id != "cache" and 
+            current_user_input != self._last_user_input):
+            logger.info(f"Ignoring stale search result for request {request_id}")
+            return
+        
+        # Check if user input has changed since this search started
+        if current_user_input != self._last_user_input:
+            logger.info(f"Ignoring search result - user input changed from {self._last_user_input} to {current_user_input}")
+            return
+        
+        # Cache the result (only for API results, not cache hits)
+        if request_id != "cache":
+            product_code = self.product_code.text().strip()
+            # Remove request_id before caching
+            cache_product_info = product_info.copy()
+            cache_product_info.pop("_request_id", None)
+            self._cache_product(product_code, cache_product_info)
+        
+        # Remove request_id before populating form
+        product_info.pop("_request_id", None)
+        
         self._populate_form_from_api(product_info)
         self._set_search_status("Found", "#28a745", f"Found: {product_info.get('item_name', 'Product')}")
         self._reset_input_style()
         
     def _on_search_failed(self, error_type: str, message: str):
         """Handle search failure."""
+        # Thread safety check - only process if user input hasn't changed
+        current_user_input = self.product_code.text().strip()
+        if current_user_input != self._last_user_input:
+            logger.info(f"Ignoring search failure - user input changed from {self._last_user_input} to {current_user_input}")
+            return
+        
         color_map = {
             "not_found": "#ff4444",
             "timeout": "#ff4444", 
@@ -1011,15 +1131,29 @@ class ProductForm(QWidget):
     def get_api_timeout(self):
         """Get API timeout from config or use default."""
         # TODO: Get from config when available
-        return 15
+        return 3  # Reduced from 15 to 3 seconds for faster response
     
     def _populate_form_from_api(self, product_info: Dict[str, Any]):
         """Populate form fields from API response data with new format."""
         try:
+            # Thread safety check - don't update if user is currently typing
+            current_user_input = self.product_code.text().strip()
+            if current_user_input != self._last_user_input:
+                logger.info(f"Skipping form population - user input changed from {self._last_user_input} to {current_user_input}")
+                return
+            
             self._is_updating = True
             
+            # Store current cursor position
+            cursor_pos = self.product_code.cursorPosition()
+            
             # Map new API fields to form fields
-            self.product_code.setText(product_info.get("product_code", ""))
+            # Don't overwrite product_code if user is still typing
+            if not self.product_code.hasFocus() or current_user_input == self._last_user_input:
+                self.product_code.setText(product_info.get("product_code", ""))
+                # Restore cursor position
+                self.product_code.setCursorPosition(cursor_pos)
+            
             self.product_name.setText(product_info.get("product_name", ""))
             
             # Handle color_code (might be null)
