@@ -119,17 +119,7 @@ Root: HKLM; Subkey: "SOFTWARE\Roll Machine Monitor"; ValueType: string; ValueNam
 ; Post-installation tasks
 Filename: "{app}\run_app.py"; Description: "{cm:LaunchProgram,Roll Machine Monitor}"; Flags: nowait postinstall skipifsilent; WorkingDir: "{app}"
 
-[Code]
-; Custom installation code
-function InitializeSetup(): Boolean;
-begin
-  Result := True;
-end;
 
-function NextButtonClick(CurPageID: Integer): Boolean;
-begin
-  Result := True;
-end;
 
 [UninstallDelete]
 ; Clean up additional files
