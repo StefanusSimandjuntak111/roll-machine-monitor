@@ -15,7 +15,6 @@ from datetime import datetime
 import re
 
 from .connection_settings import ConnectionSettings
-from .print_preview import PrintPreviewDialog
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -147,10 +146,12 @@ class ProductForm(QWidget):
         self._last_searched_code = ""
         self._is_updating = False
         self._barcode = ""
+        self._image_url = None
         
         # Thread safety for preventing race conditions
         self._current_request_id = None
         self._last_user_input = ""
+        self._current_machine_length = None
         
         self.setup_ui()
         
@@ -281,35 +282,67 @@ class ProductForm(QWidget):
         self.batch_number.setStyleSheet(input_style)
         form_layout.addRow("Batch Number:", self.batch_number)
         
-        # Current Length with buttons
-        length_container = QWidget()
-        length_layout = QHBoxLayout(length_container)
-        length_layout.setSpacing(5)  # Reduced spacing
-        length_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Current Length Input
-        self.target_length = QDoubleSpinBox()
-        self.target_length.setRange(0, 100000)
-        self.target_length.setDecimals(2)
-        self.target_length.setValue(0.0)  # Default to 0
-        self.target_length.valueChanged.connect(self.on_length_changed)
-        # Clear error styling when user changes value
-        self.target_length.valueChanged.connect(lambda: self.clear_error(self.target_length))
-        self.target_length.setStyleSheet(input_style + """
+        # Current Length (Readonly - from device)
+        self.current_length = QDoubleSpinBox()
+        self.current_length.setRange(0, 100000)
+        self.current_length.setDecimals(2)
+        self.current_length.setValue(0.0)  # Default to 0
+        self.current_length.setReadOnly(True)  # Readonly - data from device
+        self.current_length.setStyleSheet(input_style + """
+            QDoubleSpinBox {
+                background-color: #2a2a2a;
+                color: #00ff00;
+                font-weight: bold;
+                padding-right: 5px;
+            }
             QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
                 width: 0;
                 height: 0;
                 border: none;
                 background: none;
             }
-            QDoubleSpinBox {
-                padding-right: 5px;  /* Reduce right padding since we removed the buttons */
+        """)
+        self.current_length.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        form_layout.addRow("Current Length:", self.current_length)
+        
+        # Target Length with buttons (to be sent to device)
+        target_length_container = QWidget()
+        target_length_layout = QHBoxLayout(target_length_container)
+        target_length_layout.setSpacing(5)  # Reduced spacing
+        target_length_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Target Length Input
+        self.target_length = QSpinBox()
+        self.target_length.setRange(0, 100000)
+        self.target_length.setValue(0)  # Default to 0
+        self.target_length.valueChanged.connect(self.on_length_changed)
+        # Clear error styling when user changes value
+        self.target_length.valueChanged.connect(lambda: self.clear_error(self.target_length))
+        self.target_length.setStyleSheet(input_style + """
+            QSpinBox {
+                background-color: #353535;
+                border: 1px solid #444444;
+                border-radius: 4px;
+                padding: 5px;
+                color: white;
+                font-size: 14px;
+                min-height: 40px;
+                padding-right: 5px;
+            }
+            QSpinBox:focus {
+                border: 1px solid #0078d4;
+            }
+            QSpinBox::up-button, QSpinBox::down-button {
+                width: 0;
+                height: 0;
+                border: none;
+                background: none;
             }
         """)
         # Allow manual input - remove setReadOnly(True)
         self.target_length.setReadOnly(False)  # Allow manual keyboard input
         self.target_length.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        length_layout.addWidget(self.target_length)
+        target_length_layout.addWidget(self.target_length)
         
         # Button style
         button_style = """
@@ -341,7 +374,7 @@ class ProductForm(QWidget):
         self.plus_button.clicked.connect(self.increment_length)
         self.plus_button.setStyleSheet(button_style)
         self.plus_button.setFixedSize(55, 40)
-        length_layout.addWidget(self.plus_button)
+        target_length_layout.addWidget(self.plus_button)
         
         # Minus Button
         self.minus_button = QPushButton("-")
@@ -349,9 +382,9 @@ class ProductForm(QWidget):
         self.minus_button.clicked.connect(self.decrement_length)
         self.minus_button.setStyleSheet(button_style)
         self.minus_button.setFixedSize(55, 40)
-        length_layout.addWidget(self.minus_button)
+        target_length_layout.addWidget(self.minus_button)
         
-        form_layout.addRow("Current Length:", length_container)
+        form_layout.addRow("Target Length:", target_length_container)
         
         # Unit Selection with Radio Buttons
         unit_container = QWidget()
@@ -436,15 +469,6 @@ class ProductForm(QWidget):
             }
         """
         
-        # Reset Counter Button
-        self.reset_button = QPushButton("Reset Counter")
-        self.reset_button.setObjectName("reset_button")
-        self.reset_button.clicked.connect(self.reset_counter_with_save)
-        # Gunakan style dan size policy yang sama dengan print_button
-        self.reset_button.setStyleSheet(action_button_style + "\n#reset_button { background-color: #dc3545; }\n#reset_button:hover { background-color: #c82333; }\n#reset_button:pressed { background-color: #bd2130; }")
-        self.reset_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        buttons_layout.addWidget(self.reset_button)
-        
         # Print Button
         self.print_button = QPushButton("Print")
         self.print_button.setObjectName("print_button")
@@ -488,11 +512,12 @@ class ProductForm(QWidget):
         self._current_unit = new_unit  # Update current unit
         self._is_updating = False
         
-    def on_length_changed(self, value: float):
-        """Handle length value change."""
+    def on_length_changed(self, value: int):
+        """Handle length value change and automatically send to device."""
         if not self._is_updating:
-            # Value changed by user, no need to convert
-            pass
+            # Value changed by user, automatically send to device
+            if value > 0:
+                self.set_target_length_to_device()
             
     def reset_counter_with_save(self):
         """Langsung reset counter tanpa validasi input apapun."""
@@ -500,7 +525,7 @@ class ProductForm(QWidget):
         self.reset_counter.emit()
         
     def print_product_info(self):
-        """Print product information."""
+        """Print product information directly using printer utils."""
         if not self.validate_inputs():
             return
             
@@ -512,19 +537,34 @@ class ProductForm(QWidget):
             'color': self.color_code.text().strip(),  # For backward compatibility
             'barcode': self._barcode,
             'batch_number': self.batch_number.text().strip(),
+            'current_length': self.current_length.value(),
             'target_length': self.target_length.value(),
-            'units': self.unit_group.checkedButton().text()
+            'units': self.unit_group.checkedButton().text(),
+            'image_url': self._image_url  # Add image URL for attachment display
         }
         
-        # Show print preview dialog
-        # Pass current machine length if available
+        # Get current machine length for print calculations
         current_machine_length = getattr(self, '_current_machine_length', None)
-        preview_dialog = PrintPreviewDialog(product_info, self, current_machine_length)
         
-        # Connect print logging signal to emit our signal
-        preview_dialog.production_logged.connect(self.emit_print_logged)
-        
-        preview_dialog.exec()
+        # Import and use printer utils for direct printing
+        try:
+            from .printer_utils import print_product_label
+            print_product_label(product_info, current_machine_length)
+            
+            # Emit print logged signal for logging
+            self.emit_print_logged(product_info)
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error printing product label: {e}")
+            
+            # Show error dialog
+            self._show_kiosk_dialog(
+                "critical",
+                "Print Error",
+                f"Error printing product label:\n\n{str(e)}"
+            )
     
     def emit_print_logged(self, print_data: dict):
         """Emit print logged signal to main window."""
@@ -549,20 +589,20 @@ class ProductForm(QWidget):
             return False
             
         if self.target_length.value() <= 0:
-            self.show_error(self.target_length, "Panjang belum di set! Masukkan current panjang yang valid.")
+            self.show_error(self.target_length, "Target length belum di set! Masukkan target panjang yang valid.")
             self._show_kiosk_dialog(
                 "warning",
-                "Current Length Required",
-                "Panjang belum di set!\n\nSilakan masukkan current panjang minimal 1 meter sebelum melanjutkan."
+                "Target Length Required",
+                "Target length belum di set!\n\nSilakan masukkan target panjang minimal 1 meter sebelum melanjutkan."
             )
             return False
             
         if self.target_length.value() < 1:
-            self.show_error(self.target_length, "Current panjang minimal 1 meter")
+            self.show_error(self.target_length, "Target panjang minimal 1")
             self._show_kiosk_dialog(
                 "warning",
-                "Current Length Too Small",
-                "Current panjang terlalu kecil!\n\nMinimal panjang yang diizinkan adalah 1 meter."
+                "Target Length Too Small",
+                "Target panjang terlalu kecil!\n\nMinimal panjang yang diizinkan adalah 1."
             )
             return False
             
@@ -626,10 +666,10 @@ class ProductForm(QWidget):
     def clear_error(self, widget: QWidget):
         """Clear error styling and tooltip for a widget."""
         # Reset to normal styling based on widget type
-        if isinstance(widget, QDoubleSpinBox):
+        if isinstance(widget, (QDoubleSpinBox, QSpinBox)):
             # Reset to normal input style for spinbox
             input_style = """
-                QDoubleSpinBox {
+                QSpinBox, QDoubleSpinBox {
                     background-color: #353535;
                     border: 1px solid #444444;
                     border-radius: 4px;
@@ -638,16 +678,16 @@ class ProductForm(QWidget):
                     font-size: 14px;
                     min-height: 40px;
                 }
-                QDoubleSpinBox:focus {
+                QSpinBox:focus, QDoubleSpinBox:focus {
                     border: 1px solid #0078d4;
                 }
-                QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+                QSpinBox::up-button, QSpinBox::down-button, QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
                     width: 0;
                     height: 0;
                     border: none;
                     background: none;
                 }
-                QDoubleSpinBox {
+                QSpinBox, QDoubleSpinBox {
                     padding-right: 5px;
                 }
             """
@@ -664,6 +704,7 @@ class ProductForm(QWidget):
             'color_code': self.color_code.text().strip(),
             'barcode': self._barcode,
             'batch_number': self.batch_number.text().strip(),
+            'current_length': self.current_length.value(),
             'target_length': self.target_length.value(),
             'unit': self.unit_group.checkedButton().text()
         }
@@ -690,7 +731,8 @@ class ProductForm(QWidget):
         self.color_code.setText(info.get('color_code', ''))
         self._barcode = info.get('barcode', '')
         self.batch_number.setText(info.get('batch_number', ''))
-        self.target_length.setValue(info.get('target_length', 0.0))
+        self.current_length.setValue(info.get('current_length', 0.0))
+        self.target_length.setValue(info.get('target_length', 0))
         
         # Handle unit selection properly
         unit = info.get('unit', 'Meter')
@@ -702,29 +744,37 @@ class ProductForm(QWidget):
             self._current_unit = "Meter"
 
     def increment_length(self):
-        """Increment target length by 1."""
+        """Increment target length by 1 and automatically send to device."""
         current_value = self.target_length.value()
-        self.target_length.setValue(current_value + 1)
+        new_value = current_value + 1
+        self.target_length.setValue(new_value)
         # Clear any error styling when user interacts
         self.clear_error(self.target_length)
+        # Automatically send to device
+        if new_value > 0:
+            self.set_target_length_to_device()
 
     def decrement_length(self):
-        """Decrement target length by 1."""
+        """Decrement target length by 1 and automatically send to device."""
         current_value = self.target_length.value()
         if current_value > 0:  # Prevent negative values
-            self.target_length.setValue(current_value - 1)
-        # Clear any error styling when user interacts
-        self.clear_error(self.target_length)
+            new_value = current_value - 1
+            self.target_length.setValue(new_value)
+            # Clear any error styling when user interacts
+            self.clear_error(self.target_length)
+            # Automatically send to device
+            if new_value > 0:
+                self.set_target_length_to_device()
 
     def update_target_with_current_length(self, current_length: float):
-        """Update target length input with current length from monitoring."""
+        """Update target length input with current length from monitoring (this will auto-send to device)."""
         if not self._is_updating:
             self._is_updating = True
-            self.target_length.setValue(round(current_length, 2))
+            self.target_length.setValue(int(round(current_length, 0)))
             self._is_updating = False
     
     def update_target_with_length_print(self, length_print_text: str):
-        """Update target length input with length print value (with tolerance applied)."""
+        """Update current length display with length print value from device."""
         if not self._is_updating:
             self._is_updating = True
             try:
@@ -732,12 +782,13 @@ class ProductForm(QWidget):
                 match = re.search(r'(\d+\.?\d*)', length_print_text)
                 if match:
                     length_value = float(match.group(1))
-                    self.target_length.setValue(round(length_value, 2))
-                    # logger.info(f"Updated target length with length print value: {length_value}")
+                    # Update current length display (readonly) - this is the data from device
+                    self.current_length.setValue(round(length_value, 2))
+                    logger.info(f"Updated current length display with length print value: {length_value}")
                 else:
                     logger.warning(f"Could not extract numeric value from length print text: {length_print_text}")
             except Exception as e:
-                logger.error(f"Error updating target length with length print: {e}")
+                logger.error(f"Error updating current length with length print: {e}")
             finally:
                 self._is_updating = False
 
@@ -760,6 +811,90 @@ class ProductForm(QWidget):
     def set_current_machine_length(self, current_length: float):
         """Set the current machine length for print preview."""
         self._current_machine_length = current_length
+        # Note: current_length display is updated by update_target_with_length_print
+
+    def set_target_length_to_device(self):
+        """Send target length to device using JSK3588 protocol commands 10 and 11."""
+        try:
+            target_value = self.target_length.value()
+            if target_value <= 0:
+                self._show_kiosk_dialog(
+                    "warning",
+                    "Invalid Target Length",
+                    "Target length must be greater than 0."
+                )
+                return
+            
+            # For JSK3588 protocol, we send the value directly (no multiplication)
+            # The device expects the value as-is
+            target_int = int(target_value)
+            
+            # Ensure value is within valid range (0-255 for single byte)
+            if target_int > 255:
+                logger.error(f"Value too large for JSK3588 protocol: {target_int}")
+                self._show_kiosk_dialog(
+                    "warning",
+                    "Value Too Large",
+                    f"Target length {target_value} is too large for JSK3588 protocol.\nMaximum value: 255"
+                )
+                return
+            
+            # For JSK3588 protocol, we use the value directly
+            d3d2_int = 0  # High byte (always 0 for values <= 255)
+            d1d0_int = target_int  # Low byte (the actual value)
+            
+            # Calculate checksums
+            checksum1 = (0x55 + 0xAA + 0x0A + 0x00 + 0x00 + d3d2_int) & 0xFF
+            checksum2 = (0x55 + 0xAA + 0x0B + 0x00 + d1d0_int + 0x00) & 0xFF
+            
+            # Create commands
+            command1 = f"55 AA 0A 00 00 {d3d2_int:02X} {checksum1:02X}"
+            command2 = f"55 AA 0B 00 {d1d0_int:02X} 00 {checksum2:02X}"
+            
+            logger.info(f"Setting target length to device: {target_value}")
+            logger.info(f"Target value: {target_int} (D3D2: 0x00, D1D0: 0x{target_int:02X})")
+            logger.info(f"Command 1: {command1}")
+            logger.info(f"Command 2: {command2}")
+            
+            # Find main window and send commands through serial
+            from PySide6.QtWidgets import QApplication
+            app = QApplication.instance()
+            
+            for widget in app.topLevelWidgets():
+                if hasattr(widget, 'monitor') and widget.monitor and widget.monitor.is_running:
+                    if hasattr(widget.monitor, 'serial_port') and widget.monitor.serial_port:
+                        # Send first command
+                        widget.monitor.serial_port.send_hex(command1)
+                        logger.info("Sent first command to device")
+                        
+                        # Wait 500ms before sending second command (must be within 1 second)
+                        import time
+                        time.sleep(0.5)
+                        
+                        # Send second command
+                        widget.monitor.serial_port.send_hex(command2)
+                        logger.info("Sent second command to device")
+                        
+                        # No success dialog needed since it's automatic
+                        return
+                    else:
+                        logger.error("Serial port not available")
+                        break
+            
+            # If we get here, no suitable main window found
+            self._show_kiosk_dialog(
+                "warning",
+                "Device Not Connected",
+                "Cannot set target length: Device not connected or monitoring not active."
+            )
+            
+        except Exception as e:
+            logger.error(f"Error setting target length to device: {e}")
+            self._show_kiosk_dialog(
+                "critical",
+                "Set Target Error",
+                f"Error setting target length to device:\n\n{str(e)}"
+            )
 
     def load_image(self, url):
         """Load image from URL and display it."""
@@ -787,6 +922,8 @@ class ProductForm(QWidget):
                     }
                 """)
                 self.image_label.setText("")  # Clear any text
+                # Store the image URL for attachment print widget
+                self._image_url = url
                 logger.info(f"Successfully loaded image from: {url}")
             else:
                 # Failed to load pixmap data
@@ -859,6 +996,7 @@ class ProductForm(QWidget):
             'color': self.color_code.text().strip(),  # For backward compatibility
             'barcode': self._barcode,
             'batch_number': self.batch_number.text().strip(),
+            'current_length': self.current_length.value(),
             'target_length': self.target_length.value(),
             'units': self.unit_group.checkedButton().text()
         }
@@ -1180,8 +1318,9 @@ class ProductForm(QWidget):
             # Clear batch number for manual input
             self.batch_number.setText("")
             
-            # Clear target length
-            self.target_length.setValue(0.0)
+            # Clear current length and target length
+            self.current_length.setValue(0.0)
+            self.target_length.setValue(0)
             
             self._is_updating = False
             self._clear_search_status()

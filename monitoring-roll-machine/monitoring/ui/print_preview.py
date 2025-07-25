@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QFrame,
     QScrollArea, QWidget, QTableWidget,
-    QTableWidgetItem, QHeaderView
+    QTableWidgetItem, QHeaderView, QSpinBox
 )
 from PySide6.QtCore import Qt, QSize, QMarginsF, QRectF, QSizeF, QLineF, QPoint, Signal
 from PySide6.QtPrintSupport import (
@@ -63,6 +63,9 @@ class PrintPreviewDialog(QDialog):
         # Force first page
         self.printer.setFromTo(1, 1)
         self.printer.setCopyCount(1)
+        # Set page margins to 0 using QMarginsF
+        margins = QMarginsF(0, 0, 0, 0)
+        self.printer.setPageMargins(margins, QPageLayout.Unit.Millimeter)  # No margins
         
         self.setup_ui()
         
@@ -110,6 +113,46 @@ class PrintPreviewDialog(QDialog):
         """)
         self.tolerance_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.tolerance_label)
+        
+        # Print copy input
+        copy_layout = QHBoxLayout()
+        copy_layout.setSpacing(10)
+        
+        copy_label = QLabel("Print Copies:")
+        copy_label.setStyleSheet("""
+            QLabel {
+                color: #333333;
+                font-size: 14px;
+                font-weight: bold;
+            }
+        """)
+        
+        self.copy_spinbox = QSpinBox()
+        self.copy_spinbox.setRange(1, 10)
+        self.copy_spinbox.setValue(1)
+        self.copy_spinbox.setStyleSheet("""
+            QSpinBox {
+                border: 1px solid #cccccc;
+                border-radius: 4px;
+                padding: 5px;
+                font-size: 14px;
+                min-width: 80px;
+            }
+            QSpinBox::up-button, QSpinBox::down-button {
+                width: 20px;
+                border: 1px solid #cccccc;
+                background-color: #f8f9fa;
+            }
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover {
+                background-color: #e9ecef;
+            }
+        """)
+        
+        copy_layout.addWidget(copy_label)
+        copy_layout.addWidget(self.copy_spinbox)
+        copy_layout.addStretch()
+        
+        layout.addLayout(copy_layout)
         
         # Preview widget in a fixed-size container
         preview_container = QWidget()
@@ -527,6 +570,12 @@ class PrintPreviewDialog(QDialog):
 
     def print_document(self):
         """Print the document and log production data."""
+        # Get copy count from spinbox
+        copy_count = self.copy_spinbox.value()
+        
+        # Set printer copy count
+        self.printer.setCopyCount(copy_count)
+        
         dialog = QPrintDialog(self.printer, self)
         if dialog.exec() == QPrintDialog.DialogCode.Accepted:
             # Log production data when print is confirmed

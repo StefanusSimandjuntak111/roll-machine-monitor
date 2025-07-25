@@ -379,6 +379,7 @@ class ModernMainWindow(QMainWindow):
         self.product_start_times = []  # List to store product start times
         self.last_product_start_time = None  # Last product start time for cycle time calculation
         self.is_new_product_started = False  # Flag to track if new product started
+        self.is_kiosk_mode = True  # Initialize kiosk mode flag
         
         # Load configuration
         self.config = load_config()
@@ -542,12 +543,12 @@ class ModernMainWindow(QMainWindow):
         header_layout.addWidget(title_label)
         header_layout.addStretch()
         
-        # Add restart button with dynamic sizing
-        restart_btn = QPushButton("🔄 Restart")
+        # Add reset counter button with dynamic sizing
+        reset_btn = QPushButton("🔄 Reset Counter")
         button_font_size = max(10, min(20, int(dynamic_font_size * 0.6)))
-        restart_btn.setStyleSheet(f"""
+        reset_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: #e74c3c;
+                background-color: #dc3545;
                 border: none;
                 border-radius: 5px;
                 padding: {dynamic_padding//2}px {dynamic_padding}px;
@@ -556,11 +557,13 @@ class ModernMainWindow(QMainWindow):
                 margin-right: {dynamic_padding//2}px;
             }}
             QPushButton:hover {{
-                background-color: #c0392b;
+                background-color: #c82333;
             }}
         """)
-        restart_btn.clicked.connect(self.restart_application)
-        header_layout.addWidget(restart_btn)
+        reset_btn.clicked.connect(self.reset_counter)
+        header_layout.addWidget(reset_btn)
+        
+
         
         # Add settings button with dynamic sizing
         settings_btn = QPushButton("⚙️ Settings")
@@ -1003,6 +1006,17 @@ del "%~f0"
     def reset_counter(self):
         """Reset counter by sending command 55 AA 01 00 00 00 to device."""
         try:
+            # Show confirmation dialog first
+            reply = self.show_kiosk_dialog(
+                "question",
+                "Reset Counter",
+                "Are you sure you want to reset the counter?\n\nThis will reset the current collection data to zero and reset cycle time tracking.\n\nNext product will start when length counter reaches 0.01."
+            )
+            
+            if reply != QMessageBox.StandardButton.Yes:
+                logger.info("User cancelled reset counter")
+                return
+            
             if self.monitor and self.monitor.is_running:
                 # Send reset command: 55 AA 01 00 00 00
                 reset_command = "55 AA 01 00 00 00"
@@ -1495,9 +1509,52 @@ del "%~f0"
         return None
     
     def keyPressEvent(self, event):
-        """Override key press events to disable certain shortcuts in kiosk mode."""
+        """Override key press events to handle shortcuts and disable certain shortcuts in kiosk mode."""
         # Record user activity
         self.heartbeat.record_activity()
+        
+        # Handle keyboard shortcuts
+        if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+            if event.key() == Qt.Key.Key_P:
+                # Ctrl+P: Print product info
+                logger.info("Keyboard shortcut: Ctrl+P - Print product info")
+                if hasattr(self, 'product_form') and self.product_form:
+                    self.product_form.print_product_info()
+                event.accept()
+                return
+            elif event.key() == Qt.Key.Key_C:
+                # Ctrl+C: Close cycle
+                logger.info("Keyboard shortcut: Ctrl+C - Close cycle")
+                if hasattr(self, 'product_form') and self.product_form:
+                    self.product_form.close_cycle_with_save()
+                event.accept()
+                return
+            elif event.key() == Qt.Key.Key_R:
+                # Ctrl+R: Reset counter
+                logger.info("Keyboard shortcut: Ctrl+R - Reset counter")
+                self.reset_counter()
+                event.accept()
+                return
+            elif event.key() == Qt.Key.Key_S:
+                # Ctrl+S: Open settings
+                logger.info("Keyboard shortcut: Ctrl+S - Open settings")
+                self.show_settings()
+                event.accept()
+                return
+        
+        # Handle Ctrl+Shift+R for restart (only in settings dialog)
+        if (event.modifiers() == (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier) and 
+            event.key() == Qt.Key.Key_R):
+            # Check if settings dialog is open
+            from PySide6.QtWidgets import QApplication
+            app = QApplication.instance()
+            for widget in app.topLevelWidgets():
+                if hasattr(widget, 'windowTitle') and "Settings" in widget.windowTitle():
+                    logger.info("Keyboard shortcut: Ctrl+Shift+R - Restart application")
+                    if hasattr(widget, 'restart_application'):
+                        widget.restart_application()
+                    event.accept()
+                    return
         
         if self.is_kiosk_mode:
             # Disable ALT+F4, CTRL+Q, CTRL+W, ESC, etc.

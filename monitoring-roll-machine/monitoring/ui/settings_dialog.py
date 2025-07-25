@@ -84,6 +84,30 @@ class SettingsDialog(QDialog):
         
         button_layout.addStretch()
         
+        # Restart button with orange color
+        restart_btn = QPushButton("🔄 Restart Application")
+        restart_btn.clicked.connect(self.restart_application)
+        restart_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #ff8c00;
+                border: 1px solid #ff8c00;
+                border-radius: 5px;
+                color: white;
+                font-size: 14px;
+                padding: 8px 15px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #ff7f00;
+                border: 1px solid #ff7f00;
+            }
+            QPushButton:pressed {
+                background-color: #ff6b00;
+                border: 1px solid #ff6b00;
+            }
+        """)
+        button_layout.addWidget(restart_btn)
+        
         save_btn = QPushButton("Save Settings")
         save_btn.clicked.connect(self.save_settings)
         save_btn.setStyleSheet(self.get_button_style("primary"))
@@ -463,7 +487,14 @@ class SettingsDialog(QDialog):
         
         settings_form.addRow(rounding_group)
         
-        # 4. Length Print Preview
+        # 4. Print Copy Count
+        self.print_copy_input = QSpinBox()
+        self.print_copy_input.setRange(1, 10)
+        self.print_copy_input.setValue(self.current_settings.get("print_copy_count", 1))
+        self.print_copy_input.setSuffix(" copies")
+        settings_form.addRow("Print Copy Count:", self.print_copy_input)
+        
+        # 5. Length Print Preview
         preview_group = QGroupBox("Length Print Preview")
         preview_layout = QVBoxLayout(preview_group)
         
@@ -952,6 +983,9 @@ class SettingsDialog(QDialog):
             # Get rounding method
             rounding = "UP" if self.round_up_radio.isChecked() else "DOWN"
             
+            # Get print copy count
+            print_copy_count = self.print_copy_input.value()
+            
             # Get port and baudrate
             serial_port = self.port_combo.currentText()
             try:
@@ -968,6 +1002,7 @@ class SettingsDialog(QDialog):
                 "length_tolerance": tolerance,
                 "decimal_points": decimal_points_map[decimal_format],
                 "rounding": rounding,
+                "print_copy_count": print_copy_count,
                 
                 # API settings
                 "api_url": self.current_settings.get("api_url", "")
@@ -1182,4 +1217,49 @@ class SettingsDialog(QDialog):
             
         except Exception as e:
             logger.error(f"Error disconnecting port: {e}")
-            QMessageBox.critical(self, "Disconnect Error", f"Failed to disconnect: {str(e)}") 
+            QMessageBox.critical(self, "Disconnect Error", f"Failed to disconnect: {str(e)}")
+    
+    def restart_application(self):
+        """Restart the application."""
+        try:
+            reply = QMessageBox.question(
+                self,
+                "Restart Application",
+                "Are you sure you want to restart the application?\n\nThis will close the current instance and start a new one.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                logger.info("User confirmed application restart from settings dialog")
+                
+                # Emit signal to main window to handle restart
+                # The main window will handle the actual restart process
+                self.accept()  # Close settings dialog first
+                
+                # Import and call the restart function from main window
+                from PySide6.QtCore import QTimer
+                timer = QTimer()
+                timer.singleShot(100, self._trigger_restart)
+                
+        except Exception as e:
+            logger.error(f"Error during restart: {e}")
+            QMessageBox.critical(
+                self,
+                "Restart Error",
+                f"Error restarting application:\n\n{str(e)}"
+            )
+    
+    def _trigger_restart(self):
+        """Trigger restart by finding the main window and calling its restart method."""
+        try:
+            # Find the main window
+            from PySide6.QtWidgets import QApplication
+            app = QApplication.instance()
+            
+            for widget in app.topLevelWidgets():
+                if hasattr(widget, 'restart_application'):
+                    widget.restart_application()
+                    break
+        except Exception as e:
+            logger.error(f"Error triggering restart: {e}") 
