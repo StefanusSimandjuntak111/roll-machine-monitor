@@ -152,6 +152,7 @@ class ProductForm(QWidget):
         self._current_request_id = None
         self._last_user_input = ""
         self._current_machine_length = None
+        self._current_unit = "Meter"  # Default unit
         
         self.setup_ui()
         
@@ -784,7 +785,7 @@ class ProductForm(QWidget):
                     length_value = float(match.group(1))
                     # Update current length display (readonly) - this is the data from device
                     self.current_length.setValue(round(length_value, 2))
-                    logger.info(f"Updated current length display with length print value: {length_value}")
+                    # logger.info(f"Updated current length display with length print value: {length_value}")
                 else:
                     logger.warning(f"Could not extract numeric value from length print text: {length_print_text}")
             except Exception as e:
