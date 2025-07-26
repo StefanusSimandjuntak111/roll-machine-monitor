@@ -432,7 +432,7 @@ class ProductForm(QWidget):
         self.image_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         image_layout.addWidget(self.image_label, alignment=Qt.AlignmentFlag.AlignCenter)
         
-        form_layout.addRow("Attachment:", image_container)
+        form_layout.addRow(image_container)
         
         # Load default image
         self.load_default_image()
