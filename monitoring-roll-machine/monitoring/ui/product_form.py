@@ -413,7 +413,13 @@ class ProductForm(QWidget):
         
         form_layout.addRow("Unit of Measurement:", unit_container)
 
-        # Image Label
+        # Image and Print Preview Container
+        image_preview_container = QWidget()
+        image_preview_layout = QHBoxLayout(image_preview_container)
+        image_preview_layout.setSpacing(10)
+        image_preview_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Image Label (Left side)
         image_container = QWidget()
         image_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         image_layout = QVBoxLayout(image_container)
@@ -432,7 +438,44 @@ class ProductForm(QWidget):
         self.image_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         image_layout.addWidget(self.image_label, alignment=Qt.AlignmentFlag.AlignCenter)
         
-        form_layout.addRow(image_container)
+        # Print Preview Button (Right side)
+        preview_container = QWidget()
+        preview_layout = QVBoxLayout(preview_container)
+        preview_layout.setContentsMargins(0, 0, 0, 0)
+        preview_layout.setSpacing(5)
+        
+        # Print Preview Button
+        self.preview_button = QPushButton("Print Preview")
+        self.preview_button.setFixedSize(120, 120)
+        self.preview_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2d2d2d;
+                border: 2px dashed #666666;
+                border-radius: 4px;
+                color: #888888;
+                font-size: 12px;
+                font-weight: bold;
+                text-align: center;
+            }
+            QPushButton:hover {
+                background-color: #353535;
+                border: 2px dashed #888888;
+                color: #aaaaaa;
+            }
+            QPushButton:pressed {
+                background-color: #404040;
+                border: 2px dashed #aaaaaa;
+                color: #cccccc;
+            }
+        """)
+        self.preview_button.clicked.connect(self.show_print_preview)
+        preview_layout.addWidget(self.preview_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        # Add both containers to the horizontal layout
+        image_preview_layout.addWidget(image_container)
+        image_preview_layout.addWidget(preview_container)
+        
+        form_layout.addRow(image_preview_container)
         
         # Load default image
         self.load_default_image()
@@ -983,6 +1026,41 @@ class ProductForm(QWidget):
         """)
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logger.info("Showing 'No Image Available' placeholder")
+
+    def show_print_preview(self):
+        """Show print preview dialog."""
+        if not self.validate_inputs():
+            return
+            
+        # Get product info for preview
+        product_info = {
+            'product_code': self.product_code.text().strip(),
+            'product_name': self.product_name.text().strip(),
+            'color_code': self.color_code.text().strip(),
+            'color': self.color_code.text().strip(),  # For backward compatibility
+            'barcode': self._barcode,
+            'batch_number': self.batch_number.text().strip(),
+            'current_length': self.current_length.value(),
+            'target_length': self.target_length.value(),
+            'units': self.unit_group.checkedButton().text(),
+            'image_url': self._image_url
+        }
+        
+        # Get current machine length for print calculations
+        current_machine_length = getattr(self, '_current_machine_length', None)
+        
+        # Create and show print preview dialog
+        try:
+            from .print_preview import PrintPreviewDialog
+            preview_dialog = PrintPreviewDialog(product_info, current_machine_length, self)
+            preview_dialog.exec()
+        except Exception as e:
+            logger.error(f"Error showing print preview: {e}")
+            self._show_kiosk_dialog(
+                "critical",
+                "Print Preview Error",
+                f"Error showing print preview:\n\n{str(e)}"
+            )
 
     def save_product_info(self):
         """Validate and save product information."""
