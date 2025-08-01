@@ -122,6 +122,10 @@ build-scripts/installer-*.exe
 build-scripts/installer-*.msi
 build-scripts/installer-*.dmg
 build-scripts/installer-*.pkg
+build-scripts/*.ps1
+build-scripts/*.bat
+build-scripts/*.iss
+
 
 # OS
 .DS_Store

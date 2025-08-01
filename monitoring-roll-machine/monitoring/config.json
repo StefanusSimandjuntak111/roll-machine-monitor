@@ -22,5 +22,7 @@
     "api_key": "",
     "api_timeout": 15,
     "api_method": "POST",
-    "api_content_type": "application/json"
+    "api_content_type": "application/json",
+    "print_copy_count": 1,
+    "selected_printer": "ZDesigner ZD230-203dpi ZPL"
 }

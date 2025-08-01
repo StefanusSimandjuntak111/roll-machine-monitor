@@ -70,6 +70,7 @@ class SettingsDialog(QDialog):
         self.create_port_settings_tab()
         self.create_port_management_tab()
         self.create_page_settings_tab()
+        self.create_printer_settings_tab()
         self.create_api_settings_tab()
         
         layout.addWidget(self.tab_widget)
@@ -487,14 +488,7 @@ class SettingsDialog(QDialog):
         
         settings_form.addRow(rounding_group)
         
-        # 4. Print Copy Count
-        self.print_copy_input = QSpinBox()
-        self.print_copy_input.setRange(1, 10)
-        self.print_copy_input.setValue(self.current_settings.get("print_copy_count", 1))
-        self.print_copy_input.setSuffix(" copies")
-        settings_form.addRow("Print Copy Count:", self.print_copy_input)
-        
-        # 5. Length Print Preview
+        # 4. Length Print Preview
         preview_group = QGroupBox("Length Print Preview")
         preview_layout = QVBoxLayout(preview_group)
         
@@ -522,6 +516,93 @@ class SettingsDialog(QDialog):
         
         # Initialize conversion preview
         self.update_conversion_preview()
+    
+    def create_printer_settings_tab(self):
+        """Create the Printer Settings tab."""
+        printer_tab = QFrame()
+        printer_layout = QVBoxLayout(printer_tab)
+        printer_layout.setSpacing(20)
+        
+        # Title
+        title = QLabel("Printer Settings")
+        title.setStyleSheet("font-size: 18px; font-weight: bold; color: white; margin-bottom: 10px;")
+        printer_layout.addWidget(title)
+        
+        # Settings frame
+        settings_frame = QFrame()
+        settings_frame.setStyleSheet("""
+            QFrame {
+                background-color: #353535;
+                border-radius: 10px;
+                padding: 20px;
+            }
+            QLabel {
+                color: #e0e0e0;
+                font-size: 14px;
+            }
+            QSpinBox, QComboBox {
+                background-color: #2d2d2d;
+                border: 1px solid #444444;
+                border-radius: 5px;
+                padding: 8px;
+                color: white;
+                font-size: 14px;
+                min-height: 20px;
+            }
+            QSpinBox:focus, QComboBox:focus {
+                border: 1px solid #0078d4;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid white;
+            }
+        """)
+        
+        settings_form = QFormLayout(settings_frame)
+        settings_form.setSpacing(15)
+        
+        # Printer selection
+        self.printer_combo = QComboBox()
+        self.refresh_printers()
+        settings_form.addRow("Printer:", self.printer_combo)
+        
+        # Print copy count
+        self.printer_copy_input = QSpinBox()
+        self.printer_copy_input.setRange(1, 10)
+        self.printer_copy_input.setValue(self.current_settings.get("print_copy_count", 1))
+        self.printer_copy_input.setSuffix(" copies")
+        settings_form.addRow("Copy Count:", self.printer_copy_input)
+        
+        # Buttons layout
+        buttons_layout = QHBoxLayout()
+        
+        # Refresh printers button
+        refresh_printers_btn = QPushButton("🔄 Refresh Printers")
+        refresh_printers_btn.clicked.connect(self.refresh_printers)
+        refresh_printers_btn.setStyleSheet(self.get_button_style("secondary"))
+        buttons_layout.addWidget(refresh_printers_btn)
+        
+        # Test print button
+        test_print_btn = QPushButton("🖨️ Test Print")
+        test_print_btn.clicked.connect(self.test_print)
+        test_print_btn.setStyleSheet(self.get_button_style("primary"))
+        buttons_layout.addWidget(test_print_btn)
+        
+        # Add buttons to form
+        buttons_widget = QWidget()
+        buttons_widget.setLayout(buttons_layout)
+        settings_form.addRow("", buttons_widget)
+        
+        printer_layout.addWidget(settings_frame)
+        printer_layout.addStretch()
+        
+        self.tab_widget.addTab(printer_tab, "Printer Settings")
     
     def create_api_settings_tab(self):
         """Create the API Settings tab."""
@@ -955,6 +1036,174 @@ class SettingsDialog(QDialog):
             self.update_connection_status()
         except Exception as e:
             logger.debug(f"Could not update connection status during refresh: {e}")
+
+    def refresh_printers(self):
+        """Refresh the list of available printers."""
+        try:
+            logger.info("Refreshing available printers...")
+            
+            # Import printer utils to get available printers
+            from .printer_utils import get_available_printers, get_default_printer
+            
+            if hasattr(self, 'printer_combo'):
+                self.printer_combo.clear()
+                
+                # Get available printers
+                printers = get_available_printers()
+                logger.info(f"Found {len(printers)} printers")
+                
+                if printers:
+                    for printer in printers:
+                        self.printer_combo.addItem(printer)
+                        logger.info(f"Added printer: {printer}")
+                    
+                    # Set current printer if available
+                    current_printer = self.current_settings.get("selected_printer")
+                    if current_printer and current_printer in printers:
+                        index = self.printer_combo.findText(current_printer)
+                        if index >= 0:
+                            self.printer_combo.setCurrentIndex(index)
+                            logger.info(f"Set current printer to: {current_printer}")
+                    else:
+                        # Try to set default printer
+                        default_printer = get_default_printer()
+                        if default_printer and default_printer in printers:
+                            index = self.printer_combo.findText(default_printer)
+                            if index >= 0:
+                                self.printer_combo.setCurrentIndex(index)
+                                logger.info(f"Set default printer: {default_printer}")
+                else:
+                    self.printer_combo.addItem("No printers available")
+                    logger.warning("No printers found")
+                    
+        except Exception as e:
+            logger.error(f"Error refreshing printers: {e}")
+            if hasattr(self, 'printer_combo'):
+                self.printer_combo.clear()
+                self.printer_combo.addItem("Error loading printers")
+
+    def test_print(self):
+        """Test print functionality with sample label."""
+        try:
+            selected_printer = self.printer_combo.currentText()
+            
+            if not selected_printer or selected_printer in ["No printers available", "Error loading printers"]:
+                QMessageBox.warning(self, "Test Print", "Please select a valid printer first.")
+                return
+                
+            logger.info(f"Testing print with printer: {selected_printer}")
+            
+            # Import printer utils for test printing
+            from .printer_utils import print_product_label, get_available_printers, test_printer_connection, test_zebra_printer, test_windows_printer
+            
+            # Double-check if printer is still available
+            available_printers = get_available_printers()
+            if selected_printer not in available_printers:
+                QMessageBox.warning(self, "Test Print", 
+                    f"Printer '{selected_printer}' is no longer available.\n\n"
+                    f"Available printers: {', '.join(available_printers)}")
+                return
+            
+            # Create test product info
+            test_product_info = {
+                'product_code': 'TEST-001',
+                'product_name': 'Test Product Label',
+                'color_code': '001',
+                'color': '001',
+                'barcode': 'TEST123456789',
+                'batch_number': 'BATCH001',
+                'current_length': 25.5,
+                'target_length': 25,
+                'units': 'Yard',
+                'print_length': 25.5,
+                'decimal_points': 1
+            }
+            
+            # Show progress dialog
+            from PySide6.QtWidgets import QProgressDialog
+            progress = QProgressDialog("Sending test print...", "Cancel", 0, 0, self)
+            progress.setWindowModality(Qt.WindowModality.WindowModal)
+            progress.setAutoClose(True)
+            progress.show()
+            
+            # Check if it's a Zebra printer and use specialized test
+            is_zebra = "zebra" in selected_printer.lower() or "zd230" in selected_printer.lower()
+            
+            if is_zebra:
+                logger.info("Detected Zebra printer, using specialized test")
+                connection_success = test_zebra_printer(selected_printer)
+            else:
+                connection_success = test_printer_connection(selected_printer)
+            
+            if not connection_success:
+                # Try Windows print command as fallback
+                logger.info("Qt printer test failed, trying Windows print command")
+                windows_success = test_windows_printer(selected_printer)
+                
+                if not windows_success:
+                    error_msg = f"All printer connection tests failed for '{selected_printer}'.\n\n"
+                    if is_zebra:
+                        error_msg += "Zebra printer tests failed. This might be due to:\n"
+                        error_msg += "• Zebra printer requires specific drivers\n"
+                        error_msg += "• Printer is in ZPL mode instead of Windows mode\n"
+                        error_msg += "• Try switching printer to Windows mode\n"
+                        error_msg += "• Check if Zebra drivers are properly installed\n"
+                    else:
+                        error_msg += "This indicates a fundamental issue with the printer setup.\n"
+                        error_msg += "Please check:\n"
+                        error_msg += "• Printer drivers are installed correctly\n"
+                        error_msg += "• Printer is connected and powered on\n"
+                        error_msg += "• Windows printer settings are correct\n"
+                        error_msg += "• Try printing a test page from Windows\n"
+                    
+                    QMessageBox.critical(self, "Printer Connection Test", error_msg)
+                    return
+                else:
+                    logger.info("Windows print command succeeded")
+                    QMessageBox.information(self, "Printer Test", 
+                        f"Windows print command succeeded for '{selected_printer}'.\n\n"
+                        f"The printer is accessible through Windows, but Qt printing may have issues.\n"
+                        f"This is common with specialized printers like Zebra.")
+            
+            # Perform test print with actual label
+            success = print_product_label(test_product_info, None, selected_printer)
+            
+            progress.close()
+            
+            if success:
+                QMessageBox.information(self, "Test Print", 
+                    f"Test print sent successfully to '{selected_printer}'!\n\n"
+                    f"Check your printer for the test label with:\n"
+                    f"• Product Code: TEST-001\n"
+                    f"• Product Name: Test Product Label\n"
+                    f"• Color: 001\n"
+                    f"• Length: 25.5 Yard\n\n"
+                    f"If the label doesn't print, check:\n"
+                    f"• Printer is powered on and connected\n"
+                    f"• Paper/labels are loaded\n"
+                    f"• Printer is not paused or offline")
+                logger.info("Test print completed successfully")
+            else:
+                QMessageBox.critical(self, "Test Print Failed", 
+                    f"Test print failed for printer '{selected_printer}'.\n\n"
+                    f"Troubleshooting steps:\n"
+                    f"1. Check if printer is connected and powered on\n"
+                    f"2. Verify printer drivers are installed correctly\n"
+                    f"3. Make sure printer is not in use by another application\n"
+                    f"4. Try printing a test page from Windows\n"
+                    f"5. Check printer queue for any pending jobs\n"
+                    f"6. Restart the printer if necessary\n\n"
+                    f"Available printers: {', '.join(available_printers)}")
+                logger.error("Test print failed")
+                
+        except Exception as e:
+            logger.error(f"Error during test print: {e}")
+            QMessageBox.critical(self, "Test Print Error", 
+                f"Error occurred during test print:\n\n{str(e)}\n\n"
+                f"This might be due to:\n"
+                f"• Printer driver issues\n"
+                f"• Insufficient permissions\n"
+                f"• Printer not responding")
     
     def save_settings(self):
         """Save the current settings."""
@@ -983,8 +1232,13 @@ class SettingsDialog(QDialog):
             # Get rounding method
             rounding = "UP" if self.round_up_radio.isChecked() else "DOWN"
             
-            # Get print copy count
-            print_copy_count = self.print_copy_input.value()
+            # Get print copy count from printer settings tab
+            print_copy_count = self.printer_copy_input.value() if hasattr(self, 'printer_copy_input') else 1
+            
+            # Get selected printer
+            selected_printer = self.printer_combo.currentText() if hasattr(self, 'printer_combo') else None
+            if selected_printer in ["No printers available", "Error loading printers"]:
+                selected_printer = None
             
             # Get port and baudrate
             serial_port = self.port_combo.currentText()
@@ -1003,6 +1257,9 @@ class SettingsDialog(QDialog):
                 "decimal_points": decimal_points_map[decimal_format],
                 "rounding": rounding,
                 "print_copy_count": print_copy_count,
+                
+                # Printer settings
+                "selected_printer": selected_printer,
                 
                 # API settings
                 "api_url": self.current_settings.get("api_url", "")

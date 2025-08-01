@@ -54,7 +54,7 @@ class ProductSearchWorker(QThread):
             ))
         
     def run(self):
-        """Run the API call in background thread with JSON format."""
+        """Run the API call in background thread with JSON format and exact match filtering."""
         try:
             # Ensure session is available
             if ProductSearchWorker._session is None:
@@ -78,6 +78,9 @@ class ProductSearchWorker(QThread):
             }
             
             # Make POST request with JSON data - reduced timeout to match Postman performance
+            logger.info(f"Making API request to: {self.api_url}")
+            logger.info(f"Request data: {json_data}")
+            
             response = ProductSearchWorker._session.post(
                 self.api_url,
                 json=json_data,
@@ -85,6 +88,9 @@ class ProductSearchWorker(QThread):
             )
             response.raise_for_status()
             data = response.json()
+            
+            logger.info(f"API Response status: {response.status_code}")
+            logger.info(f"API Response data: {data}")
             
             # Check if product data is found with new response structure
             if (data.get("message") and 
@@ -94,11 +100,47 @@ class ProductSearchWorker(QThread):
                 
                 products = data["message"]["data"]["products"]
                 if products:
-                    # Take first product
-                    product_info = products[0]
-                    # Add request_id to product_info for thread safety
-                    product_info["_request_id"] = self.request_id
-                    self.search_completed.emit(product_info)
+                    # Log search behavior for monitoring
+                    self._log_search_behavior(products)
+                    
+                    # Strategy 1: Try exact match first
+                    exact_matches = [p for p in products if p.get('product_code') == self.product_code]
+                    
+                    if exact_matches:
+                        # Found exact match
+                        product_info = exact_matches[0]
+                        product_info["_request_id"] = self.request_id
+                        product_info["_search_type"] = "exact_match"
+                        self.search_completed.emit(product_info)
+                    else:
+                        # Strategy 2: Try case-insensitive exact match
+                        case_insensitive_matches = [p for p in products if p.get('product_code', '').upper() == self.product_code.upper()]
+                        
+                        if case_insensitive_matches:
+                            product_info = case_insensitive_matches[0]
+                            product_info["_request_id"] = self.request_id
+                            product_info["_search_type"] = "case_insensitive_match"
+                            self.search_completed.emit(product_info)
+                        else:
+                            # Strategy 3: Try partial match (for cases like SV-1 vs SV-1-60)
+                            partial_matches = [p for p in products if self.product_code in p.get('product_code', '')]
+                            
+                            if partial_matches:
+                                # Take the shortest match (most specific)
+                                product_info = min(partial_matches, key=lambda x: len(x.get('product_code', '')))
+                                product_info["_request_id"] = self.request_id
+                                product_info["_search_type"] = "partial_match"
+                                self.search_completed.emit(product_info)
+                            else:
+                                # Strategy 4: If only one product returned, use it (API might be doing exact search)
+                                if len(products) == 1:
+                                    product_info = products[0]
+                                    product_info["_request_id"] = self.request_id
+                                    product_info["_search_type"] = "single_result"
+                                    self.search_completed.emit(product_info)
+                                else:
+                                    # No match found
+                                    self.search_failed.emit("not_found", f"Product '{self.product_code}' not found (API returned {len(products)} products but no match)")
                 else:
                     self.search_failed.emit("not_found", "Product not found")
             else:
@@ -110,6 +152,35 @@ class ProductSearchWorker(QThread):
             self.search_failed.emit("connection", "Cannot connect to server")
         except Exception as e:
             self.search_failed.emit("error", f"Search error: {str(e)}")
+    
+    def _log_search_behavior(self, products):
+        """Log search behavior for monitoring and debugging."""
+        try:
+            logger.info(f"=== SEARCH BEHAVIOR LOG ===")
+            logger.info(f"Searched for: '{self.product_code}'")
+            logger.info(f"API returned: {len(products)} products")
+            
+            # Log all returned products for debugging
+            logger.info("All returned products:")
+            for i, product in enumerate(products):
+                logger.info(f"  {i+1}. {product.get('product_code')}: {product.get('product_name')}")
+            
+            exact_matches = [p for p in products if p.get('product_code') == self.product_code]
+            logger.info(f"Exact matches: {len(exact_matches)}")
+            
+            if len(products) > 1:
+                logger.warning(f"API returned multiple products for '{self.product_code}':")
+                for product in products:
+                    logger.warning(f"  - {product.get('product_code')}: {product.get('product_name')}")
+            
+            if exact_matches:
+                logger.info(f"Exact match found: {exact_matches[0].get('product_name')}")
+            else:
+                logger.warning(f"No exact match found for '{self.product_code}'")
+                logger.warning(f"Available products: {[p.get('product_code') for p in products]}")
+                
+        except Exception as e:
+            logger.error(f"Error logging search behavior: {e}")
 
 class ProductForm(QWidget):
     """Form for entering and editing product information."""
@@ -126,15 +197,24 @@ class ProductForm(QWidget):
     DEFAULT_IMAGE_URL = "https://thumb.ac-illust.com/b1/b170870007dfa419295d949814474ab2_t.jpeg"
     
     # API Configuration
-    API_BASE_URL = "http://localhost:8000/api/method/textile_plus.overrides.api.product.search_product"
+    API_BASE_URL = "https://erp.textilindo.com/api/method/textile_plus.overrides.api.product.search_product"
     API_HEADERS = {
-        "Content-Type": "application/json",
-        "Authorization": "token 61996278bcc8bbb:8a178a12b28e784"
+        "Content-Type": "application/json"
+        # Removed Authorization header - API might be public or need different auth
     }
     
     # Simple in-memory cache for product search results
     _product_cache = {}
     _cache_max_size = 100  # Maximum number of cached items
+    
+    # Search behavior monitoring (class variable for shared stats)
+    _search_stats = {
+        'total_searches': 0,
+        'exact_matches': 0,
+        'partial_matches': 0,
+        'no_matches': 0,
+        'api_issues': 0
+    }
     
     def __init__(self):
         super().__init__()
@@ -153,6 +233,15 @@ class ProductForm(QWidget):
         self._last_user_input = ""
         self._current_machine_length = None
         self._current_unit = "Meter"  # Default unit
+        
+        # Initialize instance-specific search stats
+        self._instance_search_stats = {
+            'total_searches': 0,
+            'exact_matches': 0,
+            'partial_matches': 0,
+            'no_matches': 0,
+            'api_issues': 0
+        }
         
         self.setup_ui()
         
@@ -573,7 +662,12 @@ class ProductForm(QWidget):
         if not self.validate_inputs():
             return
             
-        # Get product info with consistent field names for printing
+        # Get current config for decimal points (same as print preview)
+        from monitoring.config import load_config
+        config = load_config()
+        decimal_points = config.get("decimal_points", 1)
+        
+        # Get product info with consistent field names for printing (same structure as print preview)
         product_info = {
             'product_code': self.product_code.text().strip(),
             'product_name': self.product_name.text().strip(),
@@ -584,7 +678,9 @@ class ProductForm(QWidget):
             'current_length': self.current_length.value(),
             'target_length': self.target_length.value(),
             'units': self.unit_group.checkedButton().text(),
-            'image_url': self._image_url  # Add image URL for attachment display
+            'image_url': self._image_url,  # Add image URL for attachment display
+            'decimal_points': decimal_points,  # ← FIELD YANG HILANG! Sama dengan print preview
+            'print_length': self.current_length.value()  # ← Tambahan untuk konsistensi
         }
         
         # Get current machine length for print calculations
@@ -628,20 +724,9 @@ class ProductForm(QWidget):
             self.show_error(self.color_code, "Color code is required")
             return False
             
-        if not self.batch_number.text().strip():
-            self.show_error(self.batch_number, "Batch number is required")
-            return False
-            
-        if self.target_length.value() <= 0:
-            self.show_error(self.target_length, "Target length belum di set! Masukkan target panjang yang valid.")
-            self._show_kiosk_dialog(
-                "warning",
-                "Target Length Required",
-                "Target length belum di set!\n\nSilakan masukkan target panjang minimal 1 meter sebelum melanjutkan."
-            )
-            return False
-            
-        if self.target_length.value() < 1:
+        # Target length and batch number are now optional (not required)
+        # Only validate if they have values
+        if self.target_length.value() > 0 and self.target_length.value() < 1:
             self.show_error(self.target_length, "Target panjang minimal 1")
             self._show_kiosk_dialog(
                 "warning",
@@ -1032,6 +1117,11 @@ class ProductForm(QWidget):
         if not self.validate_inputs():
             return
             
+        # Get current config for decimal points
+        from monitoring.config import load_config
+        config = load_config()
+        decimal_points = config.get("decimal_points", 1)
+            
         # Get product info for preview
         product_info = {
             'product_code': self.product_code.text().strip(),
@@ -1043,7 +1133,9 @@ class ProductForm(QWidget):
             'current_length': self.current_length.value(),
             'target_length': self.target_length.value(),
             'units': self.unit_group.checkedButton().text(),
-            'image_url': self._image_url
+            'image_url': self._image_url,
+            'decimal_points': decimal_points,
+            'print_length': self.current_length.value()  # Ensure consistency with direct print
         }
         
         # Get current machine length for print calculations
@@ -1113,6 +1205,48 @@ class ProductForm(QWidget):
             del self._product_cache[oldest_key]
         
         self._product_cache[product_code] = product_info
+    
+    def _clear_cache_entry(self, product_code: str):
+        """Clear specific cache entry."""
+        if product_code in self._product_cache:
+            del self._product_cache[product_code]
+            logger.info(f"Cleared cache entry for: {product_code}")
+    
+    def clear_all_cache(self):
+        """Clear all cached products."""
+        self._product_cache.clear()
+        logger.info("Cleared all product cache")
+    
+    def test_search_with_real_data(self, product_code: str):
+        """Test search with real API data for debugging."""
+        logger.info(f"=== TESTING SEARCH WITH REAL DATA ===")
+        logger.info(f"Testing search for: '{product_code}'")
+        
+        # Clear cache first
+        self.clear_all_cache()
+        
+        # Set the product code
+        self.product_code.setText(product_code)
+        
+        # Trigger search
+        self._perform_product_search()
+    
+    def debug_cache_status(self):
+        """Debug cache status."""
+        logger.info(f"=== CACHE STATUS ===")
+        logger.info(f"Cache size: {len(self._product_cache)}")
+        logger.info(f"Cache max size: {self._cache_max_size}")
+        logger.info("Cached products:")
+        for product_code, product_info in self._product_cache.items():
+            logger.info(f"  - {product_code}: {product_info.get('product_name', 'Unknown')}")
+    
+    def debug_search_status(self):
+        """Debug search status."""
+        logger.info(f"=== SEARCH STATUS ===")
+        logger.info(f"Last searched code: '{self._last_searched_code}'")
+        logger.info(f"Last user input: '{self._last_user_input}'")
+        logger.info(f"Current request ID: '{self._current_request_id}'")
+        logger.info(f"Search worker running: {self._search_worker.isRunning() if self._search_worker else False}")
 
     def _cancel_current_search(self):
         """Cancel current search worker and cleanup."""
@@ -1133,24 +1267,30 @@ class ProductForm(QWidget):
         try:
             product_code = self.product_code.text().strip()
             
-            if len(product_code) < 4:
-                return
-                
-            if product_code == self._last_searched_code:
+            if len(product_code) < 3:
                 return
                 
             # Update last searched code and user input
             self._last_searched_code = product_code
             self._last_user_input = product_code
             
-            # Check cache first
+            # Check cache first - but validate match
             cached_product = self._get_cached_product(product_code)
             if cached_product:
-                logger.info(f"Product found in cache: {product_code}")
-                # Add request_id for consistency
-                cached_product["_request_id"] = "cache"
-                self._on_search_completed(cached_product)
-                return
+                # Validate that cached product matches (exact or case-insensitive)
+                cached_code = cached_product.get('product_code', '')
+                if (cached_code == product_code or 
+                    cached_code.upper() == product_code.upper() or
+                    (product_code in cached_code and len(product_code) >= 3)):
+                    logger.info(f"Product found in cache (match): {product_code} -> {cached_code}")
+                    # Add request_id for consistency
+                    cached_product["_request_id"] = "cache"
+                    self._on_search_completed(cached_product)
+                    return
+                else:
+                    logger.warning(f"Cached product mismatch: expected '{product_code}', got '{cached_code}'")
+                    # Remove invalid cache entry
+                    self._clear_cache_entry(product_code)
             
             self._set_search_status("Searching...", "#ffa500", "Searching for product...")
             
@@ -1191,7 +1331,7 @@ class ProductForm(QWidget):
             self._on_search_failed("error", f"Search error: {str(e)}")
             
     def _on_search_completed(self, product_info: Dict[str, Any]):
-        """Handle successful search completion."""
+        """Handle successful search completion with exact match validation."""
         # Thread safety check - only process if this is the current request
         request_id = product_info.get("_request_id")
         current_user_input = self.product_code.text().strip()
@@ -1208,50 +1348,175 @@ class ProductForm(QWidget):
             logger.info(f"Ignoring search result - user input changed from {self._last_user_input} to {current_user_input}")
             return
         
+        # Validate match (only for API results, not cache)
+        if request_id != "cache":
+            searched_code = self.product_code.text().strip()
+            returned_code = product_info.get('product_code', '')
+            search_type = product_info.get('_search_type', 'unknown')
+            
+            # Check if the returned product is acceptable
+            is_valid_match = (
+                returned_code == searched_code or  # Exact match
+                returned_code.upper() == searched_code.upper() or  # Case-insensitive
+                searched_code in returned_code or  # Partial match
+                search_type in ['exact_match', 'case_insensitive_match', 'partial_match', 'single_result']  # Valid search types
+            )
+            
+            if not is_valid_match:
+                logger.warning(f"Product code mismatch: searched for '{searched_code}', got '{returned_code}' (type: {search_type})")
+                self._on_search_failed("mismatch", f"Product code mismatch: expected '{searched_code}', got '{returned_code}'")
+                return
+        
+        # Update search statistics
+        self._update_search_stats("exact_matches")
+        
         # Cache the result (only for API results, not cache hits)
         if request_id != "cache":
             product_code = self.product_code.text().strip()
-            # Remove request_id before caching
+            # Remove internal fields before caching
             cache_product_info = product_info.copy()
             cache_product_info.pop("_request_id", None)
+            cache_product_info.pop("_search_type", None)
             self._cache_product(product_code, cache_product_info)
         
-        # Remove request_id before populating form
+        # Remove internal fields before populating form
         product_info.pop("_request_id", None)
+        product_info.pop("_search_type", None)
         
         self._populate_form_from_api(product_info)
-        self._set_search_status("Found", "#28a745", f"Found: {product_info.get('item_name', 'Product')}")
+        
+        # Show appropriate status based on search type
+        search_type = product_info.get('_search_type', 'exact_match')
+        if search_type == 'exact_match':
+            status_text = "Found ✓"
+            status_color = "#28a745"
+        elif search_type == 'case_insensitive_match':
+            status_text = "Found (CI) ✓"
+            status_color = "#28a745"
+        elif search_type == 'partial_match':
+            status_text = "Found (Partial) ✓"
+            status_color = "#ffc107"
+        elif search_type == 'single_result':
+            status_text = "Found (Single) ✓"
+            status_color = "#17a2b8"
+        else:
+            status_text = "Found ✓"
+            status_color = "#28a745"
+        
+        self._set_search_status(status_text, status_color, f"Found: {product_info.get('product_name', 'Product')} ({search_type})")
         self._reset_input_style()
         
     def _on_search_failed(self, error_type: str, message: str):
-        """Handle search failure."""
+        """Handle search failure with enhanced error handling."""
         # Thread safety check - only process if user input hasn't changed
         current_user_input = self.product_code.text().strip()
         if current_user_input != self._last_user_input:
             logger.info(f"Ignoring search failure - user input changed from {self._last_user_input} to {current_user_input}")
             return
         
+        # Update search statistics
+        if error_type == "not_found":
+            self._update_search_stats("no_matches")
+        elif error_type == "mismatch":
+            self._update_search_stats("api_issues")
+        else:
+            self._update_search_stats("api_issues")
+        
+        # Enhanced status mapping with icons
+        status_map = {
+            "not_found": "Not Found ✗",
+            "mismatch": "Mismatch ✗",
+            "timeout": "Timeout ⏱",
+            "connection": "No Connection 🔌",
+            "error": "Error ❌"
+        }
+        
         color_map = {
             "not_found": "#ff4444",
-            "timeout": "#ff4444", 
-            "connection": "#ff4444",
-            "error": "#ff4444"
+            "mismatch": "#ff4444",
+            "timeout": "#ffc107", 
+            "connection": "#dc3545",
+            "error": "#dc3545"
         }
         
-        status_map = {
-            "not_found": "Not Found",
-            "timeout": "Timeout",
-            "connection": "No Connection", 
-            "error": "Error"
-        }
+        # Show user-friendly dialog for mismatch
+        if error_type == "mismatch":
+            self._show_kiosk_dialog(
+                "warning",
+                "Search Precision Issue",
+                f"The search for '{current_user_input}' returned a different product.\n\n"
+                f"This might be due to API search behavior. Please verify the product code."
+            )
         
         self._set_search_status(
-            status_map.get(error_type, "Error"),
-            color_map.get(error_type, "#ff4444"),
+            status_map.get(error_type, "Error ❌"),
+            color_map.get(error_type, "#dc3545"),
             message
         )
         self._reset_input_style()
         logger.error(f"Search failed: {error_type} - {message}")
+    
+    def _update_search_stats(self, stat_type: str):
+        """Update search statistics for monitoring."""
+        try:
+            # Update both class and instance stats
+            self._search_stats['total_searches'] += 1
+            self._instance_search_stats['total_searches'] += 1
+            
+            if stat_type in self._search_stats:
+                self._search_stats[stat_type] += 1
+                self._instance_search_stats[stat_type] += 1
+            
+            # Log statistics periodically (every 10 searches)
+            if self._search_stats['total_searches'] % 10 == 0:
+                self._log_search_statistics()
+                
+        except Exception as e:
+            logger.error(f"Error updating search stats: {e}")
+    
+    def _log_search_statistics(self):
+        """Log search statistics for monitoring."""
+        try:
+            stats = self._search_stats
+            total = stats['total_searches']
+            
+            if total > 0:
+                exact_rate = (stats['exact_matches'] / total) * 100
+                issue_rate = ((stats['api_issues'] + stats['no_matches']) / total) * 100
+                
+                logger.info(f"=== SEARCH STATISTICS ===")
+                logger.info(f"Total searches: {total}")
+                logger.info(f"Exact matches: {stats['exact_matches']} ({exact_rate:.1f}%)")
+                logger.info(f"No matches: {stats['no_matches']}")
+                logger.info(f"API issues: {stats['api_issues']}")
+                logger.info(f"Overall success rate: {exact_rate:.1f}%")
+                logger.info(f"Issue rate: {issue_rate:.1f}%")
+                
+                # Alert if issue rate is high
+                if issue_rate > 20:
+                    logger.warning(f"High search issue rate detected: {issue_rate:.1f}%")
+                    
+        except Exception as e:
+            logger.error(f"Error logging search statistics: {e}")
+    
+    def get_search_stats(self):
+        """Get search statistics for this instance."""
+        return self._instance_search_stats.copy()
+    
+    def clear_form(self):
+        """Clear all form fields."""
+        try:
+            self.product_name.setText("")
+            self.color_code.setText("")
+            self.batch_number.setText("")
+            self.target_length.setValue(0)
+            self.current_length.setValue(0)
+            self._barcode = ""
+            self._image_url = None
+            self.load_default_image()
+            logger.info("Form cleared")
+        except Exception as e:
+            logger.error(f"Error clearing form: {e}")
 
     def search_product_details(self, product_code: str):
         """Perform API call to search for product details."""
