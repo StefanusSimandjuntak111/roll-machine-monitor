@@ -1,10 +1,13 @@
 {
-    "serial_port": "COM4",
+    "serial_port": "",
     "baudrate": 19200,
-    "length_tolerance": 10.0,
-    "decimal_points": 1,
+    "length_tolerance": 1.0,
+    "decimal_points": 0,
     "rounding": "UP",
-    "api_url": "http://192.168.68.111:8000/api/method/textile_plus.overrides.api.product.search_product",
+    "api_url": "https://erp.textilindo.com/api/method/textile_plus.overrides.api.product.search_product",
+    "supabase_url": "https://ifhwcfpakstnljkkfcfl.supabase.co",
+    "supabase_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmaHdjZnBha3N0bmxqa2tmY2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NTk4NzAsImV4cCI6MjA3NTAzNTg3MH0.1_jBQcXGIwu91l3-425G4yi__dU3h0PkgY6WyLepR7Y",
+    "enable_supabase": true,
     "timeout": 1.0,
     "use_mock_data": true,
     "poll_interval": 1.0,
@@ -23,6 +26,8 @@
     "api_timeout": 15,
     "api_method": "POST",
     "api_content_type": "application/json",
-    "print_copy_count": 1,
-    "selected_printer": "ZDesigner ZD230-203dpi ZPL"
+    "print_copy_count": 2,
+    "selected_printer": "ZDesigner ZD230-203dpi ZPL (Copy 1)",
+    "label_width_mm": 100.0,
+    "label_height_mm": 100.0
 }

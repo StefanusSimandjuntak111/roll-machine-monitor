@@ -35,6 +35,7 @@ from .product_form import ProductForm
 from .settings_dialog import SettingsDialog
 from .connection_settings import ConnectionSettings
 from .logging_table_widget import LoggingTableWidget
+from .batch_summary_dialog import BatchSummaryDialog
 
 logger = logging.getLogger(__name__)
 
@@ -565,6 +566,25 @@ class ModernMainWindow(QMainWindow):
         
 
         
+        # Add batch recap button with dynamic sizing
+        recap_btn = QPushButton("📊 Batch Recap")
+        recap_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #28a745;
+                border: none;
+                border-radius: 5px;
+                padding: {dynamic_padding//2}px {dynamic_padding}px;
+                color: white;
+                font-size: {button_font_size}px;
+                margin-right: {dynamic_padding//2}px;
+            }}
+            QPushButton:hover {{
+                background-color: #218838;
+            }}
+        """)
+        recap_btn.clicked.connect(self.show_batch_recap)
+        header_layout.addWidget(recap_btn)
+        
         # Add settings button with dynamic sizing
         settings_btn = QPushButton("⚙️ Settings")
         settings_btn.setStyleSheet(f"""
@@ -695,8 +715,35 @@ class ModernMainWindow(QMainWindow):
         dialog.activateWindow()
         dialog.exec()
     
+    def show_batch_recap(self):
+        """Show the batch summary/recap dialog."""
+        try:
+            dialog = BatchSummaryDialog(self)
+            
+            # Force dialog to stay on top in kiosk mode
+            dialog.setWindowFlags(
+                Qt.WindowType.Dialog |
+                Qt.WindowType.WindowStaysOnTopHint |
+                Qt.WindowType.WindowSystemMenuHint |
+                Qt.WindowType.WindowTitleHint
+            )
+            
+            dialog.raise_()
+            dialog.activateWindow()
+            dialog.exec()
+            
+            logger.info("Batch recap dialog shown")
+            
+        except Exception as e:
+            logger.error(f"Error showing batch recap dialog: {e}")
+            self.show_kiosk_dialog(
+                "critical",
+                "Batch Recap Error",
+                f"Failed to show batch recap:\n\n{str(e)}"
+            )
+    
     def restart_application(self):
-        """Restart the application safely."""
+        """Restart the application with improved reliability."""
         try:
             # Show confirmation dialog
             reply = self.show_kiosk_dialog(
@@ -711,11 +758,19 @@ class ModernMainWindow(QMainWindow):
                 # Clean up resources
                 self.cleanup_before_restart()
                 
-                # Create restart script
-                self.create_restart_script()
-                
-                # Close current application
-                QApplication.quit()
+                # Try multiple restart methods
+                if self.try_improved_restart():
+                    # Close current application
+                    QApplication.quit()
+                else:
+                    # Fallback: just quit and show message
+                    logger.warning("Restart failed, quitting application")
+                    self.show_kiosk_dialog(
+                        "information",
+                        "Restart Failed",
+                        "The application will close. Please restart it manually."
+                    )
+                    QApplication.quit()
                 
         except Exception as e:
             logger.error(f"Error during restart: {e}")
@@ -724,6 +779,98 @@ class ModernMainWindow(QMainWindow):
                 "Restart Error",
                 f"Error restarting application:\n\n{str(e)}"
             )
+    
+    def try_improved_restart(self) -> bool:
+        """Try multiple restart methods with improved reliability."""
+        try:
+            # Method 1: Direct executable restart (for compiled exe)
+            if self.try_direct_executable_restart():
+                return True
+            
+            # Method 2: Process-based restart
+            if self.try_process_based_restart():
+                return True
+            
+            # Method 3: Script-based restart (fallback)
+            if self.try_script_based_restart():
+                return True
+            
+            logger.error("All restart methods failed")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error in improved restart: {e}")
+            return False
+    
+    def try_direct_executable_restart(self) -> bool:
+        """Try to restart using direct executable path."""
+        try:
+            if getattr(sys, 'frozen', False):
+                # Running as compiled executable
+                exe_path = sys.executable
+                logger.info(f"Attempting direct executable restart: {exe_path}")
+                
+                # Start new process
+                import subprocess
+                subprocess.Popen([exe_path], 
+                               creationflags=subprocess.CREATE_NEW_CONSOLE)
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Direct executable restart failed: {e}")
+            return False
+    
+    def try_process_based_restart(self) -> bool:
+        """Try to restart using process-based method."""
+        try:
+            import subprocess
+            import tempfile
+            
+            # Get current process info
+            current_pid = os.getpid()
+            
+            # Create a simple restart script
+            temp_dir = tempfile.gettempdir()
+            restart_script = os.path.join(temp_dir, "restart_monitor.bat")
+            
+            if getattr(sys, 'frozen', False):
+                # For compiled executable
+                script_content = f'''@echo off
+timeout /t 1 /nobreak > nul
+start "" "{sys.executable}"
+del "%~f0"
+'''
+            else:
+                # For Python script
+                script_content = f'''@echo off
+timeout /t 1 /nobreak > nul
+cd /d "{os.getcwd()}"
+python run_app.py
+del "%~f0"
+'''
+            
+            with open(restart_script, 'w') as f:
+                f.write(script_content)
+            
+            # Execute restart script
+            subprocess.Popen(['cmd', '/c', restart_script], 
+                           creationflags=subprocess.CREATE_NEW_CONSOLE)
+            
+            logger.info(f"Process-based restart initiated: {restart_script}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Process-based restart failed: {e}")
+            return False
+    
+    def try_script_based_restart(self) -> bool:
+        """Try to restart using the original script method."""
+        try:
+            self.create_restart_script()
+            return True
+        except Exception as e:
+            logger.error(f"Script-based restart failed: {e}")
+            return False
     
     def cleanup_before_restart(self):
         """Clean up resources before restart."""
@@ -997,10 +1144,53 @@ del "%~f0"
     
     @Slot(dict)
     def handle_product_update(self, product_info: Dict[str, Any]):
-        """Handle product information updates."""
+        """Handle product information updates with Supabase integration."""
         logger.info(f"Product info updated: {product_info}")
         if self.monitor:
             self.monitor.update_product_info(product_info)
+
+        # Also save to Supabase if connected
+        try:
+            from ..supabase_client import get_supabase_client
+            supabase_client = get_supabase_client()
+
+            if supabase_client.is_connected:
+                # Get batch number with fallback
+                batch_number = product_info.get('batch_number') or product_info.get('batch')
+                
+                # If no batch number, try to get from batch_manager
+                if not batch_number or batch_number == 'Unknown':
+                    from ..batch_manager import get_batch_manager
+                    batch_manager = get_batch_manager()
+                    product_code = product_info.get('product_code', '')
+                    if product_code:
+                        batch_number = batch_manager.get_batch_for_product(product_code)
+                        logger.info(f"Auto-generated batch for production log: {batch_number}")
+                
+                # Save production log to Supabase
+                production_log_data = {
+                    'batch': batch_number or 'Unknown',
+                    'product_code': product_info.get('product_code', 'Unknown'),
+                    'product_name': product_info.get('product_name', 'Unknown'),
+                    'color_code': product_info.get('color_code', 'Unknown'),
+                    'product_length': product_info.get('current_length', 0.0),
+                    'target_length': product_info.get('target_length', 0),
+                    'units': product_info.get('units', 'Meter'),
+                    'timestamp': datetime.now().isoformat(),
+                    'status': 'saved'
+                }
+
+                result = supabase_client.insert_production_log(production_log_data)
+
+                if result:
+                    logger.info(f"Production log saved to Supabase: {batch_number}")
+                else:
+                    logger.error(f"Failed to save production log to Supabase: {batch_number}")
+            else:
+                logger.warning("Supabase not connected, skipping production log save")
+
+        except Exception as e:
+            logger.error(f"Error saving production log to Supabase: {e}")
     
     @Slot()
     def reset_counter(self):
@@ -1100,7 +1290,7 @@ del "%~f0"
                     on_serial_data=self.handle_serial_data,
                     auto_send_enabled=True,
                     auto_send_command="55 AA 02 00 00",
-                    auto_send_interval=100
+                    auto_send_interval=1200  # Changed from 100ms to 1200ms
                 )
                 
                 self.monitor.start()
@@ -1267,7 +1457,8 @@ del "%~f0"
             product_name = print_data.get('product_name', 'Unknown')
             product_code = print_data.get('product_code', 'Unknown')
             product_length = print_data.get('product_length', 0.0)
-            batch = print_data.get('batch', 'Unknown')
+            # Try both 'batch_number' and 'batch' for backwards compatibility
+            batch = print_data.get('batch_number') or print_data.get('batch', 'Unknown')
             
             # Store current product info for close cycle
             self.current_product_info = {
@@ -1468,18 +1659,8 @@ del "%~f0"
     
     def handle_serial_data(self, data: str):
         """Handle real-time serial data for display."""
-        # Add to monitoring view serial display
-        if hasattr(self, 'monitoring_view') and self.monitoring_view:
-            self.monitoring_view.add_serial_data(data)
-            
-            # If this is RX data, add packet analysis
-            if "RX:" in data:
-                # Extract hex data from RX line
-                try:
-                    hex_part = data.split("RX: ")[1].strip()
-                    self.monitoring_view.add_packet_analysis(hex_part)
-                except:
-                    pass  # Ignore if parsing fails
+        # Serial display has been removed - no longer needed
+        # This method now only handles heartbeat recording
         
         # Record data activity for heartbeat
         self.heartbeat.record_data()

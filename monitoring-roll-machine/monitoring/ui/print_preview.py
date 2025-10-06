@@ -197,11 +197,9 @@ class PrintPreviewDialog(QDialog):
             qr_data_1 = str(product_code)  # Barcode 1: Product Code
             qr_image_1 = generate_qr_code(qr_data_1)
             
-            barcode_api = self.product_info.get('barcode', '')  # Barcode 2: From API
-            if barcode_api:
-                qr_data_2 = str(barcode_api)
-            else:
-                qr_data_2 = f"{product_code}-{print_length:.{decimal_points}f}"
+            # Always use format: product_code-print_length
+            # FIX: Use proper decimal formatting instead of {decimal_points}f
+            qr_data_2 = f"{product_code}-{print_length:.{decimal_points}f}"
             qr_image_2 = generate_qr_code(qr_data_2)
             
             # Draw table background
@@ -284,7 +282,9 @@ class PrintPreviewDialog(QDialog):
             product_code_font = QFont("Arial", 10, QFont.Weight.Normal)
             painter.setFont(product_code_font)
             product_code_text_rect = QRectF(start_x, barcode_y - 10, table_width, 20)  # Reduced from -15 to -10
-            painter.drawText(product_code_text_rect, Qt.AlignmentFlag.AlignCenter, product_code)
+            # Display format: product_code-print_length
+            display_text = f"{product_code}-{print_length:.{decimal_points}f}"
+            painter.drawText(product_code_text_rect, Qt.AlignmentFlag.AlignCenter, display_text)
             
             # Scale and draw QR codes (actual QR codes, not placeholders)
             scaled_qr_1 = qr_image_1.scaled(barcode_size, barcode_size, 

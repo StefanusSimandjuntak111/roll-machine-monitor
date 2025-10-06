@@ -3,16 +3,19 @@ Version configuration for Roll Machine Monitor application.
 """
 
 # Application version
-VERSION = "1.3.2"
+VERSION = "1.4.1"
 VERSION_STRING = f"v{VERSION}"
 
+# Add __version__ for installer compatibility
+__version__ = VERSION
+
 # Build information
-BUILD_DATE = "2024-01-XX"
+BUILD_DATE = "2025-10-03"
 BUILD_TYPE = "Release"
 
 # Application information
 APP_NAME = "Roll Machine Monitor"
-APP_DESCRIPTION = "Enhanced Monitor untuk mesin roll kain dengan auto-send dan real-time display"
+APP_DESCRIPTION = "Enhanced Monitor untuk mesin roll kain dengan batch tracking, Supabase integration, dan real-time display"
 APP_AUTHOR = "Textilindo Team"
 APP_WEBSITE = "https://github.com/StefanusSimandjuntak111/roll-machine-monitor"
 

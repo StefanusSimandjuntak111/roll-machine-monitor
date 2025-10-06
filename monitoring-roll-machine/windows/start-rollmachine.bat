@@ -1,32 +1,13 @@
 @echo off
-REM ===============================================
-REM Roll Machine Monitor Launcher v1.3.0
-REM ===============================================
-
-setlocal EnableDelayedExpansion
-
-REM Set application directory
-set APP_DIR=%~dp0..
-cd /d "%APP_DIR%"
-
-echo ==========================================
-echo Starting Roll Machine Monitor...
-echo ==========================================
+echo ========================================
+echo Starting Roll Machine Monitor
+echo ========================================
 echo.
 
 REM Check if virtual environment exists
-if not exist "venv\Scripts\python.exe" (
-    echo ERROR: Virtual environment not found!
-    echo Please run the installer to set up the environment properly.
-    echo.
-    pause
-    exit /b 1
-)
-
-REM Check if main application file exists
-if not exist "run_app.py" (
-    echo ERROR: Application file not found!
-    echo Please ensure the application is properly installed.
+if not exist "venv" (
+    echo Virtual environment not found.
+    echo Please run setup-environment.bat first to create the environment.
     echo.
     pause
     exit /b 1
@@ -35,27 +16,19 @@ if not exist "run_app.py" (
 REM Activate virtual environment
 echo Activating virtual environment...
 call venv\Scripts\activate.bat
-
-REM Check if activation was successful
-if not exist "venv\Scripts\python.exe" (
-    echo ERROR: Failed to activate virtual environment!
-    echo Please check the installation.
+if %errorlevel% neq 0 (
+    echo Failed to activate virtual environment.
     pause
     exit /b 1
 )
 
-REM Start the application
-echo Starting application...
-echo.
-venv\Scripts\python.exe run_app.py
+echo Starting Roll Machine Monitor...
+python run_app.py
 
-REM Check if application exited with error
-if %ERRORLEVEL% neq 0 (
+REM Keep window open if there's an error
+if %errorlevel% neq 0 (
     echo.
-    echo Application exited with error code: %ERRORLEVEL%
-    echo Please check the logs for more information.
-    echo.
+    echo Application exited with error code: %errorlevel%
     pause
 )
 
-endlocal

@@ -1,17 +1,17 @@
 ; ===============================================
-; Roll Machine Monitor Windows Offline Installer v1.3.0
-; Complete Self-Contained Installer - No Internet Required
+; Roll Machine Monitor Windows Installer v1.3.5
+; Offline Installer - No Python Bundling
 ; ===============================================
 ;
 ; This installer provides:
-; ✅ Embedded Python 3.11 (no download needed)
-; ✅ All Python packages pre-bundled
-; ✅ Virtual environment pre-created
+; ✅ Application files (no venv bundling)
+; ✅ Virtual environment creation after installation
+; ✅ Requirements installation from requirements.txt
 ; ✅ Desktop shortcuts
-; ✅ Windows service setup
 ; ✅ Start menu entries
-; ✅ Offline installation (no internet required)
+; ✅ Windows service setup
 ; ✅ Uninstaller
+; ✅ Silent installation support
 ;
 ; Build with: Inno Setup Compiler 6.2+
 ; Requirements: Inno Setup 6.2+
@@ -20,8 +20,8 @@
 ; Basic application information
 AppId={{B8E8F8A0-4B4A-4B4A-8B8A-4B4A4B4A4B4A}
 AppName=Roll Machine Monitor
-AppVersion=1.3.0
-AppVerName=Roll Machine Monitor v1.3.0
+AppVersion=1.3.5
+AppVerName=Roll Machine Monitor v1.3.5
 AppPublisher=Roll Machine Solutions
 AppPublisherURL=https://github.com/StefanusSimandjuntak111/roll-machine-monitor
 AppSupportURL=https://github.com/StefanusSimandjuntak111/roll-machine-monitor/issues
@@ -30,7 +30,7 @@ DefaultDirName={autopf}\RollMachineMonitor
 DefaultGroupName=Roll Machine Monitor
 AllowNoIcons=yes
 OutputDir=..\releases\windows
-OutputBaseFilename=RollMachineMonitor-v1.3.0-Windows-Offline-Installer
+OutputBaseFilename=RollMachineMonitor-v1.3.5-Windows-Offline-Installer
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
@@ -40,12 +40,12 @@ ArchitecturesInstallIn64BitMode=x64
 MinVersion=10.0.17763
 
 ; Version information
-VersionInfoVersion=1.3.0.0
+VersionInfoVersion=1.3.5.0
 VersionInfoCompany=Roll Machine Solutions
 VersionInfoDescription=Industrial monitoring application for JSK3588 roll machines
 VersionInfoCopyright=Copyright (C) 2025 Roll Machine Solutions
 VersionInfoProductName=Roll Machine Monitor
-VersionInfoProductVersion=1.3.0
+VersionInfoProductVersion=1.3.5
 
 ; Uninstall information
 UninstallDisplayName=Roll Machine Monitor
@@ -125,7 +125,7 @@ Name: "{app}\monitoring\exports"; Permissions: users-full
 [Registry]
 ; Application registration
 Root: HKLM; Subkey: "SOFTWARE\RollMachineMonitor"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletekey
-Root: HKLM; Subkey: "SOFTWARE\RollMachineMonitor"; ValueType: string; ValueName: "Version"; ValueData: "1.3.0"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "SOFTWARE\RollMachineMonitor"; ValueType: string; ValueName: "Version"; ValueData: "1.3.5"; Flags: uninsdeletekey
 Root: HKLM; Subkey: "SOFTWARE\RollMachineMonitor"; ValueType: dword; ValueName: "Installed"; ValueData: 1; Flags: uninsdeletekey
 Root: HKLM; Subkey: "SOFTWARE\RollMachineMonitor"; ValueType: string; ValueName: "InstallDate"; ValueData: "{code:GetInstallDate}"; Flags: uninsdeletekey
 
@@ -139,7 +139,7 @@ Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 ; Uninstall information
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RollMachineMonitor"; ValueType: string; ValueName: "DisplayName"; ValueData: "Roll Machine Monitor"; Flags: uninsdeletekey
-Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RollMachineMonitor"; ValueType: string; ValueName: "DisplayVersion"; ValueData: "1.3.0"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RollMachineMonitor"; ValueType: string; ValueName: "DisplayVersion"; ValueData: "1.3.5"; Flags: uninsdeletekey
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RollMachineMonitor"; ValueType: string; ValueName: "Publisher"; ValueData: "Roll Machine Solutions"; Flags: uninsdeletekey
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RollMachineMonitor"; ValueType: string; ValueName: "UninstallString"; ValueData: """{uninstallexe}"""; Flags: uninsdeletekey
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RollMachineMonitor"; ValueType: dword; ValueName: "NoModify"; ValueData: 1; Flags: uninsdeletekey
@@ -215,7 +215,7 @@ end;
 procedure InitializeWizard();
 begin
   WizardForm.WelcomeLabel2.Caption := 
-    'This will install Roll Machine Monitor v1.3.0 on your computer.' + #13#10 + #13#10 +
+    'This will install Roll Machine Monitor v1.3.5 on your computer.' + #13#10 + #13#10 +
     'Roll Machine Monitor is an industrial monitoring application for JSK3588 roll machines.' + #13#10 + #13#10 +
     'Features:' + #13#10 +
     '• Complete offline installation (no internet required)' + #13#10 +
@@ -262,7 +262,7 @@ procedure CurPageChanged(CurPageID: Integer);
 begin
   if CurPageID = wpFinished then begin
     WizardForm.FinishedLabel.Caption := 
-      'Roll Machine Monitor v1.3.0 has been successfully installed!' + #13#10 + #13#10 +
+      'Roll Machine Monitor v1.3.5 has been successfully installed!' + #13#10 + #13#10 +
       'You can now:' + #13#10 +
       '• Start the application from the desktop shortcut' + #13#10 +
       '• Access it from the Start menu' + #13#10 +

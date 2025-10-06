@@ -1,34 +1,40 @@
 #!/usr/bin/env python3
 """
-Simple script to run the Roll Machine Monitor application.
-This script handles the Python path correctly for Windows.
+Main entry point for Monitoring Roll Machine application.
+This file serves as the primary entry point for both development and PyInstaller builds.
 """
+
 import sys
 import os
+from pathlib import Path
+
+# Add the monitoring directory to Python path
+current_dir = Path(__file__).parent
+monitoring_dir = current_dir / "monitoring"
+sys.path.insert(0, str(monitoring_dir))
 
 def main():
-    """Run the monitoring application."""
-    # Add current directory to Python path
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.insert(0, current_dir)
-    
-    print("Starting Roll Machine Monitor...")
-    print(f"Working directory: {current_dir}")
-    print(f"Python path: {sys.path[0]}")
-    print()
-    
+    """Main application entry point."""
     try:
-        # Import and run the main application
+        # Import the main window after setting up the path
         from monitoring.ui.main_window import main as app_main
         app_main()
     except ImportError as e:
-        print(f"ERROR: Could not import monitoring module: {e}")
-        print("Make sure you're running this script from the correct directory.")
-        input("Press Enter to exit...")
-        sys.exit(1)
+        print(f"Import error: {e}")
+        print("Trying alternative import...")
+        try:
+            # Alternative import path
+            sys.path.insert(0, str(current_dir))
+            from monitoring.ui.main_window import main as app_main
+            app_main()
+        except ImportError as e2:
+            print(f"Alternative import also failed: {e2}")
+            print("Please check that all required modules are available.")
+            sys.exit(1)
     except Exception as e:
-        print(f"ERROR: Application failed to start: {e}")
-        input("Press Enter to exit...")
+        print(f"Application error: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 if __name__ == "__main__":

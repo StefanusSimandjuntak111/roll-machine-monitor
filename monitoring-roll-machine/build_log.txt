@@ -1,0 +1,923 @@
+2025-09-26 16:06:50,839 - INFO - ============================================================
+2025-09-26 16:06:50,840 - INFO - Starting build process for Monitoring Roll Machine v1.3.5
+2025-09-26 16:06:50,840 - INFO - ============================================================
+2025-09-26 16:07:26,776 - INFO - ============================================================
+2025-09-26 16:07:26,776 - INFO - Starting build process for Monitoring Roll Machine v1.3.5
+2025-09-26 16:07:26,776 - INFO - ============================================================
+2025-09-26 16:07:26,777 - INFO - [STEP] Checking build requirements...
+2025-09-26 16:07:26,909 - INFO - [SUCCESS] PyInstaller found: 6.14.1
+2025-09-26 16:07:26,936 - INFO - [SUCCESS] NSIS found: v3.11
+2025-09-26 16:07:26,936 - INFO - [SUCCESS] All requirements satisfied
+2025-09-26 16:07:26,936 - INFO - [STEP] Cleaning previous build artifacts...
+2025-09-26 16:07:26,938 - INFO - [SUCCESS] Cleaned dist directory
+2025-09-26 16:07:26,942 - INFO - [SUCCESS] Cleaned build directory
+2025-09-26 16:07:26,943 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\__pycache__
+2025-09-26 16:07:26,947 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\__pycache__
+2025-09-26 16:07:26,949 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\tests-integration\__pycache__
+2025-09-26 16:07:26,950 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Scripts\__pycache__
+2025-09-26 16:07:26,951 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\__pycache__
+2025-09-26 16:07:26,954 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\adodbapi\__pycache__
+2025-09-26 16:07:26,956 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\certifi\__pycache__
+2025-09-26 16:07:26,959 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\charset_normalizer\__pycache__
+2025-09-26 16:07:26,961 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\colorama\__pycache__
+2025-09-26 16:07:26,962 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\contourpy\__pycache__
+2025-09-26 16:07:26,963 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\cycler\__pycache__
+2025-09-26 16:07:26,964 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\dateutil\__pycache__
+2025-09-26 16:07:26,966 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\dotenv\__pycache__
+2025-09-26 16:07:26,967 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\__pycache__
+2025-09-26 16:07:26,969 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\idna\__pycache__
+2025-09-26 16:07:26,971 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\isapi\__pycache__
+2025-09-26 16:07:26,972 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\kiwisolver\__pycache__
+2025-09-26 16:07:26,990 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\matplotlib\__pycache__
+2025-09-26 16:07:26,994 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\__pycache__
+2025-09-26 16:07:26,996 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\packaging\__pycache__
+2025-09-26 16:07:26,998 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\__pycache__
+2025-09-26 16:07:27,018 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\PIL\__pycache__
+2025-09-26 16:07:27,019 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\__pycache__
+2025-09-26 16:07:27,021 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyparsing\__pycache__
+2025-09-26 16:07:27,026 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\__pycache__
+2025-09-26 16:07:27,028 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\PySide6\__pycache__
+2025-09-26 16:07:27,030 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pytz\__pycache__
+2025-09-26 16:07:27,033 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\qrcode\__pycache__
+2025-09-26 16:07:27,036 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\requests\__pycache__
+2025-09-26 16:07:27,038 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\serial\__pycache__
+2025-09-26 16:07:27,039 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\shiboken6\__pycache__
+2025-09-26 16:07:27,040 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\__pycache__
+2025-09-26 16:07:27,043 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\urllib3\__pycache__
+2025-09-26 16:07:27,044 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32\__pycache__
+2025-09-26 16:07:27,045 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32com\__pycache__
+2025-09-26 16:07:27,048 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\yaml\__pycache__
+2025-09-26 16:07:27,048 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\_yaml\__pycache__
+2025-09-26 16:07:27,049 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\adsi\__pycache__
+2025-09-26 16:07:27,049 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\authorization\__pycache__
+2025-09-26 16:07:27,050 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\axcontrol\__pycache__
+2025-09-26 16:07:27,051 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\axdebug\__pycache__
+2025-09-26 16:07:27,052 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\axscript\__pycache__
+2025-09-26 16:07:27,052 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\bits\__pycache__
+2025-09-26 16:07:27,052 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\directsound\__pycache__
+2025-09-26 16:07:27,053 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\ifilter\__pycache__
+2025-09-26 16:07:27,053 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\internet\__pycache__
+2025-09-26 16:07:27,054 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\mapi\__pycache__
+2025-09-26 16:07:27,055 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\propsys\__pycache__
+2025-09-26 16:07:27,056 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\shell\__pycache__
+2025-09-26 16:07:27,057 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\taskscheduler\__pycache__
+2025-09-26 16:07:27,059 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\taskscheduler\test\__pycache__
+2025-09-26 16:07:27,061 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\shell\demos\__pycache__
+2025-09-26 16:07:27,062 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\shell\test\__pycache__
+2025-09-26 16:07:27,063 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\shell\demos\servers\__pycache__
+2025-09-26 16:07:27,064 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\propsys\test\__pycache__
+2025-09-26 16:07:27,064 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\mapi\demos\__pycache__
+2025-09-26 16:07:27,065 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\ifilter\demo\__pycache__
+2025-09-26 16:07:27,065 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\directsound\test\__pycache__
+2025-09-26 16:07:27,066 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\bits\test\__pycache__
+2025-09-26 16:07:27,068 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\axscript\client\__pycache__
+2025-09-26 16:07:27,068 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\axscript\server\__pycache__
+2025-09-26 16:07:27,069 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\axscript\test\__pycache__
+2025-09-26 16:07:27,070 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\authorization\demos\__pycache__
+2025-09-26 16:07:27,070 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32comext\adsi\demos\__pycache__
+2025-09-26 16:07:27,074 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32com\client\__pycache__
+2025-09-26 16:07:27,077 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32com\demos\__pycache__
+2025-09-26 16:07:27,078 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32com\makegw\__pycache__
+2025-09-26 16:07:27,079 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32com\server\__pycache__
+2025-09-26 16:07:27,081 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32com\servers\__pycache__
+2025-09-26 16:07:27,088 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32com\test\__pycache__
+2025-09-26 16:07:27,096 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32\Demos\__pycache__
+2025-09-26 16:07:27,102 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32\lib\__pycache__
+2025-09-26 16:07:27,104 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32\scripts\__pycache__
+2025-09-26 16:07:27,110 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32\test\__pycache__
+2025-09-26 16:07:27,112 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32\scripts\VersionStamp\__pycache__
+2025-09-26 16:07:27,113 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32\Demos\c_extension\__pycache__
+2025-09-26 16:07:27,114 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32\Demos\dde\__pycache__
+2025-09-26 16:07:27,115 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32\Demos\pipes\__pycache__
+2025-09-26 16:07:27,119 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32\Demos\security\__pycache__
+2025-09-26 16:07:27,120 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32\Demos\service\__pycache__
+2025-09-26 16:07:27,121 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32\Demos\win32wnet\__pycache__
+2025-09-26 16:07:27,122 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\win32\Demos\security\sspi\__pycache__
+2025-09-26 16:07:27,124 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\urllib3\contrib\__pycache__
+2025-09-26 16:07:27,125 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\urllib3\http2\__pycache__
+2025-09-26 16:07:27,129 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\urllib3\util\__pycache__
+2025-09-26 16:07:27,131 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\urllib3\contrib\emscripten\__pycache__
+2025-09-26 16:07:27,131 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\__pycache__
+2025-09-26 16:07:27,132 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\Africa\__pycache__
+2025-09-26 16:07:27,132 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\America\__pycache__
+2025-09-26 16:07:27,133 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\Antarctica\__pycache__
+2025-09-26 16:07:27,133 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\Arctic\__pycache__
+2025-09-26 16:07:27,134 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\Asia\__pycache__
+2025-09-26 16:07:27,135 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\Atlantic\__pycache__
+2025-09-26 16:07:27,135 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\Australia\__pycache__
+2025-09-26 16:07:27,136 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\Brazil\__pycache__
+2025-09-26 16:07:27,136 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\Canada\__pycache__
+2025-09-26 16:07:27,137 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\Chile\__pycache__
+2025-09-26 16:07:27,138 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\Etc\__pycache__
+2025-09-26 16:07:27,139 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\Europe\__pycache__
+2025-09-26 16:07:27,139 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\Indian\__pycache__
+2025-09-26 16:07:27,140 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\Mexico\__pycache__
+2025-09-26 16:07:27,140 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\Pacific\__pycache__
+2025-09-26 16:07:27,141 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\US\__pycache__
+2025-09-26 16:07:27,144 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\America\Argentina\__pycache__
+2025-09-26 16:07:27,145 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\America\Indiana\__pycache__
+2025-09-26 16:07:27,145 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\America\Kentucky\__pycache__
+2025-09-26 16:07:27,146 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\tzdata\zoneinfo\America\North_Dakota\__pycache__
+2025-09-26 16:07:27,147 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\serial\threaded\__pycache__
+2025-09-26 16:07:27,150 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\serial\tools\__pycache__
+2025-09-26 16:07:27,152 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\serial\urlhandler\__pycache__
+2025-09-26 16:07:27,154 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\qrcode\compat\__pycache__
+2025-09-26 16:07:27,155 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\qrcode\image\__pycache__
+2025-09-26 16:07:27,157 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\qrcode\tests\__pycache__
+2025-09-26 16:07:27,159 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\qrcode\image\styles\__pycache__
+2025-09-26 16:07:27,161 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\qrcode\image\styles\moduledrawers\__pycache__
+2025-09-26 16:07:27,164 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pythonwin\pywin\__pycache__
+2025-09-26 16:07:27,166 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pythonwin\pywin\debugger\__pycache__
+2025-09-26 16:07:27,169 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pythonwin\pywin\Demos\__pycache__
+2025-09-26 16:07:27,170 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pythonwin\pywin\dialogs\__pycache__
+2025-09-26 16:07:27,171 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pythonwin\pywin\docking\__pycache__
+2025-09-26 16:07:27,176 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pythonwin\pywin\framework\__pycache__
+2025-09-26 16:07:27,178 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pythonwin\pywin\idle\__pycache__
+2025-09-26 16:07:27,182 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pythonwin\pywin\mfc\__pycache__
+2025-09-26 16:07:27,184 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pythonwin\pywin\scintilla\__pycache__
+2025-09-26 16:07:27,186 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pythonwin\pywin\tools\__pycache__
+2025-09-26 16:07:27,188 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pythonwin\pywin\framework\editor\__pycache__
+2025-09-26 16:07:27,189 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pythonwin\pywin\framework\editor\color\__pycache__
+2025-09-26 16:07:27,192 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pythonwin\pywin\Demos\app\__pycache__
+2025-09-26 16:07:27,194 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pythonwin\pywin\Demos\ocx\__pycache__
+2025-09-26 16:07:27,203 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\PySide6\QtAsyncio\__pycache__
+2025-09-26 16:07:27,204 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\PySide6\scripts\__pycache__
+2025-09-26 16:07:27,207 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\PySide6\support\__pycache__
+2025-09-26 16:07:27,223 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\PySide6\scripts\deploy_lib\__pycache__
+2025-09-26 16:07:27,227 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\PySide6\scripts\project_lib\__pycache__
+2025-09-26 16:07:27,229 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\PySide6\scripts\qtpy2cpp_lib\__pycache__
+2025-09-26 16:07:27,285 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\canvas\__pycache__
+2025-09-26 16:07:27,286 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\colors\__pycache__
+2025-09-26 16:07:27,287 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\console\__pycache__
+2025-09-26 16:07:27,290 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\dockarea\__pycache__
+2025-09-26 16:07:27,326 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\examples\__pycache__
+2025-09-26 16:07:27,329 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\exporters\__pycache__
+2025-09-26 16:07:27,331 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\flowchart\__pycache__
+2025-09-26 16:07:27,340 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\graphicsItems\__pycache__
+2025-09-26 16:07:27,342 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\GraphicsScene\__pycache__
+2025-09-26 16:07:27,343 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\icons\__pycache__
+2025-09-26 16:07:27,344 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\imageview\__pycache__
+2025-09-26 16:07:27,345 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\jupyter\__pycache__
+2025-09-26 16:07:27,346 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\metaarray\__pycache__
+2025-09-26 16:07:27,347 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\multiprocess\__pycache__
+2025-09-26 16:07:27,348 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\opengl\__pycache__
+2025-09-26 16:07:27,350 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\parametertree\__pycache__
+2025-09-26 16:07:27,351 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\Qt\__pycache__
+2025-09-26 16:07:27,352 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\util\__pycache__
+2025-09-26 16:07:27,357 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\widgets\__pycache__
+2025-09-26 16:07:27,359 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\util\colorama\__pycache__
+2025-09-26 16:07:27,360 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\Qt\compat\__pycache__
+2025-09-26 16:07:27,361 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\Qt\QtCore\__pycache__
+2025-09-26 16:07:27,362 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\Qt\QtGui\__pycache__
+2025-09-26 16:07:27,362 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\Qt\QtWidgets\__pycache__
+2025-09-26 16:07:27,366 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\parametertree\parameterTypes\__pycache__
+2025-09-26 16:07:27,370 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\opengl\items\__pycache__
+2025-09-26 16:07:27,371 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\graphicsItems\PlotItem\__pycache__
+2025-09-26 16:07:27,373 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\graphicsItems\ViewBox\__pycache__
+2025-09-26 16:07:27,377 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\flowchart\library\__pycache__
+2025-09-26 16:07:27,379 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\examples\cx_freeze\__pycache__
+2025-09-26 16:07:27,380 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\examples\optics\__pycache__
+2025-09-26 16:07:27,381 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\examples\py2exe\__pycache__
+2025-09-26 16:07:27,382 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\examples\relativity\__pycache__
+2025-09-26 16:07:27,384 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyqtgraph\examples\verlet_chain\__pycache__
+2025-09-26 16:07:27,385 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyparsing\diagram\__pycache__
+2025-09-26 16:07:27,386 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pyparsing\tools\__pycache__
+2025-09-26 16:07:27,389 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\__pycache__
+2025-09-26 16:07:27,390 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\__pycache__
+2025-09-26 16:07:27,394 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\cachecontrol\__pycache__
+2025-09-26 16:07:27,395 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\certifi\__pycache__
+2025-09-26 16:07:27,396 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\dependency_groups\__pycache__
+2025-09-26 16:07:27,398 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\distlib\__pycache__
+2025-09-26 16:07:27,399 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\distro\__pycache__
+2025-09-26 16:07:27,401 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\idna\__pycache__
+2025-09-26 16:07:27,402 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\msgpack\__pycache__
+2025-09-26 16:07:27,406 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\packaging\__pycache__
+2025-09-26 16:07:27,407 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\pkg_resources\__pycache__
+2025-09-26 16:07:27,410 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\platformdirs\__pycache__
+2025-09-26 16:07:27,413 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\pygments\__pycache__
+2025-09-26 16:07:27,415 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\pyproject_hooks\__pycache__
+2025-09-26 16:07:27,418 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\requests\__pycache__
+2025-09-26 16:07:27,420 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\resolvelib\__pycache__
+2025-09-26 16:07:27,432 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\rich\__pycache__
+2025-09-26 16:07:27,434 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\tomli\__pycache__
+2025-09-26 16:07:27,435 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\tomli_w\__pycache__
+2025-09-26 16:07:27,436 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\truststore\__pycache__
+2025-09-26 16:07:27,438 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\urllib3\__pycache__
+2025-09-26 16:07:27,441 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\urllib3\contrib\__pycache__
+2025-09-26 16:07:27,442 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\urllib3\packages\__pycache__
+2025-09-26 16:07:27,447 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\urllib3\util\__pycache__
+2025-09-26 16:07:27,449 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\urllib3\packages\backports\__pycache__
+2025-09-26 16:07:27,450 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\urllib3\contrib\_securetransport\__pycache__
+2025-09-26 16:07:27,453 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\resolvelib\resolvers\__pycache__
+2025-09-26 16:07:27,456 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\pyproject_hooks\_in_process\__pycache__
+2025-09-26 16:07:27,464 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\pygments\filters\__pycache__
+2025-09-26 16:07:27,465 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\pygments\formatters\__pycache__
+2025-09-26 16:07:27,467 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\pygments\lexers\__pycache__
+2025-09-26 16:07:27,469 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\pygments\styles\__pycache__
+2025-09-26 16:07:27,470 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\packaging\licenses\__pycache__
+2025-09-26 16:07:27,472 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_vendor\cachecontrol\caches\__pycache__
+2025-09-26 16:07:27,479 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\cli\__pycache__
+2025-09-26 16:07:27,486 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\commands\__pycache__
+2025-09-26 16:07:27,488 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\distributions\__pycache__
+2025-09-26 16:07:27,490 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\index\__pycache__
+2025-09-26 16:07:27,493 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\locations\__pycache__
+2025-09-26 16:07:27,495 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\metadata\__pycache__
+2025-09-26 16:07:27,499 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\models\__pycache__
+2025-09-26 16:07:27,502 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\network\__pycache__
+2025-09-26 16:07:27,504 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\operations\__pycache__
+2025-09-26 16:07:27,507 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\req\__pycache__
+2025-09-26 16:07:27,509 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\resolution\__pycache__
+2025-09-26 16:07:27,519 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\utils\__pycache__
+2025-09-26 16:07:27,521 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\vcs\__pycache__
+2025-09-26 16:07:27,523 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\resolution\legacy\__pycache__
+2025-09-26 16:07:27,526 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\resolution\resolvelib\__pycache__
+2025-09-26 16:07:27,529 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\operations\build\__pycache__
+2025-09-26 16:07:27,530 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\operations\install\__pycache__
+2025-09-26 16:07:27,533 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pip\_internal\metadata\importlib\__pycache__
+2025-09-26 16:07:27,535 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\api\__pycache__
+2025-09-26 16:07:27,536 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\arrays\__pycache__
+2025-09-26 16:07:27,538 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\compat\__pycache__
+2025-09-26 16:07:27,544 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\__pycache__
+2025-09-26 16:07:27,545 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\errors\__pycache__
+2025-09-26 16:07:27,548 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\io\__pycache__
+2025-09-26 16:07:27,549 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\plotting\__pycache__
+2025-09-26 16:07:27,551 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\__pycache__
+2025-09-26 16:07:27,552 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tseries\__pycache__
+2025-09-26 16:07:27,554 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\util\__pycache__
+2025-09-26 16:07:27,555 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\_config\__pycache__
+2025-09-26 16:07:27,556 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\_libs\__pycache__
+2025-09-26 16:07:27,558 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\_testing\__pycache__
+2025-09-26 16:07:27,560 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\_libs\tslibs\__pycache__
+2025-09-26 16:07:27,561 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\_libs\window\__pycache__
+2025-09-26 16:07:27,562 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\util\version\__pycache__
+2025-09-26 16:07:27,564 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\api\__pycache__
+2025-09-26 16:07:27,568 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\apply\__pycache__
+2025-09-26 16:07:27,572 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\arithmetic\__pycache__
+2025-09-26 16:07:27,575 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\arrays\__pycache__
+2025-09-26 16:07:27,578 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\base\__pycache__
+2025-09-26 16:07:27,580 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\computation\__pycache__
+2025-09-26 16:07:27,580 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\config\__pycache__
+2025-09-26 16:07:27,581 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\construction\__pycache__
+2025-09-26 16:07:27,584 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\copy_view\__pycache__
+2025-09-26 16:07:27,585 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\dtypes\__pycache__
+2025-09-26 16:07:27,587 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\extension\__pycache__
+2025-09-26 16:07:27,592 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\frame\__pycache__
+2025-09-26 16:07:27,594 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\generic\__pycache__
+2025-09-26 16:07:27,598 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\groupby\__pycache__
+2025-09-26 16:07:27,600 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\__pycache__
+2025-09-26 16:07:27,603 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexing\__pycache__
+2025-09-26 16:07:27,604 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\interchange\__pycache__
+2025-09-26 16:07:27,606 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\internals\__pycache__
+2025-09-26 16:07:27,611 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\io\__pycache__
+2025-09-26 16:07:27,612 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\libs\__pycache__
+2025-09-26 16:07:27,614 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\plotting\__pycache__
+2025-09-26 16:07:27,615 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\reductions\__pycache__
+2025-09-26 16:07:27,617 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\resample\__pycache__
+2025-09-26 16:07:27,619 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\reshape\__pycache__
+2025-09-26 16:07:27,620 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\scalar\__pycache__
+2025-09-26 16:07:27,623 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\series\__pycache__
+2025-09-26 16:07:27,627 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\strings\__pycache__
+2025-09-26 16:07:27,628 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\tools\__pycache__
+2025-09-26 16:07:27,629 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\tseries\__pycache__
+2025-09-26 16:07:27,631 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\tslibs\__pycache__
+2025-09-26 16:07:27,634 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\util\__pycache__
+2025-09-26 16:07:27,638 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\window\__pycache__
+2025-09-26 16:07:27,640 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\window\moments\__pycache__
+2025-09-26 16:07:27,665 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\tseries\frequencies\__pycache__
+2025-09-26 16:07:27,666 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\tseries\holiday\__pycache__
+2025-09-26 16:07:27,675 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\tseries\offsets\__pycache__
+2025-09-26 16:07:27,677 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\series\accessors\__pycache__
+2025-09-26 16:07:27,680 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\series\indexing\__pycache__
+2025-09-26 16:07:27,691 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\series\methods\__pycache__
+2025-09-26 16:07:27,694 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\scalar\interval\__pycache__
+2025-09-26 16:07:27,695 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\scalar\period\__pycache__
+2025-09-26 16:07:27,696 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\scalar\timedelta\__pycache__
+2025-09-26 16:07:27,697 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\scalar\timestamp\__pycache__
+2025-09-26 16:07:27,699 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\scalar\timestamp\methods\__pycache__
+2025-09-26 16:07:27,700 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\scalar\timedelta\methods\__pycache__
+2025-09-26 16:07:27,702 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\reshape\concat\__pycache__
+2025-09-26 16:07:27,704 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\reshape\merge\__pycache__
+2025-09-26 16:07:27,706 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\plotting\frame\__pycache__
+2025-09-26 16:07:27,709 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\io\excel\__pycache__
+2025-09-26 16:07:27,711 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\io\formats\__pycache__
+2025-09-26 16:07:27,713 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\io\json\__pycache__
+2025-09-26 16:07:27,716 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\io\parser\__pycache__
+2025-09-26 16:07:27,719 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\io\pytables\__pycache__
+2025-09-26 16:07:27,720 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\io\sas\__pycache__
+2025-09-26 16:07:27,721 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\io\xml\__pycache__
+2025-09-26 16:07:27,723 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\io\parser\common\__pycache__
+2025-09-26 16:07:27,725 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\io\parser\dtypes\__pycache__
+2025-09-26 16:07:27,726 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\io\parser\usecols\__pycache__
+2025-09-26 16:07:27,728 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\io\formats\style\__pycache__
+2025-09-26 16:07:27,729 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexing\interval\__pycache__
+2025-09-26 16:07:27,731 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexing\multiindex\__pycache__
+2025-09-26 16:07:27,732 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\base_class\__pycache__
+2025-09-26 16:07:27,734 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\categorical\__pycache__
+2025-09-26 16:07:27,735 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\datetimelike_\__pycache__
+2025-09-26 16:07:27,737 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\datetimes\__pycache__
+2025-09-26 16:07:27,739 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\interval\__pycache__
+2025-09-26 16:07:27,744 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\multi\__pycache__
+2025-09-26 16:07:27,745 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\numeric\__pycache__
+2025-09-26 16:07:27,746 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\object\__pycache__
+2025-09-26 16:07:27,748 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\period\__pycache__
+2025-09-26 16:07:27,749 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\ranges\__pycache__
+2025-09-26 16:07:27,750 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\string\__pycache__
+2025-09-26 16:07:27,751 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\timedeltas\__pycache__
+2025-09-26 16:07:27,753 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\timedeltas\methods\__pycache__
+2025-09-26 16:07:27,755 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\period\methods\__pycache__
+2025-09-26 16:07:27,760 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\indexes\datetimes\methods\__pycache__
+2025-09-26 16:07:27,761 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\groupby\aggregate\__pycache__
+2025-09-26 16:07:27,763 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\groupby\methods\__pycache__
+2025-09-26 16:07:27,764 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\groupby\transform\__pycache__
+2025-09-26 16:07:27,765 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\frame\constructors\__pycache__
+2025-09-26 16:07:27,767 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\frame\indexing\__pycache__
+2025-09-26 16:07:27,781 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\frame\methods\__pycache__
+2025-09-26 16:07:27,782 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\extension\array_with_attr\__pycache__
+2025-09-26 16:07:27,785 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\extension\base\__pycache__
+2025-09-26 16:07:27,786 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\extension\date\__pycache__
+2025-09-26 16:07:27,787 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\extension\decimal\__pycache__
+2025-09-26 16:07:27,787 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\extension\json\__pycache__
+2025-09-26 16:07:27,788 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\extension\list\__pycache__
+2025-09-26 16:07:27,791 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\dtypes\cast\__pycache__
+2025-09-26 16:07:27,793 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\copy_view\index\__pycache__
+2025-09-26 16:07:27,795 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\arrays\boolean\__pycache__
+2025-09-26 16:07:27,798 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\arrays\categorical\__pycache__
+2025-09-26 16:07:27,799 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\arrays\datetimes\__pycache__
+2025-09-26 16:07:27,800 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\arrays\floating\__pycache__
+2025-09-26 16:07:27,801 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\arrays\integer\__pycache__
+2025-09-26 16:07:27,803 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\arrays\interval\__pycache__
+2025-09-26 16:07:27,803 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\arrays\masked\__pycache__
+2025-09-26 16:07:27,804 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\arrays\numpy_\__pycache__
+2025-09-26 16:07:27,805 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\arrays\period\__pycache__
+2025-09-26 16:07:27,807 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\arrays\sparse\__pycache__
+2025-09-26 16:07:27,809 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\arrays\string_\__pycache__
+2025-09-26 16:07:27,810 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\tests\arrays\timedeltas\__pycache__
+2025-09-26 16:07:27,812 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\plotting\_matplotlib\__pycache__
+2025-09-26 16:07:27,813 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\io\clipboard\__pycache__
+2025-09-26 16:07:27,814 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\io\excel\__pycache__
+2025-09-26 16:07:27,816 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\io\formats\__pycache__
+2025-09-26 16:07:27,817 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\io\json\__pycache__
+2025-09-26 16:07:27,818 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\io\parsers\__pycache__
+2025-09-26 16:07:27,819 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\io\sas\__pycache__
+2025-09-26 16:07:27,823 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\arrays\__pycache__
+2025-09-26 16:07:27,825 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\array_algos\__pycache__
+2025-09-26 16:07:27,827 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\computation\__pycache__
+2025-09-26 16:07:27,829 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\dtypes\__pycache__
+2025-09-26 16:07:27,831 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\groupby\__pycache__
+2025-09-26 16:07:27,831 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\indexers\__pycache__
+2025-09-26 16:07:27,833 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\indexes\__pycache__
+2025-09-26 16:07:27,834 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\interchange\__pycache__
+2025-09-26 16:07:27,835 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\internals\__pycache__
+2025-09-26 16:07:27,836 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\methods\__pycache__
+2025-09-26 16:07:27,837 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\ops\__pycache__
+2025-09-26 16:07:27,840 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\reshape\__pycache__
+2025-09-26 16:07:27,841 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\sparse\__pycache__
+2025-09-26 16:07:27,842 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\strings\__pycache__
+2025-09-26 16:07:27,843 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\tools\__pycache__
+2025-09-26 16:07:27,844 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\util\__pycache__
+2025-09-26 16:07:27,846 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\window\__pycache__
+2025-09-26 16:07:27,846 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\_numba\__pycache__
+2025-09-26 16:07:27,848 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\_numba\kernels\__pycache__
+2025-09-26 16:07:27,849 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\arrays\arrow\__pycache__
+2025-09-26 16:07:27,850 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\core\arrays\sparse\__pycache__
+2025-09-26 16:07:27,850 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\compat\numpy\__pycache__
+2025-09-26 16:07:27,851 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\api\extensions\__pycache__
+2025-09-26 16:07:27,851 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\api\indexers\__pycache__
+2025-09-26 16:07:27,852 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\api\interchange\__pycache__
+2025-09-26 16:07:27,852 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\api\types\__pycache__
+2025-09-26 16:07:27,853 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\pandas\api\typing\__pycache__
+2025-09-26 16:07:27,853 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\packaging\licenses\__pycache__
+2025-09-26 16:07:27,854 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\char\__pycache__
+2025-09-26 16:07:27,858 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\core\__pycache__
+2025-09-26 16:07:27,859 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\ctypeslib\__pycache__
+2025-09-26 16:07:27,859 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\doc\__pycache__
+2025-09-26 16:07:27,862 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\f2py\__pycache__
+2025-09-26 16:07:27,863 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\fft\__pycache__
+2025-09-26 16:07:27,867 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\lib\__pycache__
+2025-09-26 16:07:27,868 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\linalg\__pycache__
+2025-09-26 16:07:27,869 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\ma\__pycache__
+2025-09-26 16:07:27,869 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\matrixlib\__pycache__
+2025-09-26 16:07:27,871 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\polynomial\__pycache__
+2025-09-26 16:07:27,872 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\random\__pycache__
+2025-09-26 16:07:27,873 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\rec\__pycache__
+2025-09-26 16:07:27,874 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\strings\__pycache__
+2025-09-26 16:07:27,875 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\testing\__pycache__
+2025-09-26 16:07:27,877 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\tests\__pycache__
+2025-09-26 16:07:27,878 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\typing\__pycache__
+2025-09-26 16:07:27,882 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\_core\__pycache__
+2025-09-26 16:07:27,882 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\_pyinstaller\__pycache__
+2025-09-26 16:07:27,884 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\_typing\__pycache__
+2025-09-26 16:07:27,885 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\_utils\__pycache__
+2025-09-26 16:07:27,886 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\_pyinstaller\tests\__pycache__
+2025-09-26 16:07:27,897 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\_core\tests\__pycache__
+2025-09-26 16:07:27,898 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\_core\tests\examples\cython\__pycache__
+2025-09-26 16:07:27,898 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\_core\tests\examples\limited_api\__pycache__
+2025-09-26 16:07:27,900 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\typing\tests\__pycache__
+2025-09-26 16:07:27,904 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\typing\tests\data\pass\__pycache__
+2025-09-26 16:07:27,905 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\testing\tests\__pycache__
+2025-09-26 16:07:27,906 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\testing\_private\__pycache__
+2025-09-26 16:07:27,909 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\random\tests\__pycache__
+2025-09-26 16:07:27,909 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\random\_examples\cffi\__pycache__
+2025-09-26 16:07:27,910 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\random\_examples\numba\__pycache__
+2025-09-26 16:07:27,911 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\random\tests\data\__pycache__
+2025-09-26 16:07:27,913 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\polynomial\tests\__pycache__
+2025-09-26 16:07:27,914 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\matrixlib\tests\__pycache__
+2025-09-26 16:07:27,916 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\ma\tests\__pycache__
+2025-09-26 16:07:27,917 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\linalg\tests\__pycache__
+2025-09-26 16:07:27,920 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\lib\tests\__pycache__
+2025-09-26 16:07:27,921 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\fft\tests\__pycache__
+2025-09-26 16:07:27,927 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\f2py\tests\__pycache__
+2025-09-26 16:07:27,928 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\numpy\f2py\_backends\__pycache__
+2025-09-26 16:07:27,931 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\mpl_toolkits\axes_grid1\__pycache__
+2025-09-26 16:07:27,933 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\mpl_toolkits\axisartist\__pycache__
+2025-09-26 16:07:27,934 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\mpl_toolkits\mplot3d\__pycache__
+2025-09-26 16:07:27,935 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\mpl_toolkits\mplot3d\tests\__pycache__
+2025-09-26 16:07:27,937 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\mpl_toolkits\axisartist\tests\__pycache__
+2025-09-26 16:07:27,938 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\mpl_toolkits\axes_grid1\tests\__pycache__
+2025-09-26 16:07:27,940 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\matplotlib\axes\__pycache__
+2025-09-26 16:07:27,947 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\matplotlib\backends\__pycache__
+2025-09-26 16:07:27,949 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\matplotlib\projections\__pycache__
+2025-09-26 16:07:27,950 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\matplotlib\sphinxext\__pycache__
+2025-09-26 16:07:27,951 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\matplotlib\style\__pycache__
+2025-09-26 16:07:27,953 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\matplotlib\testing\__pycache__
+2025-09-26 16:07:27,973 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\matplotlib\tests\__pycache__
+2025-09-26 16:07:27,975 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\matplotlib\tri\__pycache__
+2025-09-26 16:07:27,976 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\matplotlib\_api\__pycache__
+2025-09-26 16:07:27,979 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\matplotlib\testing\jpl_units\__pycache__
+2025-09-26 16:07:27,981 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\matplotlib\backends\qt_editor\__pycache__
+2025-09-26 16:07:27,982 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\isapi\samples\__pycache__
+2025-09-26 16:07:27,983 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\isapi\test\__pycache__
+2025-09-26 16:07:27,985 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\cffLib\__pycache__
+2025-09-26 16:07:27,986 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\colorLib\__pycache__
+2025-09-26 16:07:27,986 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\config\__pycache__
+2025-09-26 16:07:27,988 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\cu2qu\__pycache__
+2025-09-26 16:07:27,989 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\designspaceLib\__pycache__
+2025-09-26 16:07:27,991 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\encodings\__pycache__
+2025-09-26 16:07:27,993 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\feaLib\__pycache__
+2025-09-26 16:07:27,995 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\merge\__pycache__
+2025-09-26 16:07:28,000 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\misc\__pycache__
+2025-09-26 16:07:28,001 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\mtiLib\__pycache__
+2025-09-26 16:07:28,002 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\otlLib\__pycache__
+2025-09-26 16:07:28,008 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\pens\__pycache__
+2025-09-26 16:07:28,010 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\qu2cu\__pycache__
+2025-09-26 16:07:28,011 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\subset\__pycache__
+2025-09-26 16:07:28,012 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\svgLib\__pycache__
+2025-09-26 16:07:28,013 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\t1Lib\__pycache__
+2025-09-26 16:07:28,015 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\ttLib\__pycache__
+2025-09-26 16:07:28,017 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\ufoLib\__pycache__
+2025-09-26 16:07:28,018 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\unicodedata\__pycache__
+2025-09-26 16:07:28,021 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\varLib\__pycache__
+2025-09-26 16:07:28,022 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\voltLib\__pycache__
+2025-09-26 16:07:28,025 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\varLib\instancer\__pycache__
+2025-09-26 16:07:28,041 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\ttLib\tables\__pycache__
+2025-09-26 16:07:28,042 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\svgLib\path\__pycache__
+2025-09-26 16:07:28,044 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\otlLib\optimize\__pycache__
+2025-09-26 16:07:28,046 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\misc\filesystem\__pycache__
+2025-09-26 16:07:28,047 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\fontTools\misc\plistlib\__pycache__
+2025-09-26 16:07:28,048 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\dateutil\parser\__pycache__
+2025-09-26 16:07:28,049 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\dateutil\tz\__pycache__
+2025-09-26 16:07:28,049 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\dateutil\zoneinfo\__pycache__
+2025-09-26 16:07:28,052 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\contourpy\util\__pycache__
+2025-09-26 16:07:28,054 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\colorama\tests\__pycache__
+2025-09-26 16:07:28,055 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\charset_normalizer\cli\__pycache__
+2025-09-26 16:07:28,056 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\adodbapi\examples\__pycache__
+2025-09-26 16:07:28,059 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\venv-bundle\venv\Lib\site-packages\adodbapi\test\__pycache__
+2025-09-26 16:07:28,060 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\mock\__pycache__
+2025-09-26 16:07:28,063 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\ui\__pycache__
+2025-09-26 16:07:28,065 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\__pycache__
+2025-09-26 16:07:28,066 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\__pycache__
+2025-09-26 16:07:28,067 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\__pycache__
+2025-09-26 16:07:28,068 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\cachecontrol\__pycache__
+2025-09-26 16:07:28,069 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\certifi\__pycache__
+2025-09-26 16:07:28,070 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\dependency_groups\__pycache__
+2025-09-26 16:07:28,073 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\distlib\__pycache__
+2025-09-26 16:07:28,075 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\distro\__pycache__
+2025-09-26 16:07:28,077 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\idna\__pycache__
+2025-09-26 16:07:28,079 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\msgpack\__pycache__
+2025-09-26 16:07:28,080 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\packaging\__pycache__
+2025-09-26 16:07:28,081 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\pkg_resources\__pycache__
+2025-09-26 16:07:28,082 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\platformdirs\__pycache__
+2025-09-26 16:07:28,084 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\pygments\__pycache__
+2025-09-26 16:07:28,085 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\pyproject_hooks\__pycache__
+2025-09-26 16:07:28,087 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\requests\__pycache__
+2025-09-26 16:07:28,088 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\resolvelib\__pycache__
+2025-09-26 16:07:28,102 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\rich\__pycache__
+2025-09-26 16:07:28,103 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\tomli\__pycache__
+2025-09-26 16:07:28,104 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\tomli_w\__pycache__
+2025-09-26 16:07:28,105 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\truststore\__pycache__
+2025-09-26 16:07:28,108 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\urllib3\__pycache__
+2025-09-26 16:07:28,111 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\urllib3\contrib\__pycache__
+2025-09-26 16:07:28,112 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\urllib3\packages\__pycache__
+2025-09-26 16:07:28,114 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\urllib3\util\__pycache__
+2025-09-26 16:07:28,114 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\urllib3\packages\backports\__pycache__
+2025-09-26 16:07:28,115 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\urllib3\contrib\_securetransport\__pycache__
+2025-09-26 16:07:28,117 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\resolvelib\resolvers\__pycache__
+2025-09-26 16:07:28,118 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\pyproject_hooks\_in_process\__pycache__
+2025-09-26 16:07:28,118 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\pygments\filters\__pycache__
+2025-09-26 16:07:28,119 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\pygments\formatters\__pycache__
+2025-09-26 16:07:28,120 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\pygments\lexers\__pycache__
+2025-09-26 16:07:28,120 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\pygments\styles\__pycache__
+2025-09-26 16:07:28,121 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\packaging\licenses\__pycache__
+2025-09-26 16:07:28,123 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_vendor\cachecontrol\caches\__pycache__
+2025-09-26 16:07:28,126 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\cli\__pycache__
+2025-09-26 16:07:28,130 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\commands\__pycache__
+2025-09-26 16:07:28,131 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\distributions\__pycache__
+2025-09-26 16:07:28,132 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\index\__pycache__
+2025-09-26 16:07:28,133 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\locations\__pycache__
+2025-09-26 16:07:28,134 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\metadata\__pycache__
+2025-09-26 16:07:28,136 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\models\__pycache__
+2025-09-26 16:07:28,137 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\network\__pycache__
+2025-09-26 16:07:28,139 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\operations\__pycache__
+2025-09-26 16:07:28,141 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\req\__pycache__
+2025-09-26 16:07:28,143 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\resolution\__pycache__
+2025-09-26 16:07:28,146 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\utils\__pycache__
+2025-09-26 16:07:28,148 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\vcs\__pycache__
+2025-09-26 16:07:28,148 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\resolution\legacy\__pycache__
+2025-09-26 16:07:28,151 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\resolution\resolvelib\__pycache__
+2025-09-26 16:07:28,154 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\operations\build\__pycache__
+2025-09-26 16:07:28,154 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\operations\install\__pycache__
+2025-09-26 16:07:28,156 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build-scripts\temp_bundle\temp_venv\Lib\site-packages\pip\_internal\metadata\importlib\__pycache__
+2025-09-26 16:07:28,158 - INFO - [STEP] Testing application functionality...
+2025-09-26 16:07:28,248 - INFO - [SUCCESS] All modules import successfully
+2025-09-26 16:07:28,248 - INFO - [SUCCESS] Version check passed: 1.3.5
+2025-09-26 16:07:28,249 - ERROR - [ERROR] Configuration validation failed: Expecting value: line 1 column 1 (char 0)
+2025-09-26 16:07:43,578 - INFO - ============================================================
+2025-09-26 16:07:43,578 - INFO - Starting build process for Monitoring Roll Machine v1.3.5
+2025-09-26 16:07:43,578 - INFO - ============================================================
+2025-09-26 16:07:43,578 - INFO - [STEP] Checking build requirements...
+2025-09-26 16:07:43,710 - INFO - [SUCCESS] PyInstaller found: 6.14.1
+2025-09-26 16:07:43,736 - INFO - [SUCCESS] NSIS found: v3.11
+2025-09-26 16:07:43,737 - INFO - [SUCCESS] All requirements satisfied
+2025-09-26 16:07:43,737 - INFO - [STEP] Cleaning previous build artifacts...
+2025-09-26 16:07:43,738 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\__pycache__
+2025-09-26 16:07:43,778 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\mock\__pycache__
+2025-09-26 16:07:43,781 - INFO - [STEP] Testing application functionality...
+2025-09-26 16:07:43,857 - INFO - [SUCCESS] All modules import successfully
+2025-09-26 16:07:43,857 - INFO - [SUCCESS] Version check passed: 1.3.5
+2025-09-26 16:07:43,857 - INFO - [SUCCESS] Configuration file is valid JSON
+2025-09-26 16:07:43,858 - INFO - [SUCCESS] Application tests passed
+2025-09-26 16:07:43,858 - INFO - [STEP] Building executable with PyInstaller...
+2025-09-26 16:09:55,738 - ERROR - [ERROR] PyInstaller build failed: 322 INFO: PyInstaller: 6.14.1, contrib hooks: 2025.5
+323 INFO: Python: 3.13.5
+352 INFO: Platform: Windows-11-10.0.26100-SP0
+352 INFO: Python environment: C:\Python313
+355 INFO: Removing temporary files and cleaning cache in C:\Users\StefanusSimandjuntak\AppData\Local\pyinstaller
+D:\Apps\monitoring-roll-machine\monitoring-roll-machine\MonitoringRollMachine.spec:8: SyntaxWarning: invalid escape sequence '\A'
+  pathex=['D:\Apps\monitoring-roll-machine\monitoring-roll-machine'],
+369 INFO: Module search paths (PYTHONPATH):
+['D:\\Apps\\monitoring-roll-machine\\monitoring-roll-machine',
+ 'C:\\Python313\\python313.zip',
+ 'C:\\Python313\\DLLs',
+ 'C:\\Python313\\Lib',
+ 'C:\\Python313',
+ 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages',
+ 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\win32',
+ 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\win32\\lib',
+ 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\Pythonwin',
+ 'C:\\Python313\\Lib\\site-packages',
+ 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\setuptools\\_vendor',
+ 'D:\\Apps\\monitoring-roll-machine\\monitoring-roll-machine',
+ 'D:\\Apps\\monitoring-roll-machine\\monitoring-roll-machine']
+672 INFO: deps: Successfully imported "kivy_deps.angle" 0.4.0
+[[1;32mINFO[0m   ] [deps        ] Successfully imported "kivy_deps.angle" 0.4.0
+673 INFO: deps: Successfully imported "kivy_deps.glew" 0.3.1
+[[1;32mINFO[0m   ] [deps        ] Successfully imported "kivy_deps.glew" 0.3.1
+673 INFO: deps: Successfully imported "kivy_deps.sdl2" 0.8.0
+[[1;32mINFO[0m   ] [deps        ] Successfully imported "kivy_deps.sdl2" 0.8.0
+674 INFO: Kivy: v2.3.1
+[[1;32mINFO[0m   ] [Kivy        ] v2.3.1
+674 INFO: Kivy: Installed at "C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\kivy\__init__.py"
+[[1;32mINFO[0m   ] [Kivy        ] Installed at "C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\kivy\__init__.py"
+674 INFO: Python: v3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]
+[[1;32mINFO[0m   ] [Python      ] v3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]
+674 INFO: Python: Interpreter at "C:\Python313\python.exe"
+[[1;32mINFO[0m   ] [Python      ] Interpreter at "C:\Python313\python.exe"
+674 INFO: Logger: Purge log fired. Processing...
+[[1;32mINFO[0m   ] [Logger      ] Purge log fired. Processing...
+691 INFO: Logger: Purge finished!
+[[1;32mINFO[0m   ] [Logger      ] Purge finished!
+693 INFO: KivyMD: 1.2.0, git-Unknown, 2025-06-20 (installed at "C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\kivymd\__init__.py")
+[[1;32mINFO[0m   ] [KivyMD      ] 1.2.0, git-Unknown, 2025-06-20 (installed at "C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\kivymd\__init__.py")
+693 WARNING: KivyMD: Version 1.2.0 is deprecated and is no longer supported. Use KivyMD version 2.0.0 from the master branch (pip install https://github.com/kivymd/KivyMD/archive/master.zip)
+[[1;33mWARNING[0m] [KivyMD      ] Version 1.2.0 is deprecated and is no longer supported. Use KivyMD version 2.0.0 from the master branch (pip install https://github.com/kivymd/KivyMD/archive/master.zip)
+698 INFO: Factory: 195 symbols loaded
+[[1;32mINFO[0m   ] [Factory     ] 195 symbols loaded
+1610 INFO: Image: Providers: img_tex, img_dds, img_sdl2, img_pil (img_ffpyplayer ignored)
+[[1;32mINFO[0m   ] [Image       ] Providers: img_tex, img_dds, img_sdl2, img_pil (img_ffpyplayer ignored)
+2068 INFO: Text: Provider: sdl2
+[[1;32mINFO[0m   ] [Text        ] Provider: sdl2
+2160 DEBUG: discover_hook_directories: Hook directories: [('C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\kivymd\\tools\\packaging\\pyinstaller', 0), ('C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\numpy\\_pyinstaller', 0), ('C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks', -1000), ('C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib', -1000)]
+[[1;36mDEBUG[0m  ] [discover_hook_directories] Hook directories: [('C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\kivymd\\tools\\packaging\\pyinstaller', 0), ('C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\numpy\\_pyinstaller', 0), ('C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks', -1000), ('C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib', -1000)]
+2757 INFO: Appending 'datas' from .spec
+2758 INFO: checking Analysis
+2758 INFO: Building Analysis because Analysis-00.toc is non existent
+2758 INFO: Running Analysis Analysis-00.toc
+2758 INFO: Target bytecode optimization level: 0
+2758 INFO: Initializing module dependency graph...
+2759 INFO: Initializing module graph hook caches...
+2875 INFO: Analyzing modules for base_library.zip ...
+3800 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+5063 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+7515 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+12023 INFO: Caching module dependency graph...
+12049 INFO: Looking for Python shared library...
+12053 INFO: Using Python shared library: C:\Python313\python313.dll
+12053 INFO: Analyzing D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\__main__.py
+12156 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+12335 INFO: Processing standard module hook 'hook-PySide6.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+12508 INFO: Processing standard module hook 'hook-shiboken6.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+12674 INFO: Processing standard module hook 'hook-PySide6.QtNetwork.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+13590 INFO: Processing standard module hook 'hook-PySide6.QtCore.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+14416 INFO: Processing standard module hook 'hook-PySide6.QtWidgets.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+15154 INFO: Processing standard module hook 'hook-PySide6.QtGui.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+15507 INFO: Processing standard module hook 'hook-pyqtgraph.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+1420 WARNING: Failed to collect submodules for 'pyqtgraph.opengl' because importing 'pyqtgraph.opengl' raised: ModuleNotFoundError: No module named 'OpenGL'
+17389 INFO: hook-pyqtgraph: selected 'PySide6' as Qt bindings because hook for 'PySide6' has been run before.
+17405 INFO: Processing standard module hook 'hook-numpy.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+19247 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+19834 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+20229 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+22636 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+25971 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+25974 INFO: SetuptoolsInfo: initializing cached setuptools info...
+30483 INFO: Processing standard module hook 'hook-charset_normalizer.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+31368 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+31401 INFO: Processing standard module hook 'hook-PySide6.QtSvg.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+31569 INFO: Processing standard module hook 'hook-PySide6.QtOpenGLWidgets.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+31741 INFO: Processing standard module hook 'hook-PySide6.QtTest.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+32762 INFO: Processing standard module hook 'hook-matplotlib.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+33105 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+33383 INFO: Processing pre-safe-import-module hook 'hook-gi.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+33760 INFO: Processing standard module hook 'hook-matplotlib.backend_bases.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+34094 INFO: Processing standard module hook 'hook-PIL.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+34216 INFO: Processing standard module hook 'hook-PIL.Image.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+35072 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+36669 INFO: Processing standard module hook 'hook-matplotlib.backends.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+36826 INFO: Processing standard module hook 'hook-matplotlib.pyplot.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+38796 INFO: Processing standard module hook 'hook-dateutil.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+38960 INFO: Processing pre-safe-import-module hook 'hook-six.moves.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+43530 INFO: Processing standard module hook 'hook-certifi.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+44878 INFO: Processing standard module hook 'hook-matplotlib.backends.backend_qtagg.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+44894 INFO: Processing standard module hook 'hook-matplotlib.backends.qt_compat.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+44895 INFO: hook-matplotlib.backends.qt_compat: selected 'PySide6' as Qt bindings because hook for 'PySide6' has been run before.
+45130 INFO: Processing standard module hook 'hook-xml.dom.domreg.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+47210 INFO: Processing standard module hook 'hook-urllib3.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+50845 INFO: Processing standard module hook 'hook-PySide6.QtPrintSupport.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+51618 INFO: Analyzing hidden import 'pyserial'
+51619 ERROR: Hidden import 'pyserial' not found
+51619 INFO: Analyzing hidden import 'python-dotenv'
+51619 ERROR: Hidden import 'python-dotenv' not found
+51619 INFO: Analyzing hidden import 'appdirs'
+51629 INFO: Processing standard module hook 'hook-appdirs.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+51632 INFO: Analyzing hidden import 'pandas'
+51636 INFO: Processing standard module hook 'hook-pandas.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+53441 INFO: Processing standard module hook 'hook-pytz.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+58757 INFO: Processing standard module hook 'hook-pandas.io.formats.style.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+62111 INFO: Processing standard module hook 'hook-pandas.plotting.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+63463 INFO: Processing standard module hook 'hook-openpyxl.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+69750 INFO: Processing standard module hook 'hook-sqlite3.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+70292 INFO: Processing standard module hook 'hook-pandas.io.clipboard.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+71829 INFO: Processing standard module hook 'hook-pytest.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+72480 INFO: Processing standard module hook 'hook-pygments.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+74346 INFO: Processing standard module hook 'hook-py.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+75007 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+75008 INFO: Setuptools: 'tomli' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.tomli'!
+75041 INFO: Processing standard module hook 'hook-setuptools.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+75109 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+75244 INFO: Processing pre-safe-import-module hook 'hook-jaraco.functools.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+75246 INFO: Setuptools: 'jaraco.functools' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco.functools'!
+75277 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+75278 INFO: Setuptools: 'more_itertools' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.more_itertools'!
+76373 INFO: Processing pre-safe-import-module hook 'hook-jaraco.text.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+76374 INFO: Setuptools: 'jaraco.text' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco.text'!
+76400 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+76403 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+76405 INFO: Processing pre-safe-import-module hook 'hook-jaraco.context.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+76406 INFO: Setuptools: 'jaraco.context' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco.context'!
+76441 INFO: Processing pre-safe-import-module hook 'hook-backports.tarfile.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+76443 INFO: Setuptools: 'backports.tarfile' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.backports.tarfile'!
+76550 INFO: Processing standard module hook 'hook-backports.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+76826 INFO: Processing pre-safe-import-module hook 'hook-importlib_metadata.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+76828 INFO: Setuptools: 'importlib_metadata' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.importlib_metadata'!
+76863 INFO: Processing standard module hook 'hook-setuptools._vendor.importlib_metadata.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+76868 INFO: Processing pre-safe-import-module hook 'hook-zipp.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+76869 INFO: Setuptools: 'zipp' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.zipp'!
+78975 INFO: Processing pre-safe-import-module hook 'hook-wheel.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+81367 INFO: Processing standard module hook 'hook-pkg_resources.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+81706 INFO: Processing pre-safe-import-module hook 'hook-platformdirs.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+81734 INFO: Processing standard module hook 'hook-platformdirs.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+82753 INFO: Processing module hooks (post-graph stage)...
+84017 INFO: Processing standard module hook 'hook-matplotlib.backends.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+84018 INFO: Matplotlib backend selection method: automatic discovery of used backends
+84315 INFO: Trying determine the default backend as first importable candidate from the list: ['QtAgg', 'Qt5Agg', 'Gtk4Agg', 'Gtk3Agg', 'TkAgg', 'WxAgg']
+84911 INFO: Selected matplotlib backends: ['QtAgg']
+86254 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+94858 INFO: Processing standard module hook 'hook-PySide6.QtOpenGL.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+96252 INFO: Performing binary vs. data reclassification (1037 entries)
+106009 INFO: Looking for ctypes DLLs
+106039 WARNING: Ignoring /System/Library/Frameworks/CoreFoundation.framework/CoreFoundation imported from C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\serial\tools\list_ports_osx.py - only basenames are supported with ctypes imports!
+106039 WARNING: Ignoring /System/Library/Frameworks/IOKit.framework/IOKit imported from C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\serial\tools\list_ports_osx.py - only basenames are supported with ctypes imports!
+106079 INFO: Analyzing run-time hooks ...
+106089 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\rthooks'
+106118 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\rthooks'
+106146 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\rthooks'
+106173 INFO: Including run-time hook 'pyi_rth_pyside6.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\rthooks'
+106199 INFO: Processing pre-find-module-path hook 'hook-_pyi_rth_utils.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\pre_find_module_path'
+106215 INFO: Processing standard module hook 'hook-_pyi_rth_utils.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks'
+106238 INFO: Including run-time hook 'pyi_rth_setuptools.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\rthooks'
+106251 INFO: Including run-time hook 'pyi_rth_pkgres.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\rthooks'
+106268 INFO: Including run-time hook 'pyi_rth_mplconfig.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\PyInstaller\\hooks\\rthooks'
+106316 INFO: Including run-time hook 'pyi_rth_pyqtgraph_multiprocess.py' from 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\_pyinstaller_hooks_contrib\\rthooks'
+106379 INFO: Creating base_library.zip...
+106423 INFO: Looking for dynamic libraries
+C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\PyInstaller\building\build_main.py:227: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  __import__(package)
+108622 INFO: Extra DLL search directories (AddDllDirectory): ['C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\shiboken6', 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\pandas.libs', 'C:\\Users\\StefanusSimandjuntak\\AppData\\Roaming\\Python\\Python313\\site-packages\\numpy.libs']
+108622 INFO: Extra DLL search directories (PATH): []
+110676 INFO: Warnings written to D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build\MonitoringRollMachine\warn-MonitoringRollMachine.txt
+110812 INFO: Graph cross-reference written to D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build\MonitoringRollMachine\xref-MonitoringRollMachine.html
+110950 INFO: checking PYZ
+110950 INFO: Building PYZ because PYZ-00.toc is non existent
+110950 INFO: Building PYZ (ZlibArchive) D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build\MonitoringRollMachine\PYZ-00.pyz
+113127 INFO: Building PYZ (ZlibArchive) D:\Apps\monitoring-roll-machine\monitoring-roll-machine\build\MonitoringRollMachine\PYZ-00.pyz completed successfully.
+113182 INFO: checking PKG
+113182 INFO: Building PKG because PKG-00.toc is non existent
+113182 INFO: Building PKG (CArchive) MonitoringRollMachine.pkg
+131229 INFO: Building PKG (CArchive) MonitoringRollMachine.pkg completed successfully.
+131246 INFO: Bootloader C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\PyInstaller\bootloader\Windows-64bit-intel\runw.exe
+131246 INFO: checking EXE
+131246 INFO: Building EXE because EXE-00.toc is non existent
+131246 INFO: Building EXE from EXE-00.toc
+131247 INFO: Copying bootloader EXE to D:\Apps\monitoring-roll-machine\monitoring-roll-machine\dist\MonitoringRollMachine.exe
+131327 INFO: Copying icon to EXE
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\PyInstaller\__main__.py", line 321, in <module>
+    run()
+    ~~~^^
+  File "C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\PyInstaller\__main__.py", line 215, in run
+    run_build(pyi_config, spec_file, **vars(args))
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\PyInstaller\__main__.py", line 70, in run_build
+    PyInstaller.building.build_main.main(pyi_config, spec_file, **kwargs)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\PyInstaller\building\build_main.py", line 1282, in main
+    build(specfile, distpath, workpath, clean_build)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\PyInstaller\building\build_main.py", line 1220, in build
+    exec(code, spec_namespace)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\MonitoringRollMachine.spec", line 45, in <module>
+    exe = EXE(
+        pyz,
+    ...<18 lines>...
+        icon='monitoring/ui/assets/monitoring-roll-machine.ico'
+    )
+  File "C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\PyInstaller\building\api.py", line 678, in __init__
+    self.__postinit__()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\PyInstaller\building\datastruct.py", line 184, in __postinit__
+    self.assemble()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\PyInstaller\building\api.py", line 791, in assemble
+    self._retry_operation(icon.CopyIcons, build_name, self.icon)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\PyInstaller\building\api.py", line 1061, in _retry_operation
+    return func(*args)
+  File "C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\PyInstaller\utils\win32\icon.py", line 206, in CopyIcons
+    srcpath = normalize_icon_type(srcpath, ("exe", "ico"), "ico", config.CONF["workpath"])
+  File "C:\Users\StefanusSimandjuntak\AppData\Roaming\Python\Python313\site-packages\PyInstaller\building\icon.py", line 34, in normalize_icon_type
+    raise FileNotFoundError(f"Icon input file {icon_path} not found")
+FileNotFoundError: Icon input file D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring/ui/assets/monitoring-roll-machine.ico not found
+
+2025-09-26 16:10:15,450 - INFO - ============================================================
+2025-09-26 16:10:15,451 - INFO - Starting build process for Monitoring Roll Machine v1.3.5
+2025-09-26 16:10:15,451 - INFO - ============================================================
+2025-09-26 16:10:15,451 - INFO - [STEP] Checking build requirements...
+2025-09-26 16:10:15,594 - INFO - [SUCCESS] PyInstaller found: 6.14.1
+2025-09-26 16:10:15,620 - INFO - [SUCCESS] NSIS found: v3.11
+2025-09-26 16:10:15,621 - INFO - [SUCCESS] All requirements satisfied
+2025-09-26 16:10:15,621 - INFO - [STEP] Cleaning previous build artifacts...
+2025-09-26 16:10:15,622 - INFO - [SUCCESS] Cleaned dist directory
+2025-09-26 16:10:15,636 - INFO - [SUCCESS] Cleaned build directory
+2025-09-26 16:10:15,637 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\__pycache__
+2025-09-26 16:10:15,680 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\mock\__pycache__
+2025-09-26 16:10:15,683 - INFO - [STEP] Testing application functionality...
+2025-09-26 16:10:15,769 - INFO - [SUCCESS] All modules import successfully
+2025-09-26 16:10:15,770 - INFO - [SUCCESS] Version check passed: 1.3.5
+2025-09-26 16:10:15,770 - INFO - [SUCCESS] Configuration file is valid JSON
+2025-09-26 16:10:15,770 - INFO - [SUCCESS] Application tests passed
+2025-09-26 16:10:15,771 - INFO - [STEP] Building executable with PyInstaller...
+2025-09-26 16:11:23,829 - INFO - [SUCCESS] Executable built successfully
+2025-09-26 16:11:23,830 - INFO - [SUCCESS] Executable size: 87.2 MB
+2025-09-26 16:11:23,830 - INFO - [STEP] Testing built executable...
+2025-09-26 16:11:25,952 - INFO - [SUCCESS] Executable starts without immediate errors
+2025-09-26 16:11:25,953 - INFO - [STEP] Creating NSIS installer...
+2025-09-26 16:11:27,097 - ERROR - [ERROR] NSIS compilation failed: Error while loading icon from "monitoring-roll-machine.ico": can't open file
+Error in macro MUI_INTERFACE on macroline 87
+Error in macro MUI_PAGE_INIT on macroline 7
+Error in macro MUI_PAGE_WELCOME on macroline 5
+Error in script "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\installer_v1.3.5.nsi" on line 42 -- aborting creation process
+
+2025-09-26 16:13:19,383 - INFO - ============================================================
+2025-09-26 16:13:19,383 - INFO - Starting build process for Monitoring Roll Machine v1.3.5
+2025-09-26 16:13:19,383 - INFO - ============================================================
+2025-09-26 16:13:19,383 - INFO - [STEP] Checking build requirements...
+2025-09-26 16:13:19,658 - INFO - [SUCCESS] PyInstaller found: 6.14.1
+2025-09-26 16:13:19,687 - INFO - [SUCCESS] NSIS found: v3.11
+2025-09-26 16:13:19,687 - INFO - [SUCCESS] All requirements satisfied
+2025-09-26 16:13:19,687 - INFO - [STEP] Cleaning previous build artifacts...
+2025-09-26 16:13:19,698 - INFO - [SUCCESS] Cleaned dist directory
+2025-09-26 16:13:19,713 - INFO - [SUCCESS] Cleaned build directory
+2025-09-26 16:13:19,714 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\__pycache__
+2025-09-26 16:13:19,760 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\mock\__pycache__
+2025-09-26 16:13:19,764 - INFO - [STEP] Testing application functionality...
+2025-09-26 16:13:19,848 - INFO - [SUCCESS] All modules import successfully
+2025-09-26 16:13:19,848 - INFO - [SUCCESS] Version check passed: 1.3.5
+2025-09-26 16:13:19,849 - INFO - [SUCCESS] Configuration file is valid JSON
+2025-09-26 16:13:19,849 - INFO - [SUCCESS] Application tests passed
+2025-09-26 16:13:19,849 - INFO - [STEP] Building executable with PyInstaller...
+2025-09-26 16:14:28,422 - INFO - [SUCCESS] Executable built successfully
+2025-09-26 16:14:28,423 - INFO - [SUCCESS] Executable size: 87.2 MB
+2025-09-26 16:14:28,423 - INFO - [STEP] Testing built executable...
+2025-09-26 16:14:30,573 - INFO - [SUCCESS] Executable starts without immediate errors
+2025-09-26 16:14:30,574 - INFO - [STEP] Creating NSIS installer...
+2025-09-26 16:14:30,727 - ERROR - [ERROR] NSIS compilation failed: File: "welcome.bmp" -> no files found.
+Usage: File [/nonfatal] [/a] ([/r] [/x filespec [...]] filespec [...] |
+   /oname=outfile one_file_only)
+Error in macro MUI_WELCOMEPAGE_GUIINIT on macroline 8
+Error in macro MUI_PAGEDECLARATION_WELCOME on macroline 5
+Error in macro MUI_PAGE_WELCOME on macroline 6
+Error in script "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\installer_v1.3.5.nsi" on line 42 -- aborting creation process
+
+2025-09-26 16:14:55,664 - INFO - ============================================================
+2025-09-26 16:14:55,664 - INFO - Starting build process for Monitoring Roll Machine v1.3.5
+2025-09-26 16:14:55,664 - INFO - ============================================================
+2025-09-26 16:14:55,664 - INFO - [STEP] Checking build requirements...
+2025-09-26 16:14:55,828 - INFO - [SUCCESS] PyInstaller found: 6.14.1
+2025-09-26 16:14:55,852 - INFO - [SUCCESS] NSIS found: v3.11
+2025-09-26 16:14:55,853 - INFO - [SUCCESS] All requirements satisfied
+2025-09-26 16:14:55,853 - INFO - [STEP] Cleaning previous build artifacts...
+2025-09-26 16:14:55,863 - INFO - [SUCCESS] Cleaned dist directory
+2025-09-26 16:14:55,878 - INFO - [SUCCESS] Cleaned build directory
+2025-09-26 16:14:55,879 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\__pycache__
+2025-09-26 16:14:55,917 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\mock\__pycache__
+2025-09-26 16:14:55,921 - INFO - [STEP] Testing application functionality...
+2025-09-26 16:14:55,999 - INFO - [SUCCESS] All modules import successfully
+2025-09-26 16:14:55,999 - INFO - [SUCCESS] Version check passed: 1.3.5
+2025-09-26 16:14:56,000 - INFO - [SUCCESS] Configuration file is valid JSON
+2025-09-26 16:14:56,000 - INFO - [SUCCESS] Application tests passed
+2025-09-26 16:14:56,000 - INFO - [STEP] Building executable with PyInstaller...
+2025-09-26 16:16:03,340 - INFO - [SUCCESS] Executable built successfully
+2025-09-26 16:16:03,341 - INFO - [SUCCESS] Executable size: 87.2 MB
+2025-09-26 16:16:03,341 - INFO - [STEP] Testing built executable...
+2025-09-26 16:16:05,457 - INFO - [SUCCESS] Executable starts without immediate errors
+2025-09-26 16:16:05,457 - INFO - [STEP] Creating NSIS installer...
+2025-09-26 16:16:05,982 - ERROR - [ERROR] NSIS compilation failed: Error: can't change compressor after data already got compressed or header already changed!
+Error in script "D:\Apps\monitoring-roll-machine\monitoring-roll-machine\installer_v1.3.5.nsi" on line 404 -- aborting creation process
+
+2025-09-26 16:16:19,929 - INFO - ============================================================
+2025-09-26 16:16:19,930 - INFO - Starting build process for Monitoring Roll Machine v1.3.5
+2025-09-26 16:16:19,930 - INFO - ============================================================
+2025-09-26 16:16:19,930 - INFO - [STEP] Checking build requirements...
+2025-09-26 16:16:20,078 - INFO - [SUCCESS] PyInstaller found: 6.14.1
+2025-09-26 16:16:20,111 - INFO - [SUCCESS] NSIS found: v3.11
+2025-09-26 16:16:20,112 - INFO - [SUCCESS] All requirements satisfied
+2025-09-26 16:16:20,112 - INFO - [STEP] Cleaning previous build artifacts...
+2025-09-26 16:16:20,113 - ERROR - [ERROR] Build process failed: [WinError 5] Access is denied: 'D:\\Apps\\monitoring-roll-machine\\monitoring-roll-machine\\dist\\MonitoringRollMachine.exe'
+2025-09-26 16:16:34,990 - INFO - ============================================================
+2025-09-26 16:16:34,990 - INFO - Starting build process for Monitoring Roll Machine v1.3.5
+2025-09-26 16:16:34,990 - INFO - ============================================================
+2025-09-26 16:16:34,990 - INFO - [STEP] Checking build requirements...
+2025-09-26 16:16:35,144 - INFO - [SUCCESS] PyInstaller found: 6.14.1
+2025-09-26 16:16:35,193 - INFO - [SUCCESS] NSIS found: v3.11
+2025-09-26 16:16:35,194 - INFO - [SUCCESS] All requirements satisfied
+2025-09-26 16:16:35,194 - INFO - [STEP] Cleaning previous build artifacts...
+2025-09-26 16:16:35,208 - INFO - [SUCCESS] Cleaned dist directory
+2025-09-26 16:16:35,231 - INFO - [SUCCESS] Cleaned build directory
+2025-09-26 16:16:35,234 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\__pycache__
+2025-09-26 16:16:35,288 - INFO - [SUCCESS] Cleaned D:\Apps\monitoring-roll-machine\monitoring-roll-machine\monitoring\mock\__pycache__
+2025-09-26 16:16:35,292 - INFO - [STEP] Testing application functionality...
+2025-09-26 16:16:35,374 - INFO - [SUCCESS] All modules import successfully
+2025-09-26 16:16:35,374 - INFO - [SUCCESS] Version check passed: 1.3.5
+2025-09-26 16:16:35,375 - INFO - [SUCCESS] Configuration file is valid JSON
+2025-09-26 16:16:35,375 - INFO - [SUCCESS] Application tests passed
+2025-09-26 16:16:35,375 - INFO - [STEP] Building executable with PyInstaller...
+2025-09-26 16:17:45,093 - INFO - [SUCCESS] Executable built successfully
+2025-09-26 16:17:45,094 - INFO - [SUCCESS] Executable size: 87.2 MB
+2025-09-26 16:17:45,094 - INFO - [STEP] Testing built executable...
+2025-09-26 16:17:47,328 - INFO - [SUCCESS] Executable starts without immediate errors
+2025-09-26 16:17:47,328 - INFO - [STEP] Creating NSIS installer...
+2025-09-26 16:18:38,284 - INFO - [SUCCESS] Installer compiled successfully
+2025-09-26 16:18:38,284 - INFO - [SUCCESS] Installer created: 86.8 MB
+2025-09-26 16:18:38,284 - INFO - [SUCCESS] Installer moved to: D:\Apps\monitoring-roll-machine\monitoring-roll-machine\releases\Monitoring-Roll-Machine-v1.3.5-Setup.exe
+2025-09-26 16:18:38,285 - INFO - [STEP] Creating release notes...
+2025-09-26 16:18:38,287 - INFO - [SUCCESS] Release notes created: D:\Apps\monitoring-roll-machine\monitoring-roll-machine\releases\RELEASE_NOTES_v1.3.5.md
+2025-09-26 16:18:38,287 - INFO - ============================================================
+2025-09-26 16:18:38,287 - INFO - BUILD COMPLETED SUCCESSFULLY!
+2025-09-26 16:18:38,287 - INFO - ============================================================
+2025-09-26 16:18:38,287 - INFO - Installer location: D:\Apps\monitoring-roll-machine\monitoring-roll-machine\releases
+2025-09-26 16:18:38,288 - INFO - Version: 1.3.5
+2025-09-26 16:18:38,288 - INFO - All application functions verified and working
+2025-09-26 16:18:38,288 - INFO - ============================================================

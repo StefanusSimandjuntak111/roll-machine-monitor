@@ -28,8 +28,11 @@ class MonitoringView(QWidget):
         self.batch_value_label: Optional[QLabel] = None
         self.target_value_label: Optional[QLabel] = None
         
+        # Store last valid length to prevent reset to 0
+        self.last_valid_length: float = 0.0
+        
         # Serial data display
-        self.serial_display: Optional[QTextEdit] = None
+        # Serial display removed
         self.logging_table_widget = logging_table_widget
         
         self.setup_ui()
@@ -42,6 +45,7 @@ class MonitoringView(QWidget):
         # Create info cards grid
         info_grid = QGridLayout()
         info_grid.setSpacing(15)
+        # info_grid.setContentsMargins(5, 5, 5, 5)
         
         # Length card
         length_card, self.length_value_label = self.create_info_card("Current Length (Machine)", "0.0 m")
@@ -68,6 +72,9 @@ class MonitoringView(QWidget):
         info_grid.addWidget(target_card, 1, 2)
         
         layout.addLayout(info_grid)
+        
+        # Add moderate spacing before table (reduced for 1366x768)
+        layout.addSpacing(15)
         
         # Add logging table widget below info cards if available
         if self.logging_table_widget is not None:
@@ -134,72 +141,7 @@ class MonitoringView(QWidget):
         graphs_widget.setLayout(graphs_layout)
         splitter.addWidget(graphs_widget)
         
-        # Right side: Serial Data Display
-        serial_widget = QWidget()
-        serial_layout = QVBoxLayout(serial_widget)
-        
-        # Serial data group
-        serial_group = QGroupBox("Serial Communication")
-        serial_group.setStyleSheet("""
-            QGroupBox {
-                color: white;
-                font-weight: bold;
-                border: 2px solid #555555;
-                border-radius: 5px;
-                margin-top: 1ex;
-                padding-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px 0 5px;
-            }
-        """)
-        
-        serial_group_layout = QVBoxLayout(serial_group)
-        
-        # Serial data display
-        self.serial_display = QTextEdit()
-        self.serial_display.setFont(QFont("Consolas", 9))
-        self.serial_display.setMaximumHeight(300)
-        self.serial_display.setStyleSheet("""
-            QTextEdit {
-                background-color: #1e1e1e;
-                color: #00ff00;
-                border: 1px solid #555555;
-                border-radius: 5px;
-                padding: 5px;
-            }
-        """)
-        serial_group_layout.addWidget(self.serial_display)
-        
-        # Control buttons
-        button_layout = QHBoxLayout()
-        
-        clear_btn = QPushButton("Clear Display")
-        clear_btn.clicked.connect(self.clear_serial_display)
-        clear_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #555555;
-                color: white;
-                border: none;
-                padding: 5px 15px;
-                border-radius: 3px;
-            }
-            QPushButton:hover {
-                background-color: #666666;
-            }
-        """)
-        button_layout.addWidget(clear_btn)
-        
-        button_layout.addStretch()
-        serial_group_layout.addLayout(button_layout)
-        
-        serial_layout.addWidget(serial_group)
-        splitter.addWidget(serial_widget)
-        
-        # Set splitter proportions (100% graphs, 0% serial - hidden)
-        splitter.setSizes([1000, 0])
+        # No serial display widget - removed to make space for cards
         
         layout.addWidget(splitter)
     
@@ -210,21 +152,32 @@ class MonitoringView(QWidget):
             QFrame {
                 background-color: #2d2d2d;
                 border-radius: 10px;
-                padding: 15px;
+                padding: 0.1px;
+                min-height: 50px;
+                max-height: 180px;
             }
         """)
         
         layout = QVBoxLayout(card)
         layout.setSpacing(5)
+        # layout.setContentsMargins(20, 20, 20, 20)
         
         title_label = QLabel(title)
-        title_label.setStyleSheet("color: #888888; font-size: 12px;")
+        title_label.setStyleSheet("color: #888888; font-size: 12px; font-weight: normal;")
+        # title_label.setWordWrap(True)
         layout.addWidget(title_label)
+        
+        # Add small stretch to separate title and value
+        # layout.addStretch(1)
         
         value_label = QLabel(initial_value)
         value_label.setStyleSheet("color: white; font-size: 24px; font-weight: bold;")
         value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # value_label.setWordWrap(True)
         layout.addWidget(value_label)
+        
+        # Add small stretch at bottom
+        # layout.addStretch(1)
         
         return card, value_label
     
@@ -239,11 +192,26 @@ class MonitoringView(QWidget):
             unit = fields.get('unit', 'meter')
             factor = fields.get('factor', '×1.0')
             
-            # Format display with original unit
+            # Prevent length reset to 0 - use last valid length if current is 0
+            if current_count > 0.001:  # If current length is valid (> 0.001)
+                self.last_valid_length = current_count
+            
+            # Use last valid length if current is 0 or very small
+            display_length = current_count if current_count > 0.001 else self.last_valid_length
+            
+            # Get decimal points from config (default to 2)
+            try:
+                from monitoring.config import get_config
+                config = get_config()
+                decimal_points = config.get("decimal_points", 2)
+            except:
+                decimal_points = 2
+            
+            # Format display with proper decimal points
             if unit == 'yard':
-                self.length_value_label.setText(f"{current_count:.2f} yard")
+                self.length_value_label.setText(f"{display_length:.{decimal_points}f} yard")
             else:
-                self.length_value_label.setText(f"{current_count:.2f} m")
+                self.length_value_label.setText(f"{display_length:.{decimal_points}f} m")
         
         if self.speed_value_label:
             # Use parsed speed from JSK3588 packet
@@ -274,8 +242,15 @@ class MonitoringView(QWidget):
         speed_mps = data.get('speed_mps', 0.0)
         length_meters = data.get('length_meters', 0.0)
         
+        # Use last valid length for graphs if current is 0
+        if length_meters > 0.001:
+            self.length_data.append(length_meters)
+        elif self.last_valid_length > 0.001:
+            self.length_data.append(self.last_valid_length)
+        else:
+            self.length_data.append(0.0)
+        
         self.speed_data.append(speed_mps)
-        self.length_data.append(length_meters)
         
         # Keep last 60 seconds of data
         if len(self.time_data) > 60:
@@ -306,52 +281,7 @@ class MonitoringView(QWidget):
             except:
                 pass  # Ignore if plot widget is also deleted
     
-    @Slot(str)
-    def add_serial_data(self, data: str):
-        """Add serial data to the display."""
-        if self.serial_display:
-            self.serial_display.append(data)
-            
-            # Auto-scroll to bottom
-            cursor = self.serial_display.textCursor()
-            cursor.movePosition(QTextCursor.MoveOperation.End)
-            self.serial_display.setTextCursor(cursor)
-    
-    def add_packet_analysis(self, packet_hex: str):
-        """Add packet analysis table to the display."""
-        if self.serial_display:
-            try:
-                # Convert hex string to bytes
-                hex_clean = packet_hex.replace(' ', '').upper()
-                if len(hex_clean) % 2 != 0:
-                    return
-                
-                packet_bytes = bytes.fromhex(hex_clean)
-                
-                # Import parser function
-                from ..parser import format_packet_table
-                
-                # Format packet table
-                table = format_packet_table(packet_bytes)
-                
-                # Add to display
-                self.serial_display.append("\n" + "="*50)
-                self.serial_display.append("PACKET ANALYSIS:")
-                self.serial_display.append(table)
-                self.serial_display.append("="*50 + "\n")
-                
-                # Auto-scroll to bottom
-                cursor = self.serial_display.textCursor()
-                cursor.movePosition(QTextCursor.MoveOperation.End)
-                self.serial_display.setTextCursor(cursor)
-                
-            except Exception as e:
-                self.serial_display.append(f"Error analyzing packet: {e}")
-    
-    def clear_serial_display(self):
-        """Clear the serial data display."""
-        if self.serial_display:
-            self.serial_display.clear()
+    # Serial display methods removed - no longer needed
     
     def cleanup(self):
         """Clean up resources to prevent memory leaks."""
@@ -369,9 +299,7 @@ class MonitoringView(QWidget):
             self.speed_data.clear()
             self.length_data.clear()
             
-            # Clear display
-            if self.serial_display:
-                self.serial_display.clear()
+            # No serial display to clear anymore
                 
         except Exception as e:
             # Ignore cleanup errors

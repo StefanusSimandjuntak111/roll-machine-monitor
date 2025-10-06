@@ -22,7 +22,7 @@ class Monitor:
         poll_interval: float = 1.0,
         auto_send_enabled: bool = True,
         auto_send_command: str = "55 AA 02 00 00",
-        auto_send_interval: int = 100
+        auto_send_interval: int = 1200  # Changed from 100ms to 1200ms
     ) -> None:
         self.serial_port = serial_port
         self.on_data = on_data
@@ -38,6 +38,11 @@ class Monitor:
         self.auto_send_enabled = auto_send_enabled
         self.auto_send_command = auto_send_command
         self.auto_send_interval = auto_send_interval
+        
+        # FIX: Add watchdog timer for idle detection
+        self.last_activity = time.time()
+        self.watchdog_interval = 300  # 5 minutes
+        self._watchdog_thread: Optional[threading.Thread] = None
         
         # Setup serial callbacks for real-time display
         self._setup_serial_callbacks()
@@ -57,12 +62,18 @@ class Monitor:
 
     def _on_packet_parsed(self, data: dict):
         """Handle parsed packet data."""
+        # FIX: Update activity timestamp to prevent false idle detection
+        self.last_activity = time.time()
+        
         if self.on_data:
             self.on_data(data)
         logger.debug(f"Packet parsed: {data}")
 
     def _on_serial_error(self, error: str):
         """Handle serial error."""
+        # FIX: Update activity timestamp even on errors
+        self.last_activity = time.time()
+        
         logger.error(f"Serial error: {error}")
         if self.on_error:
             # Create exception object for error callback
@@ -79,12 +90,15 @@ class Monitor:
         if self.auto_send_enabled:
             self.start_auto_send()
 
+        # FIX: Start watchdog thread
+        self._start_watchdog()
+
         self._stop_event.clear()
         self._thread = threading.Thread(target=self._monitor_loop)
         self._thread.daemon = True
         self._thread.start()
         self.is_running = True
-        logger.info("Monitor started with auto-send")
+        logger.info("Monitor started with auto-send and watchdog")
 
     def stop(self) -> None:
         """Stop monitoring thread dan auto-send."""
@@ -92,6 +106,9 @@ class Monitor:
         
         # Stop auto-send
         self.stop_auto_send()
+        
+        # FIX: Stop watchdog thread
+        self._stop_watchdog()
         
         if self._thread:
             self._thread.join()
@@ -190,3 +207,45 @@ class Monitor:
         except Exception as e:
             logger.error(f"Error setting coefficient: {e}")
             return False 
+
+    def _start_watchdog(self) -> None:
+        """Start watchdog thread untuk mencegah hang setelah idle."""
+        if self._watchdog_thread and self._watchdog_thread.is_alive():
+            return
+            
+        self._watchdog_thread = threading.Thread(target=self._watchdog_loop)
+        self._watchdog_thread.daemon = True
+        self._watchdog_thread.start()
+        logger.info("Watchdog thread started")
+
+    def _stop_watchdog(self) -> None:
+        """Stop watchdog thread."""
+        if self._watchdog_thread:
+            self._watchdog_thread.join(timeout=1.0)
+            self._watchdog_thread = None
+        logger.info("Watchdog thread stopped")
+
+    def _watchdog_loop(self) -> None:
+        """Watchdog loop untuk mendeteksi idle dan restart jika perlu."""
+        while not self._stop_event.is_set():
+            try:
+                current_time = time.time()
+                
+                # Check if serial communication is idle
+                if current_time - self.last_activity > self.watchdog_interval:
+                    logger.warning("Watchdog: Serial communication idle for too long, restarting...")
+                    
+                    # Try to restart serial communication
+                    if self.serial_port:
+                        try:
+                            self.serial_port.restart_if_needed()
+                            self.last_activity = current_time
+                            logger.info("Watchdog: Serial communication restarted successfully")
+                        except Exception as e:
+                            logger.error(f"Watchdog: Failed to restart serial communication: {e}")
+                
+                time.sleep(60)  # Check every minute
+                
+            except Exception as e:
+                logger.error(f"Watchdog error: {e}")
+                time.sleep(60)  # Wait before retrying 

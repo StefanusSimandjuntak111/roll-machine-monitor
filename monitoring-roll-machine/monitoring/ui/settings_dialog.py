@@ -72,6 +72,7 @@ class SettingsDialog(QDialog):
         self.create_page_settings_tab()
         self.create_printer_settings_tab()
         self.create_api_settings_tab()
+        self.create_supabase_settings_tab()
         
         layout.addWidget(self.tab_widget)
         
@@ -451,7 +452,7 @@ class SettingsDialog(QDialog):
         self.tolerance_input.textChanged.connect(self.update_conversion_preview)
         settings_form.addRow("Length Tolerance (%):", self.tolerance_input)
         
-        # 2. Decimal Point
+        # 2. Rounding Precision
         self.decimal_combo = QComboBox()
         self.decimal_combo.addItems(["#", "#.#", "#.##"])
         current_decimal = self.current_settings.get("decimal_points", 1)
@@ -460,7 +461,7 @@ class SettingsDialog(QDialog):
         current_format = decimal_map.get(current_decimal, "#.#")
         self.decimal_combo.setCurrentText(current_format)
         self.decimal_combo.currentTextChanged.connect(self.update_conversion_preview)
-        settings_form.addRow("Decimal Format:", self.decimal_combo)
+        settings_form.addRow("Rounding Precision:", self.decimal_combo)
         
         # 3. Rounding
         rounding_group = QGroupBox("Rounding Method")
@@ -718,7 +719,255 @@ class SettingsDialog(QDialog):
         
         # Update API status
         self.update_api_status()
-    
+
+    def create_supabase_settings_tab(self):
+        """Create the Supabase Settings tab."""
+        supabase_tab = QWidget()
+        supabase_layout = QVBoxLayout(supabase_tab)
+
+        # Supabase Settings Frame
+        supabase_frame = QFrame()
+        supabase_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        supabase_frame.setStyleSheet("""
+            QFrame {
+                background-color: #2d2d2d;
+                border: 1px solid #555555;
+                border-radius: 8px;
+                padding: 15px;
+            }
+        """)
+
+        supabase_form = QFormLayout(supabase_frame)
+        supabase_form.setSpacing(15)
+
+        # Enable Supabase checkbox
+        self.supabase_enable_checkbox = QCheckBox("Enable Supabase Integration")
+        self.supabase_enable_checkbox.setStyleSheet("""
+            QCheckBox {
+                color: #e0e0e0;
+                font-size: 14px;
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 3px;
+                border: 2px solid #666666;
+                background-color: #2d2d2d;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #0078d4;
+                border: 2px solid #0078d4;
+            }
+        """)
+        self.supabase_enable_checkbox.setChecked(self.current_settings.get("enable_supabase", False))
+        self.supabase_enable_checkbox.stateChanged.connect(self.update_supabase_status)
+        supabase_form.addRow(self.supabase_enable_checkbox)
+
+        # Supabase URL Input
+        self.supabase_url_input = QLineEdit()
+        self.supabase_url_input.setPlaceholderText("https://your-project.supabase.co")
+        current_supabase_url = self.current_settings.get("supabase_url", "")
+        self.supabase_url_input.setText(current_supabase_url)
+        self.supabase_url_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #1e1e1e;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                padding: 8px;
+                color: white;
+                font-size: 12px;
+            }
+            QLineEdit:focus {
+                border: 2px solid #0078d4;
+            }
+        """)
+        supabase_form.addRow("Supabase URL:", self.supabase_url_input)
+
+        # Supabase API Key Input
+        self.supabase_key_input = QLineEdit()
+        self.supabase_key_input.setPlaceholderText("Enter your Supabase API key")
+        current_supabase_key = self.current_settings.get("supabase_key", "")
+        self.supabase_key_input.setText(current_supabase_key)
+        self.supabase_key_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.supabase_key_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #1e1e1e;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                padding: 8px;
+                color: white;
+                font-size: 12px;
+            }
+            QLineEdit:focus {
+                border: 2px solid #0078d4;
+            }
+        """)
+        supabase_form.addRow("Supabase API Key:", self.supabase_key_input)
+
+        # Supabase Status Display
+        self.supabase_status_label = QLabel("Not Connected")
+        self.supabase_status_label.setStyleSheet("""
+            QLabel {
+                color: #ff6b6b;
+                font-size: 12px;
+                padding: 5px;
+                background-color: #1e1e1e;
+                border-radius: 3px;
+                border: 1px solid #555555;
+            }
+        """)
+        supabase_form.addRow("Status:", self.supabase_status_label)
+
+        # Test Connection Button
+        self.test_supabase_button = QPushButton("Test Connection")
+        self.test_supabase_button.setStyleSheet(self.get_button_style("secondary"))
+        self.test_supabase_button.clicked.connect(self.test_supabase_connection)
+        supabase_form.addRow("", self.test_supabase_button)
+
+        # Save Supabase Settings Button
+        self.save_supabase_button = QPushButton("Save Supabase Settings")
+        self.save_supabase_button.setStyleSheet(self.get_button_style("primary"))
+        self.save_supabase_button.clicked.connect(self.save_supabase_settings)
+        supabase_form.addRow("", self.save_supabase_button)
+
+        supabase_layout.addWidget(supabase_frame)
+        supabase_layout.addStretch()
+
+        self.tab_widget.addTab(supabase_tab, "Supabase Settings")
+
+        # Update Supabase status
+        self.update_supabase_status()
+
+    def test_supabase_connection(self):
+        """Test the Supabase connection."""
+        try:
+            # Get current settings
+            supabase_url = self.supabase_url_input.text().strip()
+            supabase_key = self.supabase_key_input.text().strip()
+
+            if not supabase_url or not supabase_key:
+                QMessageBox.warning(self, "Supabase Test", "Please enter both Supabase URL and API key.")
+                return
+
+            # Validate URL format
+            if not (supabase_url.startswith('http://') or supabase_url.startswith('https://')):
+                QMessageBox.warning(self, "Supabase Test", "Please enter a valid URL starting with http:// or https://")
+                return
+
+            # Test connection by creating a client
+            from ..supabase_client import SupabaseClient
+            test_client = SupabaseClient(supabase_url, supabase_key)
+
+            if test_client.is_connected:
+                QMessageBox.information(self, "Supabase Test",
+                    "Connection successful!\n\nSupabase client initialized successfully.")
+                self.supabase_status_label.setText("Connected")
+                self.supabase_status_label.setStyleSheet("""
+                    QLabel {
+                        color: #4caf50;
+                        font-size: 12px;
+                        padding: 5px;
+                        background-color: #1e1e1e;
+                        border-radius: 3px;
+                        border: 1px solid #555555;
+                    }
+                """)
+            else:
+                QMessageBox.warning(self, "Supabase Test",
+                    "Failed to connect to Supabase.\n\nPlease check your URL and API key.")
+                self.supabase_status_label.setText("Connection Failed")
+                self.supabase_status_label.setStyleSheet("""
+                    QLabel {
+                        color: #ff9800;
+                        font-size: 12px;
+                        padding: 5px;
+                        background-color: #1e1e1e;
+                        border-radius: 3px;
+                        border: 1px solid #555555;
+                    }
+                """)
+
+        except Exception as e:
+            logger.error(f"Error testing Supabase connection: {e}")
+            QMessageBox.critical(self, "Supabase Test", f"Error testing connection: {str(e)}")
+            self.supabase_status_label.setText("Error")
+            self.supabase_status_label.setStyleSheet("""
+                QLabel {
+                    color: #ff6b6b;
+                    font-size: 12px;
+                    padding: 5px;
+                    background-color: #1e1e1e;
+                    border-radius: 3px;
+                    border: 1px solid #555555;
+                }
+            """)
+
+    def save_supabase_settings(self):
+        """Save the Supabase settings."""
+        try:
+            supabase_url = self.supabase_url_input.text().strip()
+            supabase_key = self.supabase_key_input.text().strip()
+            enable_supabase = self.supabase_enable_checkbox.isChecked()
+
+            # Validate URL format if provided
+            if supabase_url and not (supabase_url.startswith('http://') or supabase_url.startswith('https://')):
+                QMessageBox.warning(self, "Supabase Settings", "Please enter a valid URL starting with http:// or https://")
+                return
+
+            # Create Supabase settings
+            supabase_settings = {
+                "supabase_url": supabase_url,
+                "supabase_key": supabase_key,
+                "enable_supabase": enable_supabase
+            }
+
+            # Update current settings
+            self.current_settings.update(supabase_settings)
+
+            # Emit settings update signal
+            self.settings_updated.emit(self.current_settings)
+
+            # Update status display
+            self.update_supabase_status()
+
+            QMessageBox.information(self, "Supabase Settings",
+                f"Supabase settings saved successfully!\n\nURL: {supabase_url}\nEnabled: {enable_supabase}")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Supabase Settings", f"Error saving Supabase settings: {str(e)}")
+            logger.error(f"Error saving Supabase settings: {e}")
+
+    def update_supabase_status(self):
+        """Update the Supabase connection status display."""
+        enable_supabase = self.current_settings.get("enable_supabase", False)
+        supabase_url = self.current_settings.get("supabase_url", "")
+
+        if enable_supabase and supabase_url:
+            self.supabase_status_label.setText("Configured")
+            self.supabase_status_label.setStyleSheet("""
+                QLabel {
+                    color: #4caf50;
+                    font-size: 12px;
+                    padding: 5px;
+                    background-color: #1e1e1e;
+                    border-radius: 3px;
+                    border: 1px solid #555555;
+                }
+            """)
+        else:
+            self.supabase_status_label.setText("Not Configured")
+            self.supabase_status_label.setStyleSheet("""
+                QLabel {
+                    color: #ff6b6b;
+                    font-size: 12px;
+                    padding: 5px;
+                    background-color: #1e1e1e;
+                    border-radius: 3px;
+                    border: 1px solid #555555;
+                }
+            """)
+
     def test_api_connection(self):
         """Test the API connection with JSON format."""
         try:
@@ -930,7 +1179,7 @@ class SettingsDialog(QDialog):
             decimal_format = self.decimal_combo.currentText()
             rounding = "UP" if self.round_up_radio.isChecked() else "DOWN"
             
-            # Map decimal format to decimal points
+            # Map rounding precision to decimal points
             decimal_points_map = {"#": 0, "#.#": 1, "#.##": 2}
             decimal_points = decimal_points_map.get(decimal_format, 1)
             
@@ -1223,11 +1472,11 @@ class SettingsDialog(QDialog):
                 logger.error(f"Invalid tolerance value: {tolerance_text}")
                 raise ValueError(f"Invalid tolerance value: {tolerance_text}. Must be a number between 0-100")
             
-            # Get decimal format
+            # Get rounding precision
             decimal_format = self.decimal_combo.currentText()
             decimal_points_map = {"#": 0, "#.#": 1, "#.##": 2}
             if decimal_format not in decimal_points_map:
-                raise ValueError(f"Invalid decimal format: {decimal_format}")
+                raise ValueError(f"Invalid rounding precision: {decimal_format}")
             
             # Get rounding method
             rounding = "UP" if self.round_up_radio.isChecked() else "DOWN"
@@ -1262,7 +1511,12 @@ class SettingsDialog(QDialog):
                 "selected_printer": selected_printer,
                 
                 # API settings
-                "api_url": self.current_settings.get("api_url", "")
+                "api_url": self.current_settings.get("api_url", ""),
+
+                # Supabase settings
+                "supabase_url": self.current_settings.get("supabase_url", ""),
+                "supabase_key": self.current_settings.get("supabase_key", ""),
+                "enable_supabase": self.current_settings.get("enable_supabase", False)
             }
             
             logger.info(f"Settings to save: {settings}")

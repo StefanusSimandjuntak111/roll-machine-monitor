@@ -1,0 +1,16 @@
+{
+    "serial_port": "COM4",
+    "baudrate": 19200,
+    "machine_name": "JSK3588",
+    "length_tolerance": 0.0,
+    "decimal_points": 1,
+    "rounding": "UP",
+    "auto_send_enabled": true,
+    "auto_send_command": "55 AA 02 00 00",
+    "auto_send_interval": 1200,
+    "kiosk_mode": true,
+    "log_level": "INFO",
+    "export_format": "csv",
+    "data_retention_days": 30
+}
+

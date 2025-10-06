@@ -15,6 +15,7 @@ from datetime import datetime
 import re
 
 from .connection_settings import ConnectionSettings
+from ..batch_manager import get_batch_manager
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -233,6 +234,7 @@ class ProductForm(QWidget):
         self._last_user_input = ""
         self._current_machine_length = None
         self._current_unit = "Meter"  # Default unit
+        self._last_valid_length = 0.0  # Store last valid length to prevent reset to 0
         
         # Initialize instance-specific search stats
         self._instance_search_stats = {
@@ -242,6 +244,9 @@ class ProductForm(QWidget):
             'no_matches': 0,
             'api_issues': 0
         }
+        
+        # Initialize batch manager
+        self._batch_manager = get_batch_manager()
         
         self.setup_ui()
         
@@ -602,6 +607,7 @@ class ProductForm(QWidget):
             }
         """
         
+
         # Print Button
         self.print_button = QPushButton("Print")
         self.print_button.setObjectName("print_button")
@@ -609,7 +615,7 @@ class ProductForm(QWidget):
         self.print_button.setStyleSheet(action_button_style)
         self.print_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         buttons_layout.addWidget(self.print_button)
-        
+
         # Close Cycle Button
         self.close_cycle_button = QPushButton("Close Cycle")
         self.close_cycle_button.setObjectName("close_cycle_button")
@@ -658,14 +664,22 @@ class ProductForm(QWidget):
         self.reset_counter.emit()
         
     def print_product_info(self):
-        """Print product information directly using printer utils."""
-        if not self.validate_inputs():
-            return
+        """
+        Save product information first, then print product label.
+        Combines save and print functionality into one action.
+        """
+        # First, save the product information
+        if not self._save_product_info():
+            return  # If save failed, don't proceed with printing
             
-        # Get current config for decimal points (same as print preview)
+        # Get current config for decimal points and selected printer
         from monitoring.config import load_config
         config = load_config()
         decimal_points = config.get("decimal_points", 1)
+        selected_printer = config.get("selected_printer")
+        
+        # Log selected printer for debugging
+        logger.info(f"Print button clicked - Selected printer: {selected_printer}")
         
         # Get product info with consistent field names for printing (same structure as print preview)
         product_info = {
@@ -689,21 +703,36 @@ class ProductForm(QWidget):
         # Import and use printer utils for direct printing
         try:
             from .printer_utils import print_product_label
-            print_product_label(product_info, current_machine_length)
+            # Pass selected_printer explicitly (same as test print in settings)
+            success = print_product_label(product_info, current_machine_length, selected_printer)
             
-            # Emit print logged signal for logging
-            self.emit_print_logged(product_info)
+            if success:
+                logger.info("Print job sent successfully")
+                # Emit print logged signal for logging
+                self.emit_print_logged(product_info)
+                
+                # Show success message
+                self._show_kiosk_dialog(
+                    "information",
+                    "Save & Print Success",
+                    f"Product saved and print job sent successfully to '{selected_printer}'!\n\nBatch: {product_info['batch_number']}\nProduct: {product_info['product_code']}"
+                )
+            else:
+                logger.error("Print job failed")
+                self._show_kiosk_dialog(
+                    "warning",
+                    "Print Failed",
+                    f"Product saved successfully, but print job failed.\n\nPlease check printer connection and settings."
+                )
             
         except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
             logger.error(f"Error printing product label: {e}")
             
             # Show error dialog
             self._show_kiosk_dialog(
                 "critical",
                 "Print Error",
-                f"Error printing product label:\n\n{str(e)}"
+                f"Product saved successfully, but error printing label:\n\n{str(e)}"
             )
     
     def emit_print_logged(self, print_data: dict):
@@ -911,9 +940,17 @@ class ProductForm(QWidget):
                 match = re.search(r'(\d+\.?\d*)', length_print_text)
                 if match:
                     length_value = float(match.group(1))
+                    
+                    # Prevent length reset to 0 - use last valid length if current is 0
+                    if length_value > 0.001:  # If length is valid (> 0.001)
+                        self._last_valid_length = length_value
+                    
+                    # Use last valid length if current is 0 or very small
+                    display_length = length_value if length_value > 0.001 else getattr(self, '_last_valid_length', 0.0)
+                    
                     # Update current length display (readonly) - this is the data from device
-                    self.current_length.setValue(round(length_value, 2))
-                    # logger.info(f"Updated current length display with length print value: {length_value}")
+                    self.current_length.setValue(round(display_length, 2))
+                    # logger.info(f"Updated current length display with length print value: {display_length}")
                 else:
                     logger.warning(f"Could not extract numeric value from length print text: {length_print_text}")
             except Exception as e:
@@ -1154,25 +1191,81 @@ class ProductForm(QWidget):
                 f"Error showing print preview:\n\n{str(e)}"
             )
 
-    def save_product_info(self):
-        """Validate and save product information."""
+    def _save_product_info(self) -> bool:
+        """
+        Internal method to save product information with auto-batch generation and Supabase integration.
+        Returns True if save was successful, False otherwise.
+        """
         if not self.validate_inputs():
-            return
-            
+            return False
+
+        # Get product code
+        product_code = self.product_code.text().strip()
+
+        # Auto-generate batch number based on product code
+        # If batch_number field is empty, generate automatically
+        # Otherwise, use the manual batch number
+        batch_number_input = self.batch_number.text().strip()
+        if not batch_number_input:
+            batch_number = self._batch_manager.get_batch_for_product(product_code)
+            # Update the batch_number field with auto-generated batch
+            self.batch_number.setText(batch_number)
+            logger.info(f"Auto-generated batch: {batch_number} for product: {product_code}")
+        else:
+            batch_number = batch_number_input
+            logger.info(f"Using manual batch: {batch_number}")
+
         # Create product info dictionary with consistent field names
         product_info = {
-            'product_code': self.product_code.text().strip(),
+            'product_code': product_code,
             'product_name': self.product_name.text().strip(),
             'color_code': self.color_code.text().strip(),
             'color': self.color_code.text().strip(),  # For backward compatibility
             'barcode': self._barcode,
-            'batch_number': self.batch_number.text().strip(),
+            'batch_number': batch_number,
             'current_length': self.current_length.value(),
             'target_length': self.target_length.value(),
             'units': self.unit_group.checkedButton().text()
         }
-        # Emit the product_updated signal
+
+        # Save batch metadata to Supabase
+        try:
+            from ..supabase_client import get_supabase_client
+            supabase_client = get_supabase_client()
+
+            if supabase_client.is_connected:
+                logger.info(f"Saving batch to Supabase: {batch_number}")
+                # Prepare batch metadata for Supabase
+                batch_metadata = {
+                    'batch': batch_number,
+                    'product_code': product_code,
+                    'product_name': self.product_name.text().strip(),
+                    'color_code': self.color_code.text().strip(),
+                    'target_length': self.target_length.value(),
+                    'units': self.unit_group.checkedButton().text(),
+                    'created_at': datetime.now().isoformat(),
+                    'status': 'active'
+                }
+
+                # Save to Supabase batch_metadata table
+                result = supabase_client.insert_batch_metadata(batch_metadata)
+
+                if result:
+                    logger.info(f"Batch metadata saved to Supabase successfully: {batch_number}")
+                else:
+                    logger.error(f"Failed to save batch metadata to Supabase: {batch_number}")
+                    # Don't show dialog here, let the calling method handle it
+            else:
+                logger.warning("Supabase not connected, saving locally only")
+
+        except Exception as e:
+            logger.error(f"Error saving batch to Supabase: {e}")
+            # Don't show dialog here, let the calling method handle it
+
+        # Emit the product_updated signal for backward compatibility
         self.product_updated.emit(product_info)
+        
+        return True
 
     def close_cycle_with_save(self):
         """Emit signal to close the current cycle and get final cycle time."""
@@ -1184,8 +1277,8 @@ class ProductForm(QWidget):
         # Track current user input
         self._last_user_input = self.product_code.text().strip()
         
-        # Reduce delay to 100ms for faster response (was 150ms)
-        self._search_timer.start(100)  # Start timer for delayed search
+        # Set delay to 3 seconds (3000ms) as requested
+        self._search_timer.start(1000)  # Start timer for delayed search
 
     def _on_product_code_finished(self):
         """Handle editing finished in product code input."""

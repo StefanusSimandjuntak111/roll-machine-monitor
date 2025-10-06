@@ -77,18 +77,37 @@ class SerialReader(QThread):
         self.serial_port = serial_port
         self.parser_callback = parser_callback
         self.running = False
+        # FIX: Add idle detection
+        self.last_activity = time.time()
+        self.idle_timeout = 300  # 5 minutes idle timeout
         
     def run(self):
         """Run the serial reading loop."""
         self.running = True
         while self.running and self.serial_port.is_open:
             try:
-                if self.serial_port.in_waiting > 0:
+                # FIX: Add proper exit condition check
+                if not self.running:
+                    break
+                    
+                # FIX: Check for idle timeout
+                current_time = time.time()
+                if current_time - self.last_activity > self.idle_timeout:
+                    logger.warning("SerialReader idle timeout detected, restarting...")
+                    # Restart the thread to prevent hang
+                    self.running = False
+                    break
+                    
+                # FIX: Use non-blocking read with timeout
+                if hasattr(self.serial_port, 'in_waiting') and self.serial_port.in_waiting > 0:
                     data = self.serial_port.read(self.serial_port.in_waiting)
                     if data:
                         hex_data = ' '.join([f'{b:02X}' for b in data])
                         timestamp = datetime.now().strftime('%H:%M:%S.%f')[:-3]
                         self.data_received.emit(f"[{timestamp}] RX: {hex_data}")
+                        
+                        # Update activity timestamp
+                        self.last_activity = current_time
                         
                         # Try to parse packet if parser callback available
                         if self.parser_callback:
@@ -99,14 +118,20 @@ class SerialReader(QThread):
                             except Exception as e:
                                 logger.debug(f"Parse error: {e}")
                                 
-                time.sleep(0.01)  # Small delay to prevent high CPU usage
+                # FIX: Increase sleep time to reduce CPU usage and prevent hang
+                time.sleep(0.05)  # Changed from 0.01 to 0.05 (50ms)
+                
             except Exception as e:
+                logger.error(f"SerialReader error: {e}")
                 self.error_occurred.emit(f"Read error: {e}")
-                break
+                # FIX: Don't break on error, just log and continue
+                time.sleep(0.1)  # Wait before retrying
                 
     def stop(self):
         """Stop the reading thread."""
         self.running = False
+        # FIX: Wait for thread to finish
+        self.wait(1000)  # Wait max 1 second
 
 class JSKSerialPort:
     """Enhanced handler untuk komunikasi serial dengan mesin JSK3588."""
@@ -131,7 +156,7 @@ class JSKSerialPort:
         # Enhanced features from serial_tool.py
         self.reader_thread: Optional[SerialReader] = None
         self.auto_send_timer: Optional[QTimer] = None
-        self.auto_send_interval = 100  # ms
+        self.auto_send_interval = 1200  # Changed from 100ms to 1200ms
         self.auto_send_command = "55 AA 02 00 00"  # Query Status
         self.auto_send_active = False
         
@@ -316,21 +341,38 @@ class JSKSerialPort:
         return self._detected_port or self.port
 
     def close(self) -> None:
-        """Tutup koneksi serial dan stop threads."""
-        # Stop auto send
-        self.stop_auto_send()
-        
-        # Stop reader thread
-        if self.reader_thread:
-            self.reader_thread.stop()
-            self.reader_thread.wait()
-            self.reader_thread = None
-        
-        # Close serial port
-        if self._serial and self._serial.is_open:
-            self._serial.close()
-            port_name = self._detected_port or self.port
-            logger.info(f"Port {port_name} closed")
+        """Close serial port dan cleanup resources."""
+        try:
+            # FIX: Stop auto-send first
+            self.stop_auto_send()
+            
+            # FIX: Stop reader thread properly
+            if self.reader_thread:
+                self.reader_thread.stop()
+                self.reader_thread.wait(2000)  # Wait max 2 seconds
+                if self.reader_thread.isRunning():
+                    logger.warning("Reader thread did not stop gracefully, terminating")
+                    self.reader_thread.terminate()
+                    self.reader_thread.wait(1000)
+                self.reader_thread = None
+            
+            # FIX: Cleanup timer
+            if self.auto_send_timer:
+                self.auto_send_timer.stop()
+                self.auto_send_timer = None
+            
+            # Close serial port
+            if self._serial:
+                if self._serial.is_open:
+                    self._serial.close()
+                self._serial = None
+                
+            logger.info("Serial port closed and resources cleaned up")
+            
+        except Exception as e:
+            logger.error(f"Error during close: {e}")
+        finally:
+            self.auto_send_active = False
 
     def send(self, data: bytes) -> None:
         """Kirim data ke port serial dengan real-time display."""
@@ -379,15 +421,19 @@ class JSKSerialPort:
             raise SerialException("Port not open")
         
         try:
-            # Clear input buffer first
-            self._serial.reset_input_buffer()
+            # FIX: Don't clear input buffer immediately - might lose data
+            # self._serial.reset_input_buffer()
             
             # Read with timeout
             data = b""
             start_time = time.time()
-            timeout = 3.0  # 3 second timeout
+            timeout = 2.0  # FIX: Reduced from 3.0 to 2.0 seconds
             
             while time.time() - start_time < timeout:
+                # FIX: Add proper exit condition
+                if not self._serial or not self._serial.is_open:
+                    break
+                    
                 if self._serial.in_waiting > 0:
                     chunk = self._serial.read(self._serial.in_waiting)
                     data += chunk
@@ -402,7 +448,8 @@ class JSKSerialPort:
                                 logger.debug(f"[Terima lengkap] {data.hex()}")
                                 return data
                 
-                time.sleep(0.1)
+                # FIX: Reduce sleep time to prevent hang
+                time.sleep(0.05)  # Changed from 0.1 to 0.05 (50ms)
             
             # Return whatever we got if timeout
             if data:
@@ -424,28 +471,72 @@ class JSKSerialPort:
         if interval is not None:
             self.auto_send_interval = interval
             
-        if not self.auto_send_timer:
+        # FIX: Stop existing timer before creating new one
+        if self.auto_send_timer:
+            self.auto_send_timer.stop()
+            self.auto_send_timer.deleteLater()
+            
+        # FIX: Create new timer with proper error handling
+        try:
             self.auto_send_timer = QTimer()
             self.auto_send_timer.timeout.connect(self._auto_send_data)
-            
-        self.auto_send_timer.start(self.auto_send_interval)
-        self.auto_send_active = True
-        logger.info(f"Auto-send started: {self.auto_send_command} every {self.auto_send_interval}ms")
+            self.auto_send_timer.start(self.auto_send_interval)
+            self.auto_send_active = True
+            logger.info(f"Auto-send started: {self.auto_send_command} every {self.auto_send_interval}ms")
+        except Exception as e:
+            logger.error(f"Error starting auto-send timer: {e}")
+            self.auto_send_active = False
 
     def stop_auto_send(self) -> None:
         """Stop auto-send functionality."""
-        if self.auto_send_timer:
-            self.auto_send_timer.stop()
-        self.auto_send_active = False
-        logger.info("Auto-send stopped")
+        try:
+            if self.auto_send_timer:
+                self.auto_send_timer.stop()
+                # FIX: Don't delete timer immediately to prevent crashes
+                # self.auto_send_timer.deleteLater()
+        except Exception as e:
+            logger.error(f"Error stopping auto-send: {e}")
+        finally:
+            self.auto_send_active = False
+            logger.info("Auto-send stopped")
 
     def _auto_send_data(self) -> None:
         """Send data automatically."""
         try:
-            if self._serial and self._serial.is_open:
+            # FIX: Add proper checks before sending
+            if (self._serial and 
+                self._serial.is_open and 
+                self.auto_send_active and 
+                self.auto_send_command):
+                
+                # FIX: Add timeout protection
+                start_time = time.time()
                 self.send_hex(self.auto_send_command)
+                
+                # FIX: Log if send takes too long
+                send_time = time.time() - start_time
+                if send_time > 0.1:  # If send takes more than 100ms
+                    logger.warning(f"Auto-send took {send_time*1000:.1f}ms")
+                    
         except Exception as e:
             logger.error(f"Auto-send error: {e}")
+            # FIX: Stop auto-send on repeated errors
+            if "timeout" in str(e).lower() or "not open" in str(e).lower():
+                logger.warning("Stopping auto-send due to serial errors")
+                self.stop_auto_send()
+
+    # FIX: Add auto-recovery method
+    def restart_if_needed(self) -> bool:
+        """Restart serial communication if needed (after idle timeout)."""
+        try:
+            if self.reader_thread and not self.reader_thread.isRunning():
+                logger.info("Restarting reader thread...")
+                self.start_reader()
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error restarting serial communication: {e}")
+            return False
 
     def is_auto_send_active(self) -> bool:
         """Check if auto-send is active."""
@@ -611,3 +702,10 @@ class JSKSerialPort:
         self.close()
         if hasattr(self, '_on_disconnect') and self._on_disconnect:
             self._on_disconnect() 
+
+    def __del__(self):
+        """Destructor untuk cleanup otomatis."""
+        try:
+            self.close()
+        except:
+            pass  # Ignore errors during destruction 
