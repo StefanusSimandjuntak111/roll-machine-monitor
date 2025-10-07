@@ -8,6 +8,8 @@
     "supabase_url": "https://ifhwcfpakstnljkkfcfl.supabase.co",
     "supabase_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmaHdjZnBha3N0bmxqa2tmY2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NTk4NzAsImV4cCI6MjA3NTAzNTg3MH0.1_jBQcXGIwu91l3-425G4yi__dU3h0PkgY6WyLepR7Y",
     "enable_supabase": true,
+    "batch_name_format": "PRE.BD-01_0212_2025-10-07",
+    "batch_start_number": "2",
     "timeout": 1.0,
     "use_mock_data": true,
     "poll_interval": 1.0,
@@ -27,7 +29,7 @@
     "api_method": "POST",
     "api_content_type": "application/json",
     "print_copy_count": 2,
-    "selected_printer": "ZDesigner ZD230-203dpi ZPL (Copy 1)",
+    "selected_printer": "\\\\192.168.2.32\\EPSON L3210 Series",
     "label_width_mm": 100.0,
     "label_height_mm": 100.0
 }

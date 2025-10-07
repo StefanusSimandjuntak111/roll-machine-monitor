@@ -246,7 +246,14 @@ class ProductForm(QWidget):
         }
         
         # Initialize batch manager
-        self._batch_manager = get_batch_manager()
+        # Load settings for batch manager
+        try:
+            from ..config import load_config
+            config = load_config()
+            self._batch_manager = get_batch_manager(settings=config)
+        except Exception as e:
+            logger.warning(f"Could not load config for batch manager: {e}")
+            self._batch_manager = get_batch_manager()
         
         self.setup_ui()
         
@@ -1207,7 +1214,17 @@ class ProductForm(QWidget):
         # Otherwise, use the manual batch number
         batch_number_input = self.batch_number.text().strip()
         if not batch_number_input:
-            batch_number = self._batch_manager.get_batch_for_product(product_code)
+            # Ensure batch_manager has latest settings
+            try:
+                from ..config import load_config
+                config = load_config()
+                self._batch_manager.update_settings(config)
+            except Exception as e:
+                logger.warning(f"Could not update batch manager settings: {e}")
+
+            # Get color code for batch generation
+            color_code = self.color_code.text().strip() if hasattr(self, 'color_code') else ""
+            batch_number = self._batch_manager.get_batch_for_product(product_code, color_code)
             # Update the batch_number field with auto-generated batch
             self.batch_number.setText(batch_number)
             logger.info(f"Auto-generated batch: {batch_number} for product: {product_code}")

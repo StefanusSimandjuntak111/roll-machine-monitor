@@ -1098,6 +1098,15 @@ del "%~f0"
         self.config.update(settings)
         save_config(self.config)
         
+        # Update BatchManager settings if batch name settings changed
+        if any(key in settings for key in ['batch_name_format', 'batch_start_number']):
+            try:
+                from ..batch_manager import get_batch_manager
+                batch_manager = get_batch_manager(settings=self.config)
+                logger.info("Updated BatchManager with new batch name settings")
+            except Exception as e:
+                logger.error(f"Error updating BatchManager settings: {e}")
+        
         # Check if settings require monitoring restart
         needs_restart = self._needs_monitoring_restart(settings)
         
@@ -1161,10 +1170,13 @@ del "%~f0"
                 # If no batch number, try to get from batch_manager
                 if not batch_number or batch_number == 'Unknown':
                     from ..batch_manager import get_batch_manager
-                    batch_manager = get_batch_manager()
+                    from ..config import load_config
+                    config = load_config()
+                    batch_manager = get_batch_manager(settings=config)
                     product_code = product_info.get('product_code', '')
                     if product_code:
-                        batch_number = batch_manager.get_batch_for_product(product_code)
+                        color_code = product_info.get('color_code', '')
+                        batch_number = batch_manager.get_batch_for_product(product_code, color_code)
                         logger.info(f"Auto-generated batch for production log: {batch_number}")
                 
                 # Save production log to Supabase

@@ -34,7 +34,9 @@ DEFAULT_CONFIG = {
     "api_url": "http://192.168.68.111:8001/api/method/frappe.utils.custom_api.get_product_detail",  # API URL for product data
     "supabase_url": "",  # Supabase project URL
     "supabase_key": "",  # Supabase API key
-    "enable_supabase": False  # Enable/disable Supabase integration
+    "enable_supabase": False,  # Enable/disable Supabase integration
+    "batch_name_format": "YYYY-MM-DD_product-code_color-code",  # Custom batch name format
+    "batch_start_number": "1"  # Starting number for batch counter
 }
 
 def load_config() -> Dict[str, Any]:

@@ -73,6 +73,7 @@ class SettingsDialog(QDialog):
         self.create_printer_settings_tab()
         self.create_api_settings_tab()
         self.create_supabase_settings_tab()
+        self.create_batch_name_settings_tab()
         
         layout.addWidget(self.tab_widget)
         
@@ -839,6 +840,254 @@ class SettingsDialog(QDialog):
         # Update Supabase status
         self.update_supabase_status()
 
+    def create_batch_name_settings_tab(self):
+        """Create the Batch Name Settings tab."""
+        batch_tab = QWidget()
+        batch_layout = QVBoxLayout(batch_tab)
+        batch_layout.setSpacing(20)
+
+        # Title
+        title = QLabel("Batch Name Settings")
+        title.setStyleSheet("font-size: 18px; font-weight: bold; color: white; margin-bottom: 10px;")
+        batch_layout.addWidget(title)
+
+        # Settings frame
+        settings_frame = QFrame()
+        settings_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        settings_frame.setStyleSheet("""
+            QFrame {
+                background-color: #2d2d2d;
+                border: 1px solid #555555;
+                border-radius: 8px;
+                padding: 15px;
+            }
+            QLabel {
+                color: #e0e0e0;
+                font-size: 14px;
+            }
+            QLineEdit {
+                background-color: #1e1e1e;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                padding: 8px;
+                color: white;
+                font-size: 12px;
+            }
+            QLineEdit:focus {
+                border: 2px solid #0078d4;
+            }
+            QComboBox {
+                background-color: #1e1e1e;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                padding: 8px;
+                color: white;
+                font-size: 12px;
+                min-height: 20px;
+            }
+            QComboBox:focus {
+                border: 2px solid #0078d4;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid white;
+            }
+            QGroupBox {
+                color: #e0e0e0;
+                font-weight: bold;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                margin-top: 1ex;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+            }
+        """)
+
+        batch_form = QFormLayout(settings_frame)
+        batch_form.setSpacing(15)
+
+        # Batch Name Format Group
+        format_group = QGroupBox("Custom Batch Name Format")
+        format_layout = QVBoxLayout(format_group)
+
+        # Custom format input
+        self.batch_format_input = QLineEdit()
+        self.batch_format_input.setPlaceholderText("YYYY-MM-DD_product-code_color-code")
+        current_batch_format = self.current_settings.get("batch_name_format", "YYYY-MM-DD_product-code_color-code")
+        self.batch_format_input.setText(current_batch_format)
+        self.batch_format_input.textChanged.connect(self.update_batch_preview)
+        format_layout.addWidget(QLabel("Custom Format (tanpa auto increment):"))
+        format_layout.addWidget(self.batch_format_input)
+
+        # Format description
+        format_desc = QLabel("Available variables: {date}, {product_code}, {color_code}, {time}, {length}, {operator}")
+        format_desc.setStyleSheet("color: #888888; font-size: 11px; font-style: italic;")
+        format_layout.addWidget(format_desc)
+
+        # Auto increment info
+        auto_info = QLabel("Format auto increment: #### (akan menjadi 0001, 0002, 0003, dst)")
+        auto_info.setStyleSheet("color: #0078d4; font-size: 11px; font-weight: bold;")
+        format_layout.addWidget(auto_info)
+
+        batch_form.addRow(format_group)
+
+        # Batch Preview Group
+        preview_group = QGroupBox("Batch Name Preview")
+        preview_layout = QVBoxLayout(preview_group)
+
+        self.batch_preview = QLabel("2024-01-15_BD-1_001_0001")
+        self.batch_preview.setStyleSheet("""
+            QLabel {
+                color: #00ff00;
+                font-size: 16px;
+                font-weight: bold;
+                padding: 10px;
+                background-color: #1e1e1e;
+                border-radius: 5px;
+                border: 1px solid #444444;
+            }
+        """)
+        self.batch_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        preview_layout.addWidget(self.batch_preview)
+
+        # Preview explanation
+        preview_desc = QLabel("Format lengkap: [Custom Format]_[Auto Increment]")
+        preview_desc.setStyleSheet("color: #888888; font-size: 10px; font-style: italic;")
+        preview_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        preview_layout.addWidget(preview_desc)
+
+        batch_form.addRow(preview_group)
+
+        # Auto Increment Settings Group
+        auto_increment_group = QGroupBox("Auto Increment Settings")
+        auto_increment_layout = QVBoxLayout(auto_increment_group)
+
+        # Starting number
+        self.batch_start_number_input = QLineEdit()
+        self.batch_start_number_input.setPlaceholderText("1")
+        current_start_number = self.current_settings.get("batch_start_number", "1")
+        self.batch_start_number_input.setText(current_start_number)
+        self.batch_start_number_input.textChanged.connect(self.update_batch_preview)
+        auto_increment_layout.addWidget(QLabel("Starting Number:"))
+        auto_increment_layout.addWidget(self.batch_start_number_input)
+
+        # Auto increment info
+        auto_increment_info = QLabel("Format: 0001, 0002, 0003, dst (4 digit dengan leading zero)")
+        auto_increment_info.setStyleSheet("color: #888888; font-size: 11px; font-style: italic;")
+        auto_increment_layout.addWidget(auto_increment_info)
+
+        batch_form.addRow(auto_increment_group)
+
+        batch_layout.addWidget(settings_frame)
+        batch_layout.addStretch()
+
+        self.tab_widget.addTab(batch_tab, "Batch Name Settings")
+
+        # Initialize batch preview
+        self.update_batch_preview()
+
+    def update_batch_preview(self):
+        """Update the batch name preview based on current settings."""
+        try:
+            # Get current custom format
+            custom_format = self.batch_format_input.text() or "YYYY-MM-DD_product-code_color-code"
+            
+            # Get starting number
+            start_number = self.batch_start_number_input.text() or "1"
+            try:
+                start_num = int(start_number)
+            except ValueError:
+                start_num = 1
+            
+            # Sample data for preview
+            from datetime import datetime
+            now = datetime.now()
+            
+            sample_data = {
+                "date": now.strftime("%Y-%m-%d"),
+                "product_code": "BD-1",
+                "color_code": "001", 
+                "time": now.strftime("%H-%M"),
+                "length": "25.5",
+                "operator": "OP001"
+            }
+            
+            # Replace variables in custom format
+            preview = custom_format
+            for key, value in sample_data.items():
+                preview = preview.replace(f"{{{key}}}", value)
+            
+            # Add auto increment part
+            auto_increment = f"{start_num:04d}"  # Format as 0001, 0002, etc.
+            final_preview = f"{preview}_{auto_increment}"
+            
+            # Update preview
+            self.batch_preview.setText(final_preview)
+            
+        except Exception as e:
+            logger.error(f"Error updating batch preview: {e}")
+            self.batch_preview.setText("Error in format")
+
+    def generate_batch_name(self, product_code="", color_code="", custom_data=None):
+        """
+        Generate batch name based on current settings.
+        
+        Args:
+            product_code (str): Product code
+            color_code (str): Color code  
+            custom_data (dict): Additional custom data for format variables
+            
+        Returns:
+            str: Generated batch name
+        """
+        try:
+            # Get current settings
+            custom_format = self.current_settings.get("batch_name_format", "YYYY-MM-DD_product-code_color-code")
+            start_number = int(self.current_settings.get("batch_start_number", "1"))
+            
+            # Get current data
+            from datetime import datetime
+            now = datetime.now()
+            
+            # Default data
+            data = {
+                "date": now.strftime("%Y-%m-%d"),
+                "product_code": product_code or "PRODUCT",
+                "color_code": color_code or "COLOR", 
+                "time": now.strftime("%H-%M"),
+                "length": "25.5",
+                "operator": "OP001"
+            }
+            
+            # Add custom data if provided
+            if custom_data:
+                data.update(custom_data)
+            
+            # Replace variables in custom format
+            batch_name = custom_format
+            for key, value in data.items():
+                batch_name = batch_name.replace(f"{{{key}}}", str(value))
+            
+            # Add auto increment part (4 digits with leading zeros)
+            auto_increment = f"{start_number:04d}"
+            final_batch_name = f"{batch_name}_{auto_increment}"
+            
+            return final_batch_name
+            
+        except Exception as e:
+            logger.error(f"Error generating batch name: {e}")
+            return f"BATCH_{start_number:04d}"
+
     def test_supabase_connection(self):
         """Test the Supabase connection."""
         try:
@@ -1516,7 +1765,11 @@ class SettingsDialog(QDialog):
                 # Supabase settings
                 "supabase_url": self.current_settings.get("supabase_url", ""),
                 "supabase_key": self.current_settings.get("supabase_key", ""),
-                "enable_supabase": self.current_settings.get("enable_supabase", False)
+                "enable_supabase": self.current_settings.get("enable_supabase", False),
+                
+                # Batch name settings
+                "batch_name_format": self.batch_format_input.text() if hasattr(self, 'batch_format_input') else "YYYY-MM-DD_product-code_color-code",
+                "batch_start_number": self.batch_start_number_input.text() if hasattr(self, 'batch_start_number_input') else "1"
             }
             
             logger.info(f"Settings to save: {settings}")
