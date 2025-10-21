@@ -4,7 +4,7 @@ Mengelola koneksi dan operasi CRUD ke Supabase.
 """
 import os
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
 from supabase import create_client, Client
 
@@ -48,18 +48,21 @@ class SupabaseClient:
         """Check apakah client terhubung dengan Supabase."""
         return self._connected and self.client is not None
     
-    def insert_production_log(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def insert_production_log(self, data: Dict[str, Any], queue_on_fail: bool = True) -> Optional[Dict[str, Any]]:
         """
         Insert production log data ke Supabase.
         
         Args:
             data: Dictionary berisi data produksi
+            queue_on_fail: If True, add to offline queue on failure
             
         Returns:
             Response dari Supabase atau None jika gagal
         """
         if not self.is_connected:
-            logger.warning("Supabase client not connected, skipping insert")
+            logger.warning("Supabase client not connected")
+            if queue_on_fail:
+                self._queue_failed_operation('production_log', data)
             return None
             
         try:
@@ -74,6 +77,8 @@ class SupabaseClient:
             
         except Exception as e:
             logger.error(f"Error inserting production log to Supabase: {e}")
+            if queue_on_fail:
+                self._queue_failed_operation('production_log', data)
             return None
     
     def get_logs_by_batch(self, batch: str) -> List[Dict[str, Any]]:
@@ -210,18 +215,21 @@ class SupabaseClient:
             logger.error(f"Error fetching batches from Supabase: {e}")
             return []
     
-    def insert_batch_metadata(self, batch_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def insert_batch_metadata(self, batch_data: Dict[str, Any], queue_on_fail: bool = True) -> Optional[Dict[str, Any]]:
         """
         Insert atau update batch metadata.
         
         Args:
             batch_data: Dictionary berisi metadata batch
+            queue_on_fail: If True, add to offline queue on failure
             
         Returns:
             Response dari Supabase atau None jika gagal
         """
         if not self.is_connected:
             logger.warning("Supabase client not connected")
+            if queue_on_fail:
+                self._queue_failed_operation('batch_metadata', batch_data)
             return None
             
         try:
@@ -235,7 +243,70 @@ class SupabaseClient:
             
         except Exception as e:
             logger.error(f"Error saving batch metadata to Supabase: {e}")
+            if queue_on_fail:
+                self._queue_failed_operation('batch_metadata', batch_data)
             return None
+    
+    def process_offline_queue(self) -> Tuple[int, int]:
+        """
+        Process offline queue of failed operations.
+        
+        Returns:
+            Tuple of (success_count, failed_count)
+        """
+        try:
+            from .offline_queue import get_offline_queue
+            queue = get_offline_queue()
+            return queue.process_queue(self)
+        except Exception as e:
+            logger.error(f"Error processing offline queue: {e}")
+            return 0, 0
+    
+    def get_queue_count(self) -> int:
+        """
+        Get count of pending operations in offline queue.
+        
+        Returns:
+            Number of pending operations
+        """
+        try:
+            from .offline_queue import get_offline_queue
+            queue = get_offline_queue()
+            return queue.get_queue_count()
+        except Exception as e:
+            logger.error(f"Error getting queue count: {e}")
+            return 0
+    
+    def get_queue_info(self) -> Dict[str, Any]:
+        """
+        Get detailed information about offline queue.
+        
+        Returns:
+            Dictionary with queue statistics
+        """
+        try:
+            from .offline_queue import get_offline_queue
+            queue = get_offline_queue()
+            return queue.get_queue_info()
+        except Exception as e:
+            logger.error(f"Error getting queue info: {e}")
+            return {'total_count': 0, 'batch_metadata_count': 0, 'production_log_count': 0}
+    
+    def _queue_failed_operation(self, operation_type: str, data: Dict[str, Any]) -> None:
+        """
+        Add failed operation to offline queue.
+        
+        Args:
+            operation_type: Type of operation (batch_metadata, production_log)
+            data: Data that failed to save
+        """
+        try:
+            from .offline_queue import get_offline_queue
+            queue = get_offline_queue()
+            queue.add_operation(operation_type, data)
+            logger.info(f"Operation queued for retry: {operation_type}")
+        except Exception as e:
+            logger.error(f"Error queuing failed operation: {e}")
 
 
 # Global singleton instance

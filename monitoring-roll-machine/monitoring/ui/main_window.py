@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
     QLabel, QPushButton, QComboBox, QSpinBox,
     QLineEdit, QFormLayout, QGroupBox, QScrollArea,
     QSizePolicy, QApplication, QMessageBox, QFrame,
-    QStackedWidget
+    QStackedWidget, QDialog
 )
 from PySide6.QtCore import Qt, QTimer, Slot, Signal
 from PySide6.QtGui import QIcon, QFont, QCloseEvent, QPalette, QColor
@@ -36,6 +36,7 @@ from .settings_dialog import SettingsDialog
 from .connection_settings import ConnectionSettings
 from .logging_table_widget import LoggingTableWidget
 from .batch_summary_dialog import BatchSummaryDialog
+from .pin_dialog import PinDialog
 
 logger = logging.getLogger(__name__)
 
@@ -445,6 +446,11 @@ class ModernMainWindow(QMainWindow):
         self.heartbeat_timer.timeout.connect(self.heartbeat.update_heartbeat)
         self.heartbeat_timer.start(30000)  # Update every 30 seconds
         
+        # Setup timer for Supabase offline queue sync (every 5 minutes)
+        self.sync_timer = QTimer()
+        self.sync_timer.timeout.connect(self.sync_offline_queue)
+        self.sync_timer.start(300000)  # Sync every 5 minutes (300000 ms)
+        
         # Set window properties
         self.setWindowTitle("Roll Machine Monitor")
         self.setMinimumSize(1200, 800)
@@ -699,7 +705,21 @@ class ModernMainWindow(QMainWindow):
         return dialog.exec()
     
     def show_settings(self):
-        """Show the settings dialog."""
+        """Show the settings dialog with PIN protection."""
+        # Get PIN from config
+        pin = self.config.get("settings_pin", "668899")
+        
+        # Show PIN dialog first
+        pin_dialog = PinDialog(correct_pin=pin, parent=self)
+        pin_dialog.raise_()
+        pin_dialog.activateWindow()
+        
+        if pin_dialog.exec() != QDialog.DialogCode.Accepted:
+            # User cancelled or failed PIN verification
+            logger.info("Settings access denied - PIN verification failed or cancelled")
+            return
+        
+        # PIN verified, show settings dialog
         dialog = SettingsDialog(self.config)
         
         # Force settings dialog to stay on top too
@@ -1098,6 +1118,15 @@ del "%~f0"
         self.config.update(settings)
         save_config(self.config)
         
+        # Refresh BOM product code in product form if BOM settings changed
+        if any(key in settings for key in ['bom_name', 'bom_item', 'bom_product_code']):
+            try:
+                if hasattr(self, 'product_form') and self.product_form:
+                    self.product_form.load_bom_product_code()
+                    logger.info("BOM product code refreshed in product form")
+            except Exception as e:
+                logger.error(f"Error refreshing BOM product code: {e}")
+        
         # Update BatchManager settings if batch name settings changed
         if any(key in settings for key in ['batch_name_format', 'batch_start_number']):
             try:
@@ -1266,6 +1295,47 @@ del "%~f0"
                 "Reset Error",
                 f"Error sending reset command:\n\n{str(e)}"
             )
+    
+    @Slot()
+    def sync_offline_queue(self):
+        """
+        Automatically sync offline queue with Supabase.
+        Called by timer every 5 minutes.
+        """
+        try:
+            from ..supabase_client import get_supabase_client
+            supabase_client = get_supabase_client()
+            
+            # Check if Supabase is connected
+            if not supabase_client.is_connected:
+                logger.debug("Supabase not connected, skipping queue sync")
+                return
+            
+            # Get queue count before processing
+            queue_count = supabase_client.get_queue_count()
+            
+            if queue_count == 0:
+                logger.debug("No pending operations in queue")
+                return
+            
+            logger.info(f"Starting automatic queue sync - {queue_count} operations pending")
+            
+            # Process the queue
+            success_count, failed_count = supabase_client.process_offline_queue()
+            
+            if success_count > 0:
+                logger.info(f"Queue sync completed: {success_count} synced, {failed_count} failed")
+                # Update status bar with sync info
+                if hasattr(self, 'status_bar'):
+                    self.status_bar.showMessage(
+                        f"Synced {success_count} operations to cloud", 
+                        5000  # Show for 5 seconds
+                    )
+            elif failed_count > 0:
+                logger.warning(f"Queue sync had errors: {failed_count} operations failed")
+            
+        except Exception as e:
+            logger.error(f"Error during automatic queue sync: {e}")
     
     def toggle_monitoring(self):
         """Toggle monitoring start/stop with FORCED real serial connection."""

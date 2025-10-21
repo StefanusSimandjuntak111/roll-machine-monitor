@@ -4,9 +4,9 @@ Dialog untuk menampilkan summary/recap per batch.
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
     QTableWidget, QTableWidgetItem, QLabel, QComboBox,
-    QHeaderView, QFrame, QMessageBox
+    QHeaderView, QFrame, QMessageBox, QProgressDialog
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont
 from typing import Dict, Any, List, Optional
 import logging
@@ -15,6 +15,7 @@ from datetime import datetime, date
 from ..logging_table import LoggingTable
 from ..supabase_client import SupabaseClient
 from ..config import load_config
+from ..erp_client import get_erp_client
 
 logger = logging.getLogger(__name__)
 
@@ -28,16 +29,21 @@ class BatchSummaryDialog(QDialog):
         self.setMinimumSize(1000, 600)
         
         # Initialize data sources
-        config = load_config()
+        self.config = load_config()
         self.logging_table = LoggingTable()
         
         # Initialize Supabase client if enabled
         self.supabase_client = None
-        if config.get('enable_supabase', False):
+        if self.config.get('enable_supabase', False):
             self.supabase_client = SupabaseClient(
-                url=config.get('supabase_url'),
-                key=config.get('supabase_key')
+                url=self.config.get('supabase_url'),
+                key=self.config.get('supabase_key')
             )
+        
+        # Initialize ERP client if enabled
+        self.erp_client = None
+        if self.config.get('enable_erp_submission', False):
+            self.erp_client = get_erp_client(self.config)
         
         self.setup_ui()
         self.load_batches()
@@ -187,32 +193,80 @@ class BatchSummaryDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
         
-        export_btn = QPushButton("📥 Export CSV")
-        export_btn.clicked.connect(self.export_batch_data)
-        button_layout.addWidget(export_btn)
+        # Submit to ERP button (replaces Export CSV)
+        self.submit_btn = QPushButton("📤 Submit to ERP")
+        self.submit_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 10px 20px;
+                font-size: 14px;
+                font-weight: bold;
+                min-width: 150px;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+            QPushButton:pressed {
+                background-color: #1e7e34;
+            }
+            QPushButton:disabled {
+                background-color: #6c757d;
+            }
+        """)
+        self.submit_btn.clicked.connect(self.submit_to_erp)
+        button_layout.addWidget(self.submit_btn)
+        
+        # Keep export CSV as secondary option (hidden by default, can be shown for backup)
+        self.export_btn = QPushButton("📥 Export CSV")
+        self.export_btn.clicked.connect(self.export_batch_data)
+        self.export_btn.setVisible(False)  # Hidden by default
+        button_layout.addWidget(self.export_btn)
         
         close_btn = QPushButton("Close")
         close_btn.clicked.connect(self.close)
         button_layout.addWidget(close_btn)
         
         layout.addLayout(button_layout)
+        
+        # Check if ERP is configured and update button state
+        self._update_erp_button_state()
     
     def load_batches(self):
         """Load available batches from Supabase or local JSON."""
         self.batch_combo.clear()
         
         batches = []
+        batches_from_supabase = []
+        batches_from_local = []
         
         # Try Supabase first
         if self.supabase_client and self.supabase_client.is_connected:
             try:
                 today = date.today().strftime('%Y-%m-%d')
-                batches = self.supabase_client.get_all_batches(date_str=today)
-                logger.info(f"Loaded {len(batches)} batches from Supabase")
+                batches_from_supabase = self.supabase_client.get_all_batches(date_str=today)
+                logger.info(f"Loaded {len(batches_from_supabase)} batches from Supabase")
             except Exception as e:
                 logger.error(f"Error loading batches from Supabase: {e}")
         
-        # Fallback to local JSON (batch_tracking.json from batch_manager)
+        # Load from local batch metadata store
+        try:
+            from ..batch_metadata_store import get_batch_metadata_store
+            metadata_store = get_batch_metadata_store()
+            today = date.today().strftime('%Y-%m-%d')
+            batches_from_local = metadata_store.get_all_batches(date_str=today)
+            logger.info(f"Loaded {len(batches_from_local)} batches from local storage")
+        except Exception as e:
+            logger.error(f"Error loading batches from local storage: {e}")
+        
+        # Merge and deduplicate batches from both sources
+        # Use set to deduplicate, then convert back to list and sort
+        all_batches = set(batches_from_supabase + batches_from_local)
+        batches = sorted(all_batches, reverse=True)
+        
+        # Additional fallback to production logs if both sources are empty
         if not batches:
             try:
                 # Try to get batch from batch_manager state file
@@ -290,6 +344,219 @@ class BatchSummaryDialog(QDialog):
             self.detail_table.setItem(i, 6, QTableWidgetItem(
                 self._format_timestamp(log.get('timestamp', ''))
             ))
+    
+    def _update_erp_button_state(self):
+        """Update ERP button state based on configuration."""
+        if not self.config.get('enable_erp_submission', False):
+            self.submit_btn.setEnabled(False)
+            self.submit_btn.setToolTip("ERP submission is disabled in configuration")
+            self.export_btn.setVisible(True)  # Show CSV export if ERP disabled
+            logger.info("ERP submission disabled - showing CSV export option")
+        elif not self.erp_client:
+            self.submit_btn.setEnabled(False)
+            self.submit_btn.setToolTip("ERP not configured - check API credentials")
+            self.export_btn.setVisible(True)  # Show CSV export as fallback
+            logger.warning("ERP client not initialized - credentials may be missing")
+        else:
+            self.submit_btn.setEnabled(True)
+            self.submit_btn.setToolTip("Submit batch data to ERP system")
+            logger.info("ERP submission enabled and ready")
+    
+    def submit_to_erp(self):
+        """Submit current batch data to ERP system."""
+        batch = self.batch_combo.currentText()
+        if not batch or batch == "No batches available":
+            QMessageBox.warning(
+                self,
+                "Submission Error",
+                "No batch selected. Please select a batch to submit."
+            )
+            return
+        
+        # Check ERP client
+        if not self.erp_client:
+            QMessageBox.critical(
+                self,
+                "ERP Not Configured",
+                "ERP system is not configured.\n\n"
+                "Please configure ERP settings:\n"
+                "- ERP URL\n"
+                "- API Key\n"
+                "- API Secret\n\n"
+                "Contact administrator for assistance."
+            )
+            return
+        
+        # Get batch summary
+        summary = self.logging_table.get_batch_summary(batch)
+        
+        if not summary:
+            QMessageBox.warning(
+                self,
+                "Submission Error",
+                f"No data found for batch: {batch}"
+            )
+            return
+        
+        # Get BOM from config
+        bom_name = self.config.get('bom_name', '').strip()
+        
+        if not bom_name:
+            QMessageBox.warning(
+                self,
+                "BOM Not Configured",
+                "BOM is not configured.\n\n"
+                "Please configure BOM in Settings:\n"
+                "Settings → 📤 ERP Stock Entry → BOM Selection\n\n"
+                "The BOM determines which raw materials will be consumed\n"
+                "and what finished item will be produced."
+            )
+            return
+        
+        logger.info(f"Using BOM from config: {bom_name}")
+        
+        # Get finished item from BOM config or product code
+        finished_item = self.config.get('bom_item', '') or summary.get('product_code', '')
+        
+        logger.info(f"BOM: {bom_name}, Finished Item: {finished_item}")
+        
+        # Confirm submission
+        confirm_msg = (
+            f"<b>Submit Batch to ERP?</b><br><br>"
+            f"<b>Batch:</b> {batch}<br>"
+            f"<b>Product:</b> {summary.get('product_code', 'N/A')} - {summary.get('product_name', 'N/A')}<br>"
+            f"<b>Total Rolls:</b> {summary.get('total_rolls', 0)}<br>"
+            f"<b>Total Length:</b> {summary.get('total_length', 0):.2f} yards<br><br>"
+            f"<b>BOM:</b> {bom_name}<br>"
+            f"<b>Finished Item:</b> {finished_item}<br><br>"
+            f"This will create a Repack Stock Entry in the ERP system.<br>"
+            f"Source items will be taken from the BOM.<br>"
+            f"<b>Do you want to continue?</b>"
+        )
+        
+        reply = QMessageBox.question(
+            self,
+            "Confirm ERP Submission",
+            confirm_msg,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply != QMessageBox.StandardButton.Yes:
+            logger.info(f"User cancelled ERP submission for batch {batch}")
+            return
+        
+        # Show progress dialog
+        progress = QProgressDialog(
+            "Submitting batch to ERP system...",
+            "Cancel",
+            0,
+            0,
+            self
+        )
+        progress.setWindowTitle("Submitting to ERP")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setCancelButton(None)  # No cancel button
+        progress.show()
+        
+        try:
+            # Test connection first
+            logger.info("Testing ERP connection...")
+            progress.setLabelText("Testing ERP connection...")
+            connected, conn_msg = self.erp_client.test_connection()
+            
+            if not connected:
+                progress.close()
+                QMessageBox.critical(
+                    self,
+                    "Connection Failed",
+                    f"Failed to connect to ERP system:\n\n{conn_msg}\n\n"
+                    f"Please check:\n"
+                    f"- Network connection\n"
+                    f"- ERP server is running\n"
+                    f"- API credentials are correct"
+                )
+                logger.error(f"ERP connection test failed: {conn_msg}")
+                return
+            
+            logger.info(f"ERP connection successful: {conn_msg}")
+            
+            # Submit batch data
+            progress.setLabelText("Creating Stock Entry...")
+            logger.info(f"Submitting batch {batch} to ERP...")
+            
+            success, message, response_data = self.erp_client.create_stock_entry(
+                batch_data=summary,
+                company=self.config.get('erp_company', 'Textilindo'),
+                from_warehouse=self.config.get('erp_from_warehouse', 'Prancis - MGI'),
+                to_warehouse=self.config.get('erp_to_warehouse', 'Prancis - MGI'),
+                bom_name=bom_name,
+                finished_item_code=finished_item
+            )
+            
+            progress.close()
+            
+            if success:
+                # Success message with details
+                doc_name = "Unknown"
+                if response_data:
+                    doc_name = response_data.get('data', {}).get('name', 'Unknown')
+                
+                success_msg = (
+                    f"<b>Batch submitted successfully!</b><br><br>"
+                    f"<b>Batch:</b> {batch}<br>"
+                    f"<b>Stock Entry:</b> {doc_name}<br>"
+                    f"<b>Type:</b> Repack<br>"
+                    f"<b>BOM:</b> {bom_name}<br>"
+                    f"<b>Finished Item:</b> {finished_item}<br>"
+                    f"<b>Rolls:</b> {summary.get('total_rolls', 0)}<br>"
+                    f"<b>Total Length:</b> {summary.get('total_length', 0):.2f} yards<br><br>"
+                    f"The Stock Entry has been created as <b>Draft</b> in the ERP system.<br>"
+                    f"Source items from BOM have been added automatically.<br>"
+                    f"Please review and submit it in ERPNext."
+                )
+                
+                QMessageBox.information(
+                    self,
+                    "Submission Successful",
+                    success_msg
+                )
+                
+                logger.info(f"Batch {batch} submitted successfully: {doc_name}")
+                
+            else:
+                # Error message
+                error_msg = (
+                    f"<b>Failed to submit batch to ERP</b><br><br>"
+                    f"<b>Error:</b> {message}<br><br>"
+                    f"Please check the error message and try again.<br>"
+                    f"If the problem persists, contact your administrator."
+                )
+                
+                QMessageBox.critical(
+                    self,
+                    "Submission Failed",
+                    error_msg
+                )
+                
+                logger.error(f"Failed to submit batch {batch}: {message}")
+                
+        except Exception as e:
+            progress.close()
+            error_msg = (
+                f"<b>Unexpected error during submission</b><br><br>"
+                f"<b>Error:</b> {str(e)}<br><br>"
+                f"Please check the log files for more details."
+            )
+            
+            QMessageBox.critical(
+                self,
+                "Submission Error",
+                error_msg
+            )
+            
+            logger.error(f"Unexpected error submitting batch {batch}: {e}", exc_info=True)
     
     def export_batch_data(self):
         """Export current batch data to CSV."""

@@ -3,14 +3,14 @@ Version configuration for Roll Machine Monitor application.
 """
 
 # Application version
-VERSION = "1.4.1"
+VERSION = "1.4.2"
 VERSION_STRING = f"v{VERSION}"
 
 # Add __version__ for installer compatibility
 __version__ = VERSION
 
 # Build information
-BUILD_DATE = "2025-10-03"
+BUILD_DATE = "2025-10-20"
 BUILD_TYPE = "Release"
 
 # Application information

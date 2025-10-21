@@ -257,6 +257,105 @@ class ProductForm(QWidget):
         
         self.setup_ui()
         
+        # Load BOM product code from settings
+        self.load_bom_product_code()
+        
+    def load_bom_product_code(self):
+        """Load BOM product code from settings and auto-fill product code field."""
+        try:
+            from ..config import load_config
+            config = load_config()
+            
+            bom_product_code = config.get("bom_product_code", "")
+            
+            if bom_product_code:
+                # Auto-fill product code
+                self.product_code.setText(bom_product_code)
+                self.product_code.setEnabled(False)  # Disable input
+                self.product_code.setStyleSheet("""
+                    QLineEdit {
+                        background-color: #353535;
+                        border: 1px solid #4CAF50;
+                        border-radius: 4px;
+                        padding: 5px;
+                        color: #888888;
+                        font-size: 14px;
+                        min-height: 40px;
+                    }
+                """)
+                
+                logger.info(f"BOM product code loaded: {bom_product_code}")
+                
+                # Also load BOM color code and product name if available
+                bom_color_code = config.get("bom_color_code", "")
+                bom_product_name = config.get("bom_product_name", "")
+                
+                if bom_color_code:
+                    self.color_code.setText(bom_color_code)
+                    logger.info(f"BOM color code loaded: {bom_color_code}")
+                
+                if bom_product_name:
+                    self.product_name.setText(bom_product_name)
+                    logger.info(f"BOM product name loaded: {bom_product_name}")
+                
+                # Trigger product search to populate/update other fields (image, barcode, etc.)
+                logger.info("Triggering product search for BOM product code...")
+                self._perform_product_search()
+                
+                # Update or add info label
+                if hasattr(self, 'bom_info_label'):
+                    self.bom_info_label.setText(f"✓ Using BOM Product Code: {bom_product_code}")
+                else:
+                    self.bom_info_label = QLabel(f"✓ Using BOM Product Code: {bom_product_code}")
+                    self.bom_info_label.setStyleSheet("""
+                        QLabel {
+                            color: #4CAF50;
+                            font-size: 11px;
+                            font-weight: bold;
+                            padding: 5px;
+                            background-color: #1e3a1e;
+                            border-radius: 3px;
+                            border: 1px solid #4CAF50;
+                        }
+                    """)
+                    # Insert after product code
+                    form_frame = self.findChild(QFrame)
+                    if form_frame:
+                        layout = form_frame.layout()
+                        if layout:
+                            # Find product code row and insert after it
+                            for i in range(layout.rowCount()):
+                                if layout.itemAt(i, QFormLayout.ItemRole.LabelRole):
+                                    label = layout.itemAt(i, QFormLayout.ItemRole.LabelRole).widget()
+                                    if label and label.text() == "Product Code:":
+                                        layout.insertRow(i + 1, "", self.bom_info_label)
+                                        break
+                
+                logger.info(f"BOM product code loaded: {bom_product_code}")
+            else:
+                # No BOM selected - enable product code input
+                self.product_code.setEnabled(True)
+                self.product_code.setStyleSheet("""
+                    QLineEdit {
+                        background-color: #353535;
+                        border: 1px solid #ffa500;
+                        border-radius: 4px;
+                        padding: 5px;
+                        color: white;
+                        font-size: 14px;
+                        min-height: 40px;
+                    }
+                """)
+                
+                # Remove info label if exists
+                if hasattr(self, 'bom_info_label'):
+                    self.bom_info_label.setVisible(False)
+                
+                logger.info("No BOM product code found in settings")
+                
+        except Exception as e:
+            logger.error(f"Error loading BOM product code: {e}")
+        
     def setup_ui(self):
         """Set up the form UI."""
         form_frame = QFrame()
@@ -751,12 +850,25 @@ class ProductForm(QWidget):
         if not self.product_code.text().strip():
             self.show_error(self.product_code, "Product code is required")
             return False
-            
-        if not self.product_name.text().strip():
+        
+        # Check if product code is from BOM (locked field)
+        is_bom_locked = not self.product_code.isEnabled()
+        
+        # For BOM mode, product name is optional (will use product code if empty)
+        if not is_bom_locked and not self.product_name.text().strip():
             self.show_error(self.product_name, "Product name is required")
             return False
-            
-        if not self.color_code.text().strip():
+        
+        # For BOM mode, use product code as product name if empty
+        if is_bom_locked and not self.product_name.text().strip():
+            logger.info("BOM mode: Using product code as product name")
+            self.product_name.setText(self.product_code.text().strip())
+        
+        # For BOM mode, color code is optional (will use "0" if empty)
+        if is_bom_locked and not self.color_code.text().strip():
+            logger.info("BOM mode: Using default color code '0'")
+            self.color_code.setText("0")
+        elif not is_bom_locked and not self.color_code.text().strip():
             self.show_error(self.color_code, "Color code is required")
             return False
             
@@ -1245,39 +1357,48 @@ class ProductForm(QWidget):
             'units': self.unit_group.checkedButton().text()
         }
 
-        # Save batch metadata to Supabase
+        # Dual-save batch metadata: local storage FIRST, then Supabase
         try:
+            # Prepare batch metadata
+            batch_metadata = {
+                'batch': batch_number,
+                'product_code': product_code,
+                'product_name': self.product_name.text().strip(),
+                'color_code': self.color_code.text().strip(),
+                'target_length': self.target_length.value(),
+                'units': self.unit_group.checkedButton().text(),
+                'created_at': datetime.now().isoformat(),
+                'status': 'active'
+            }
+            
+            # 1. Save to local storage FIRST (always succeeds)
+            from ..batch_metadata_store import get_batch_metadata_store
+            metadata_store = get_batch_metadata_store()
+            local_saved = metadata_store.save_batch_metadata(batch_metadata)
+            
+            if local_saved:
+                logger.info(f"Batch metadata saved to local storage: {batch_number}")
+            else:
+                logger.error(f"Failed to save batch metadata to local storage: {batch_number}")
+            
+            # 2. Try to save to Supabase (may fail, but will be queued automatically)
             from ..supabase_client import get_supabase_client
             supabase_client = get_supabase_client()
-
+            
             if supabase_client.is_connected:
                 logger.info(f"Saving batch to Supabase: {batch_number}")
-                # Prepare batch metadata for Supabase
-                batch_metadata = {
-                    'batch': batch_number,
-                    'product_code': product_code,
-                    'product_name': self.product_name.text().strip(),
-                    'color_code': self.color_code.text().strip(),
-                    'target_length': self.target_length.value(),
-                    'units': self.unit_group.checkedButton().text(),
-                    'created_at': datetime.now().isoformat(),
-                    'status': 'active'
-                }
-
-                # Save to Supabase batch_metadata table
                 result = supabase_client.insert_batch_metadata(batch_metadata)
-
+                
                 if result:
                     logger.info(f"Batch metadata saved to Supabase successfully: {batch_number}")
                 else:
-                    logger.error(f"Failed to save batch metadata to Supabase: {batch_number}")
-                    # Don't show dialog here, let the calling method handle it
+                    logger.warning(f"Failed to save batch metadata to Supabase (queued for retry): {batch_number}")
             else:
-                logger.warning("Supabase not connected, saving locally only")
+                logger.info("Supabase not connected, batch queued for sync when connection restored")
 
         except Exception as e:
-            logger.error(f"Error saving batch to Supabase: {e}")
-            # Don't show dialog here, let the calling method handle it
+            logger.error(f"Error saving batch metadata: {e}")
+            # Local save should still succeed, so don't fail the operation
 
         # Emit the product_updated signal for backward compatibility
         self.product_updated.emit(product_info)
@@ -1442,6 +1563,9 @@ class ProductForm(QWidget):
             
     def _on_search_completed(self, product_info: Dict[str, Any]):
         """Handle successful search completion with exact match validation."""
+        # Check if product code is from BOM (locked field)
+        is_bom_locked = not self.product_code.isEnabled()
+        
         # Thread safety check - only process if this is the current request
         request_id = product_info.get("_request_id")
         current_user_input = self.product_code.text().strip()
@@ -1453,8 +1577,8 @@ class ProductForm(QWidget):
             logger.info(f"Ignoring stale search result for request {request_id}")
             return
         
-        # Check if user input has changed since this search started
-        if current_user_input != self._last_user_input:
+        # Check if user input has changed since this search started (skip for BOM locked fields)
+        if not is_bom_locked and current_user_input != self._last_user_input:
             logger.info(f"Ignoring search result - user input changed from {self._last_user_input} to {current_user_input}")
             return
         
@@ -1516,8 +1640,27 @@ class ProductForm(QWidget):
         self._set_search_status(status_text, status_color, f"Found: {product_info.get('product_name', 'Product')} ({search_type})")
         self._reset_input_style()
         
+        # Re-lock product code field if it's from BOM
+        if is_bom_locked:
+            self.product_code.setEnabled(False)
+            self.product_code.setStyleSheet("""
+                QLineEdit {
+                    background-color: #353535;
+                    border: 1px solid #4CAF50;
+                    border-radius: 4px;
+                    padding: 5px;
+                    color: #888888;
+                    font-size: 14px;
+                    min-height: 40px;
+                }
+            """)
+            logger.info("Product code field re-locked after search (BOM mode)")
+        
     def _on_search_failed(self, error_type: str, message: str):
         """Handle search failure with enhanced error handling."""
+        # Check if product code is from BOM (locked field)
+        is_bom_locked = not self.product_code.isEnabled()
+        
         # Thread safety check - only process if user input hasn't changed
         current_user_input = self.product_code.text().strip()
         if current_user_input != self._last_user_input:
@@ -1564,7 +1707,26 @@ class ProductForm(QWidget):
             message
         )
         self._reset_input_style()
-        logger.error(f"Search failed: {error_type} - {message}")
+        
+        # Re-lock product code field if it's from BOM
+        if is_bom_locked:
+            self.product_code.setEnabled(False)
+            self.product_code.setStyleSheet("""
+                QLineEdit {
+                    background-color: #353535;
+                    border: 1px solid #4CAF50;
+                    border-radius: 4px;
+                    padding: 5px;
+                    color: #888888;
+                    font-size: 14px;
+                    min-height: 40px;
+                }
+            """)
+            # For BOM locked fields, don't show error dialog
+            logger.warning(f"Product search failed for BOM product code: {error_type} - {message}")
+            logger.warning("BOM product code will remain but other fields may be empty")
+        else:
+            logger.error(f"Search failed: {error_type} - {message}")
     
     def _update_search_stats(self, stat_type: str):
         """Update search statistics for monitoring."""

@@ -7,5 +7,17 @@
     "operator": "Operator",
     "shift": 1,
     "reconnect_attempts": 3,
-    "reconnect_delay": 5
+    "reconnect_delay": 5,
+    "erp_url": "http://192.168.2.73:8000",
+    "erp_api_key": "0958a2259da8fbe",
+    "erp_api_secret": "ab7427003864767",
+    "erp_timeout": 30,
+    "erp_company": "Textilindo",
+    "erp_from_warehouse": "Prancis - MGI",
+    "erp_to_warehouse": "Prancis - MGI",
+    "enable_erp_submission": true,
+    "settings_pin": "668899",
+    "bom_name": "",
+    "bom_item": "",
+    "bom_product_code": ""
 } 

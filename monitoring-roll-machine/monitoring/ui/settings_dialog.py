@@ -2,12 +2,17 @@ from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QComboBox,
     QPushButton, QFrame, QLabel, QHBoxLayout, QTabWidget,
     QLineEdit, QRadioButton, QButtonGroup, QSpinBox, QGroupBox,
-    QMessageBox, QCheckBox, QWidget
+    QMessageBox, QCheckBox, QWidget, QListWidget, QListWidgetItem
 )
-from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtCore import Qt, Signal, QTimer, QThread
 from typing import Dict, Any
 import serial.tools.list_ports
 import logging
+import json
+import urllib.parse
+import requests
+
+from .pin_dialog import ChangePinDialog
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +25,7 @@ class SettingsDialog(QDialog):
     def __init__(self, current_settings: Dict[str, Any]):
         super().__init__()
         self.current_settings = current_settings
+        self.selected_bom_data = None  # Initialize BOM data
         self.setup_ui()
         
     def setup_ui(self):
@@ -66,7 +72,8 @@ class SettingsDialog(QDialog):
             }
         """)
         
-        # Create tabs
+        # Create tabs (ERP Stock Entry first)
+        self.create_erp_settings_tab()
         self.create_port_settings_tab()
         self.create_port_management_tab()
         self.create_page_settings_tab()
@@ -74,6 +81,7 @@ class SettingsDialog(QDialog):
         self.create_api_settings_tab()
         self.create_supabase_settings_tab()
         self.create_batch_name_settings_tab()
+        self.create_security_settings_tab()
         
         layout.addWidget(self.tab_widget)
         
@@ -840,6 +848,543 @@ class SettingsDialog(QDialog):
         # Update Supabase status
         self.update_supabase_status()
 
+    def create_erp_settings_tab(self):
+        """Create the ERP Stock Entry Settings tab with 2-column layout."""
+        erp_tab = QWidget()
+        erp_layout = QVBoxLayout(erp_tab)
+        erp_layout.setSpacing(15)
+
+        # ERP Settings Frame
+        erp_frame = QFrame()
+        erp_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        erp_frame.setStyleSheet("""
+            QFrame {
+                background-color: #2d2d2d;
+                border: 1px solid #555555;
+                border-radius: 8px;
+                padding: 15px;
+            }
+            QLabel {
+                color: #e0e0e0;
+                font-size: 14px;
+            }
+            QLineEdit {
+                background-color: #1e1e1e;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                padding: 8px;
+                color: white;
+                font-size: 12px;
+            }
+            QLineEdit:focus {
+                border: 2px solid #0078d4;
+            }
+            QSpinBox {
+                background-color: #1e1e1e;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                padding: 8px;
+                color: white;
+                font-size: 12px;
+            }
+            QSpinBox:focus {
+                border: 2px solid #0078d4;
+            }
+        """)
+
+        # Main container with 2 columns
+        container_layout = QHBoxLayout(erp_frame)
+        container_layout.setSpacing(20)
+
+        # Left Column
+        left_column = QWidget()
+        left_form = QFormLayout(left_column)
+        left_form.setSpacing(15)
+
+        # Enable ERP Submission checkbox
+        self.erp_enable_checkbox = QCheckBox("Enable ERP Stock Entry Submission")
+        self.erp_enable_checkbox.setStyleSheet("""
+            QCheckBox {
+                color: #e0e0e0;
+                font-size: 14px;
+                font-weight: bold;
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 3px;
+                border: 2px solid #666666;
+                background-color: #2d2d2d;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #28a745;
+                border: 2px solid #28a745;
+            }
+        """)
+        self.erp_enable_checkbox.setChecked(self.current_settings.get("enable_erp_submission", False))
+        self.erp_enable_checkbox.stateChanged.connect(self.update_erp_status)
+        left_form.addRow(self.erp_enable_checkbox)
+
+        # ERP URL Input
+        self.erp_url_input = QLineEdit()
+        self.erp_url_input.setPlaceholderText("http://192.168.2.73:8000")
+        self.erp_url_input.setText(self.current_settings.get("erp_url", ""))
+        left_form.addRow("ERP URL:", self.erp_url_input)
+
+        # API Key Input
+        self.erp_api_key_input = QLineEdit()
+        self.erp_api_key_input.setPlaceholderText("Enter API Key from ERPNext")
+        self.erp_api_key_input.setText(self.current_settings.get("erp_api_key", ""))
+        self.erp_api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
+        left_form.addRow("API Key:", self.erp_api_key_input)
+
+        # API Secret Input
+        self.erp_api_secret_input = QLineEdit()
+        self.erp_api_secret_input.setPlaceholderText("Enter API Secret from ERPNext")
+        self.erp_api_secret_input.setText(self.current_settings.get("erp_api_secret", ""))
+        self.erp_api_secret_input.setEchoMode(QLineEdit.EchoMode.Password)
+        left_form.addRow("API Secret:", self.erp_api_secret_input)
+
+        # Show/Hide credentials button
+        self.erp_show_credentials_btn = QPushButton("👁 Show Credentials")
+        self.erp_show_credentials_btn.setCheckable(True)
+        self.erp_show_credentials_btn.setStyleSheet(self.get_button_style("secondary"))
+        self.erp_show_credentials_btn.clicked.connect(self.toggle_erp_credentials_visibility)
+        left_form.addRow("", self.erp_show_credentials_btn)
+
+        # Timeout Input
+        self.erp_timeout_input = QSpinBox()
+        self.erp_timeout_input.setRange(5, 120)
+        self.erp_timeout_input.setSuffix(" seconds")
+        self.erp_timeout_input.setValue(self.current_settings.get("erp_timeout", 30))
+        left_form.addRow("Request Timeout:", self.erp_timeout_input)
+
+        # Right Column
+        right_column = QWidget()
+        right_form = QFormLayout(right_column)
+        right_form.setSpacing(15)
+
+        # BOM Search Group
+        bom_group = QGroupBox("BOM Selection")
+        bom_group.setStyleSheet("""
+            QGroupBox {
+                color: #e0e0e0;
+                font-weight: bold;
+                border: 2px solid #0078d4;
+                border-radius: 5px;
+                margin-top: 1ex;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+            }
+        """)
+        bom_layout = QVBoxLayout(bom_group)
+        
+        # BOM Search Input
+        self.bom_search_input = QLineEdit()
+        self.bom_search_input.setPlaceholderText("Search BOM by product code...")
+        self.bom_search_input.textChanged.connect(self.search_bom)
+        bom_layout.addWidget(self.bom_search_input)
+        
+        # BOM Results Dropdown (initially hidden)
+        self.bom_results_list = QListWidget()
+        self.bom_results_list.setMaximumHeight(150)
+        self.bom_results_list.setStyleSheet("""
+            QListWidget {
+                background-color: #1e1e1e;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                color: white;
+                font-size: 12px;
+            }
+            QListWidget::item {
+                padding: 8px;
+                border-bottom: 1px solid #333333;
+            }
+            QListWidget::item:hover {
+                background-color: #0078d4;
+            }
+            QListWidget::item:selected {
+                background-color: #0078d4;
+            }
+        """)
+        self.bom_results_list.itemClicked.connect(self.select_bom)
+        self.bom_results_list.setVisible(False)
+        bom_layout.addWidget(self.bom_results_list)
+        
+        # Selected BOM Display
+        self.selected_bom_label = QLabel("No BOM selected")
+        self.selected_bom_label.setStyleSheet("""
+            QLabel {
+                color: #888888;
+                font-size: 12px;
+                padding: 8px;
+                background-color: #1e1e1e;
+                border-radius: 5px;
+                border: 1px solid #555555;
+            }
+        """)
+        self.selected_bom_label.setWordWrap(True)
+        bom_layout.addWidget(self.selected_bom_label)
+        
+        right_form.addRow(bom_group)
+
+        # Company Input
+        self.erp_company_input = QLineEdit()
+        self.erp_company_input.setPlaceholderText("Company name in ERPNext")
+        self.erp_company_input.setText(self.current_settings.get("erp_company", "Textilindo"))
+        right_form.addRow("Company:", self.erp_company_input)
+
+        # From Warehouse Input
+        self.erp_from_warehouse_input = QLineEdit()
+        self.erp_from_warehouse_input.setPlaceholderText("Source warehouse")
+        self.erp_from_warehouse_input.setText(self.current_settings.get("erp_from_warehouse", "Prancis - MGI"))
+        right_form.addRow("From Warehouse:", self.erp_from_warehouse_input)
+
+        # To Warehouse Input
+        self.erp_to_warehouse_input = QLineEdit()
+        self.erp_to_warehouse_input.setPlaceholderText("Target warehouse")
+        self.erp_to_warehouse_input.setText(self.current_settings.get("erp_to_warehouse", "Prancis - MGI"))
+        right_form.addRow("To Warehouse:", self.erp_to_warehouse_input)
+
+        # Packing List Field Name
+        self.erp_packing_list_field_input = QLineEdit()
+        self.erp_packing_list_field_input.setPlaceholderText("packing_list_items")
+        self.erp_packing_list_field_input.setText(self.current_settings.get("erp_packing_list_field", "packing_list_items"))
+        right_form.addRow("Packing List Field:", self.erp_packing_list_field_input)
+
+        # ERP Status Display
+        self.erp_status_label = QLabel("Not Configured")
+        self.erp_status_label.setStyleSheet("""
+            QLabel {
+                color: #ff6b6b;
+                font-size: 12px;
+                padding: 5px;
+                background-color: #1e1e1e;
+                border-radius: 3px;
+                border: 1px solid #555555;
+            }
+        """)
+        right_form.addRow("Status:", self.erp_status_label)
+
+        # Add columns to container
+        container_layout.addWidget(left_column)
+        container_layout.addWidget(right_column)
+
+        # Buttons row (full width)
+        buttons_layout = QHBoxLayout()
+        
+        # Test Connection Button
+        self.test_erp_button = QPushButton("🔌 Test ERP Connection")
+        self.test_erp_button.setStyleSheet(self.get_button_style("secondary"))
+        self.test_erp_button.clicked.connect(self.test_erp_connection)
+        buttons_layout.addWidget(self.test_erp_button)
+
+        buttons_layout.addStretch()
+
+        # Save ERP Settings Button
+        self.save_erp_button = QPushButton("💾 Save ERP Settings")
+        self.save_erp_button.setStyleSheet(self.get_button_style("primary"))
+        self.save_erp_button.clicked.connect(self.save_erp_settings)
+        buttons_layout.addWidget(self.save_erp_button)
+
+        # Help text
+        help_label = QLabel(
+            "<i>Note: Get API credentials from ERPNext → User → API Access → Generate Keys</i>"
+        )
+        help_label.setStyleSheet("QLabel { color: #888888; font-size: 11px; font-style: italic; }")
+        help_label.setWordWrap(True)
+
+        # Main layout
+        erp_layout.addWidget(erp_frame)
+        erp_layout.addLayout(buttons_layout)
+        erp_layout.addWidget(help_label)
+        erp_layout.addStretch()
+
+        self.tab_widget.addTab(erp_tab, "📤 ERP Stock Entry")
+
+        # Update ERP status
+        self.update_erp_status()
+        
+        # Load saved BOM data if exists
+        self.load_saved_bom()
+
+    def load_saved_bom(self):
+        """Load saved BOM data from settings."""
+        try:
+            bom_name = self.current_settings.get("bom_name", "")
+            bom_item = self.current_settings.get("bom_item", "")
+            bom_product_code = self.current_settings.get("bom_product_code", "")
+            bom_color_code = self.current_settings.get("bom_color_code", "")
+            bom_product_name = self.current_settings.get("bom_product_name", "")
+            
+            if bom_name and bom_item and bom_product_code:
+                self.selected_bom_data = {
+                    "bom_name": bom_name,
+                    "bom_item": bom_item,
+                    "bom_product_code": bom_product_code,
+                    "bom_color_code": bom_color_code,
+                    "bom_product_name": bom_product_name
+                }
+                
+                # Update display
+                display_text = (
+                    f"✓ Selected BOM:\n"
+                    f"Name: {bom_name}\n"
+                    f"Item: {bom_item}\n"
+                    f"Product Code: {bom_product_code}"
+                )
+                if bom_color_code:
+                    display_text += f"\nColor: {bom_color_code}"
+                self.selected_bom_label.setText(display_text)
+                self.selected_bom_label.setStyleSheet("""
+                    QLabel {
+                        color: #4CAF50;
+                        font-size: 12px;
+                        font-weight: bold;
+                        padding: 8px;
+                        background-color: #1e1e1e;
+                        border-radius: 5px;
+                        border: 2px solid #4CAF50;
+                    }
+                """)
+                logger.info(f"Loaded saved BOM: {bom_name} - {bom_product_code}")
+        except Exception as e:
+            logger.error(f"Error loading saved BOM: {e}")
+
+    def create_supabase_settings_tab(self):
+        """Create the Supabase Settings tab with sync controls."""
+        supabase_tab = QWidget()
+        supabase_layout = QVBoxLayout(supabase_tab)
+        supabase_layout.setSpacing(20)
+        
+        # Title
+        title = QLabel("Supabase Cloud Storage Settings")
+        title.setStyleSheet("font-size: 18px; font-weight: bold; color: white; margin-bottom: 10px;")
+        supabase_layout.addWidget(title)
+        
+        # Settings frame
+        settings_frame = QFrame()
+        settings_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        settings_frame.setStyleSheet("""
+            QFrame {
+                background-color: #2d2d2d;
+                border: 1px solid #555555;
+                border-radius: 8px;
+                padding: 15px;
+            }
+            QLabel {
+                color: #e0e0e0;
+                font-size: 14px;
+            }
+            QLineEdit {
+                background-color: #1e1e1e;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                padding: 8px;
+                color: white;
+                font-size: 12px;
+            }
+            QLineEdit:focus {
+                border: 2px solid #0078d4;
+            }
+        """)
+        
+        supabase_form = QFormLayout(settings_frame)
+        supabase_form.setSpacing(15)
+        
+        # Enable Supabase checkbox
+        self.supabase_enable_checkbox = QCheckBox("Enable Supabase Cloud Storage")
+        self.supabase_enable_checkbox.setStyleSheet("""
+            QCheckBox {
+                color: #e0e0e0;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+            }
+        """)
+        self.supabase_enable_checkbox.setChecked(self.current_settings.get("enable_supabase", False))
+        supabase_form.addRow(self.supabase_enable_checkbox)
+        
+        # Supabase URL
+        self.supabase_url_input = QLineEdit()
+        self.supabase_url_input.setPlaceholderText("https://your-project.supabase.co")
+        self.supabase_url_input.setText(self.current_settings.get("supabase_url", ""))
+        supabase_form.addRow("Supabase URL:", self.supabase_url_input)
+        
+        # Supabase API Key
+        self.supabase_key_input = QLineEdit()
+        self.supabase_key_input.setPlaceholderText("Enter Supabase API Key")
+        self.supabase_key_input.setText(self.current_settings.get("supabase_key", ""))
+        self.supabase_key_input.setEchoMode(QLineEdit.EchoMode.Password)
+        supabase_form.addRow("API Key:", self.supabase_key_input)
+        
+        # Connection status
+        self.supabase_status_label = QLabel("Not Connected")
+        self.supabase_status_label.setStyleSheet("""
+            QLabel {
+                color: #ff6b6b;
+                font-size: 12px;
+                padding: 5px;
+                background-color: #1e1e1e;
+                border-radius: 3px;
+                border: 1px solid #555555;
+            }
+        """)
+        supabase_form.addRow("Status:", self.supabase_status_label)
+        
+        # Offline Queue Status Group
+        queue_group = QGroupBox("Offline Queue Status")
+        queue_group.setStyleSheet("""
+            QGroupBox {
+                color: #e0e0e0;
+                font-weight: bold;
+                border: 2px solid #0078d4;
+                border-radius: 5px;
+                margin-top: 1ex;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+            }
+        """)
+        queue_layout = QVBoxLayout(queue_group)
+        
+        # Queue count label
+        self.queue_count_label = QLabel("Pending operations: 0")
+        self.queue_count_label.setStyleSheet("color: #e0e0e0; font-size: 12px;")
+        queue_layout.addWidget(self.queue_count_label)
+        
+        # Last sync label
+        self.last_sync_label = QLabel("Last sync: Never")
+        self.last_sync_label.setStyleSheet("color: #888888; font-size: 11px; font-style: italic;")
+        queue_layout.addWidget(self.last_sync_label)
+        
+        # Sync Now button
+        sync_now_btn = QPushButton("🔄 Sync Now")
+        sync_now_btn.setStyleSheet(self.get_button_style("primary"))
+        sync_now_btn.clicked.connect(self.manual_sync_queue)
+        queue_layout.addWidget(sync_now_btn)
+        
+        supabase_form.addRow(queue_group)
+        
+        # Buttons
+        buttons_layout = QHBoxLayout()
+        
+        test_btn = QPushButton("🔌 Test Connection")
+        test_btn.setStyleSheet(self.get_button_style("secondary"))
+        test_btn.clicked.connect(self.test_supabase_connection)
+        buttons_layout.addWidget(test_btn)
+        
+        buttons_layout.addStretch()
+        
+        supabase_layout.addWidget(settings_frame)
+        supabase_layout.addLayout(buttons_layout)
+        supabase_layout.addStretch()
+        
+        self.tab_widget.addTab(supabase_tab, "☁ Supabase")
+        
+        # Update queue status
+        self.update_queue_status()
+
+    def update_queue_status(self):
+        """Update the offline queue status display."""
+        try:
+            from ..supabase_client import get_supabase_client
+            supabase_client = get_supabase_client()
+            
+            queue_count = supabase_client.get_queue_count()
+            queue_info = supabase_client.get_queue_info()
+            
+            self.queue_count_label.setText(f"Pending operations: {queue_count}")
+            
+            if queue_count > 0:
+                details = f"({queue_info.get('batch_metadata_count', 0)} batch metadata, {queue_info.get('production_log_count', 0)} production logs)"
+                self.queue_count_label.setText(f"Pending operations: {queue_count} {details}")
+                self.queue_count_label.setStyleSheet("color: #ff9800; font-size: 12px; font-weight: bold;")
+            else:
+                self.queue_count_label.setStyleSheet("color: #4caf50; font-size: 12px;")
+            
+        except Exception as e:
+            logger.error(f"Error updating queue status: {e}")
+            self.queue_count_label.setText("Error loading queue status")
+
+    def manual_sync_queue(self):
+        """Manually trigger queue synchronization."""
+        try:
+            from ..supabase_client import get_supabase_client
+            from datetime import datetime
+            
+            supabase_client = get_supabase_client()
+            
+            # Check connection
+            if not supabase_client.is_connected:
+                QMessageBox.warning(
+                    self,
+                    "Sync Failed",
+                    "Supabase is not connected.\n\nPlease check your connection settings and try again."
+                )
+                return
+            
+            # Get queue count
+            queue_count = supabase_client.get_queue_count()
+            
+            if queue_count == 0:
+                QMessageBox.information(
+                    self,
+                    "Queue Empty",
+                    "No pending operations to sync."
+                )
+                return
+            
+            # Process queue
+            success_count, failed_count = supabase_client.process_offline_queue()
+            
+            # Update sync time
+            self.last_sync_label.setText(f"Last sync: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            
+            # Update queue status
+            self.update_queue_status()
+            
+            # Show result
+            if success_count > 0 and failed_count == 0:
+                QMessageBox.information(
+                    self,
+                    "Sync Successful",
+                    f"Successfully synced {success_count} operation(s) to Supabase!"
+                )
+            elif success_count > 0 and failed_count > 0:
+                QMessageBox.warning(
+                    self,
+                    "Partial Sync",
+                    f"Synced {success_count} operation(s) successfully.\n"
+                    f"{failed_count} operation(s) failed and will be retried later."
+                )
+            else:
+                QMessageBox.critical(
+                    self,
+                    "Sync Failed",
+                    f"Failed to sync {failed_count} operation(s).\n\n"
+                    f"Please check your connection and try again."
+                )
+                
+        except Exception as e:
+            logger.error(f"Error during manual sync: {e}")
+            QMessageBox.critical(
+                self,
+                "Sync Error",
+                f"Error during synchronization:\n\n{str(e)}"
+            )
+
     def create_batch_name_settings_tab(self):
         """Create the Batch Name Settings tab."""
         batch_tab = QWidget()
@@ -995,6 +1540,208 @@ class SettingsDialog(QDialog):
 
         # Initialize batch preview
         self.update_batch_preview()
+
+    def create_security_settings_tab(self):
+        """Create the Security Settings tab."""
+        security_tab = QWidget()
+        security_layout = QVBoxLayout(security_tab)
+        security_layout.setSpacing(20)
+
+        # Title
+        title = QLabel("Security Settings")
+        title.setStyleSheet("font-size: 18px; font-weight: bold; color: white; margin-bottom: 10px;")
+        security_layout.addWidget(title)
+
+        # Settings frame
+        settings_frame = QFrame()
+        settings_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        settings_frame.setStyleSheet("""
+            QFrame {
+                background-color: #2d2d2d;
+                border: 1px solid #555555;
+                border-radius: 8px;
+                padding: 15px;
+            }
+            QLabel {
+                color: #e0e0e0;
+                font-size: 14px;
+            }
+            QPushButton {
+                background-color: #0078d4;
+                border: none;
+                border-radius: 5px;
+                padding: 10px 20px;
+                color: white;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #1084d8;
+            }
+            QPushButton:pressed {
+                background-color: #006cbd;
+            }
+        """)
+
+        security_form = QVBoxLayout(settings_frame)
+        security_form.setSpacing(15)
+
+        # PIN Settings Group
+        pin_group = QGroupBox("Settings PIN Protection")
+        pin_group.setStyleSheet("""
+            QGroupBox {
+                color: #e0e0e0;
+                font-weight: bold;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                margin-top: 1ex;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+            }
+        """)
+        pin_layout = QVBoxLayout(pin_group)
+
+        # Description
+        desc = QLabel(
+            "The settings are protected with a PIN to prevent unauthorized access.\n"
+            "You can change the PIN by clicking the button below."
+        )
+        desc.setStyleSheet("color: #cccccc; font-size: 13px; padding: 10px;")
+        desc.setWordWrap(True)
+        pin_layout.addWidget(desc)
+
+        # Current PIN info
+        current_pin_info = QLabel(f"Current PIN: {'•' * len(self.current_settings.get('settings_pin', '668899'))}")
+        current_pin_info.setStyleSheet("""
+            QLabel {
+                color: #888888;
+                font-size: 12px;
+                font-style: italic;
+                padding: 5px;
+                background-color: #1e1e1e;
+                border-radius: 3px;
+                border: 1px solid #444444;
+            }
+        """)
+        pin_layout.addWidget(current_pin_info)
+
+        # Change PIN button
+        change_pin_btn = QPushButton("🔑 Change Settings PIN")
+        change_pin_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                border: none;
+                border-radius: 8px;
+                padding: 15px;
+                color: white;
+                font-size: 16px;
+                font-weight: bold;
+                margin-top: 10px;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+            QPushButton:pressed {
+                background-color: #1e7e34;
+            }
+        """)
+        change_pin_btn.clicked.connect(self.change_settings_pin)
+        pin_layout.addWidget(change_pin_btn)
+
+        security_form.addWidget(pin_group)
+
+        # Security Info Group
+        info_group = QGroupBox("Security Information")
+        info_group.setStyleSheet("""
+            QGroupBox {
+                color: #e0e0e0;
+                font-weight: bold;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                margin-top: 1ex;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+            }
+        """)
+        info_layout = QVBoxLayout(info_group)
+
+        info_text = QLabel(
+            "• PIN must be 4-6 digits long\n"
+            "• Default PIN: 668899\n"
+            "• PIN is stored in config.json\n"
+            "• Maximum 3 attempts allowed\n"
+            "• Settings access is protected"
+        )
+        info_text.setStyleSheet("color: #cccccc; font-size: 12px; line-height: 1.5;")
+        info_layout.addWidget(info_text)
+
+        security_form.addWidget(info_group)
+
+        security_layout.addWidget(settings_frame)
+        security_layout.addStretch()
+
+        self.tab_widget.addTab(security_tab, "🔒 Security")
+
+    def change_settings_pin(self):
+        """Change the settings PIN."""
+        try:
+            current_pin = self.current_settings.get("settings_pin", "668899")
+            
+            # Show change PIN dialog
+            dialog = ChangePinDialog(current_pin=current_pin, parent=self)
+            
+            # Connect signal
+            dialog.pin_changed.connect(self.on_pin_changed)
+            
+            # Show dialog
+            dialog.raise_()
+            dialog.activateWindow()
+            dialog.exec()
+            
+        except Exception as e:
+            logger.error(f"Error changing PIN: {e}")
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Failed to change PIN:\n\n{str(e)}"
+            )
+
+    def on_pin_changed(self, new_pin: str):
+        """Handle PIN changed signal."""
+        try:
+            # Update current settings
+            self.current_settings["settings_pin"] = new_pin
+            
+            # Save to config file
+            from ..config import save_config
+            save_config(self.current_settings)
+            
+            # Show success message
+            QMessageBox.information(
+                self,
+                "PIN Changed",
+                "Settings PIN has been changed successfully!\n\n"
+                f"New PIN: {'•' * len(new_pin)}\n\n"
+                "Please remember this PIN to access settings in the future."
+            )
+            
+            logger.info("Settings PIN changed successfully")
+            
+        except Exception as e:
+            logger.error(f"Error saving new PIN: {e}")
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Failed to save new PIN:\n\n{str(e)}"
+            )
 
     def update_batch_preview(self):
         """Update the batch name preview based on current settings."""
@@ -1767,6 +2514,18 @@ class SettingsDialog(QDialog):
                 "supabase_key": self.current_settings.get("supabase_key", ""),
                 "enable_supabase": self.current_settings.get("enable_supabase", False),
                 
+                # ERP settings
+                "enable_erp_submission": self.erp_enable_checkbox.isChecked() if hasattr(self, 'erp_enable_checkbox') else self.current_settings.get("enable_erp_submission", False),
+                "erp_url": self.erp_url_input.text().strip() if hasattr(self, 'erp_url_input') else self.current_settings.get("erp_url", ""),
+                "erp_api_key": self.erp_api_key_input.text().strip() if hasattr(self, 'erp_api_key_input') else self.current_settings.get("erp_api_key", ""),
+                "erp_api_secret": self.erp_api_secret_input.text().strip() if hasattr(self, 'erp_api_secret_input') else self.current_settings.get("erp_api_secret", ""),
+                "erp_timeout": self.erp_timeout_input.value() if hasattr(self, 'erp_timeout_input') else self.current_settings.get("erp_timeout", 30),
+                "erp_company": self.erp_company_input.text().strip() if hasattr(self, 'erp_company_input') else self.current_settings.get("erp_company", "Textilindo"),
+                "erp_from_warehouse": self.erp_from_warehouse_input.text().strip() if hasattr(self, 'erp_from_warehouse_input') else self.current_settings.get("erp_from_warehouse", "Prancis - MGI"),
+                "erp_to_warehouse": self.erp_to_warehouse_input.text().strip() if hasattr(self, 'erp_to_warehouse_input') else self.current_settings.get("erp_to_warehouse", "Prancis - MGI"),
+                "erp_packing_list_field": self.erp_packing_list_field_input.text().strip() if hasattr(self, 'erp_packing_list_field_input') else self.current_settings.get("erp_packing_list_field", "packing_list_items"),
+                "bom_name": self.erp_bom_name_input.text().strip() if hasattr(self, 'erp_bom_name_input') else self.current_settings.get("bom_name", ""),
+                
                 # Batch name settings
                 "batch_name_format": self.batch_format_input.text() if hasattr(self, 'batch_format_input') else "YYYY-MM-DD_product-code_color-code",
                 "batch_start_number": self.batch_start_number_input.text() if hasattr(self, 'batch_start_number_input') else "1"
@@ -2014,6 +2773,221 @@ class SettingsDialog(QDialog):
                 f"Error restarting application:\n\n{str(e)}"
             )
     
+    def toggle_erp_credentials_visibility(self):
+        """Toggle visibility of ERP API credentials."""
+        if self.erp_show_credentials_btn.isChecked():
+            self.erp_api_key_input.setEchoMode(QLineEdit.EchoMode.Normal)
+            self.erp_api_secret_input.setEchoMode(QLineEdit.EchoMode.Normal)
+            self.erp_show_credentials_btn.setText("🙈 Hide Credentials")
+        else:
+            self.erp_api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
+            self.erp_api_secret_input.setEchoMode(QLineEdit.EchoMode.Password)
+            self.erp_show_credentials_btn.setText("👁 Show Credentials")
+    
+    def update_erp_status(self):
+        """Update ERP connection status display."""
+        try:
+            enabled = self.erp_enable_checkbox.isChecked()
+            url = self.erp_url_input.text().strip()
+            api_key = self.erp_api_key_input.text().strip()
+            api_secret = self.erp_api_secret_input.text().strip()
+            
+            if not enabled:
+                self.erp_status_label.setText("Disabled")
+                self.erp_status_label.setStyleSheet("""
+                    QLabel {
+                        color: #888888;
+                        font-size: 12px;
+                        padding: 5px;
+                        background-color: #1e1e1e;
+                        border-radius: 3px;
+                        border: 1px solid #555555;
+                    }
+                """)
+            elif not url or not api_key or not api_secret:
+                self.erp_status_label.setText("Not Configured")
+                self.erp_status_label.setStyleSheet("""
+                    QLabel {
+                        color: #ff6b6b;
+                        font-size: 12px;
+                        padding: 5px;
+                        background-color: #1e1e1e;
+                        border-radius: 3px;
+                        border: 1px solid #555555;
+                    }
+                """)
+            else:
+                self.erp_status_label.setText("Ready to Test")
+                self.erp_status_label.setStyleSheet("""
+                    QLabel {
+                        color: #4CAF50;
+                        font-size: 12px;
+                        padding: 5px;
+                        background-color: #1e1e1e;
+                        border-radius: 3px;
+                        border: 1px solid #555555;
+                    }
+                """)
+        except Exception as e:
+            logger.error(f"Error updating ERP status: {e}")
+    
+    def test_erp_connection(self):
+        """Test ERP connection with current settings."""
+        try:
+            url = self.erp_url_input.text().strip()
+            api_key = self.erp_api_key_input.text().strip()
+            api_secret = self.erp_api_secret_input.text().strip()
+            
+            if not url or not api_key or not api_secret:
+                QMessageBox.warning(
+                    self,
+                    "Missing Configuration",
+                    "Please fill in all ERP settings:\n"
+                    "- ERP URL\n"
+                    "- API Key\n"
+                    "- API Secret"
+                )
+                return
+            
+            # Show progress dialog
+            from PySide6.QtWidgets import QProgressDialog
+            progress = QProgressDialog("Testing ERP connection...", "Cancel", 0, 0, self)
+            progress.setWindowModality(Qt.WindowModality.WindowModal)
+            progress.setAutoClose(True)
+            progress.show()
+            
+            # Create ERP client
+            from ..erp_client import ERPClient
+            timeout = self.erp_timeout_input.value()
+            
+            client = ERPClient(
+                base_url=url,
+                api_key=api_key,
+                api_secret=api_secret,
+                timeout=timeout
+            )
+            
+            # Test connection
+            success, message = client.test_connection()
+            
+            progress.close()
+            
+            if success:
+                self.erp_status_label.setText("✅ Connected")
+                self.erp_status_label.setStyleSheet("""
+                    QLabel {
+                        color: #28a745;
+                        font-size: 12px;
+                        font-weight: bold;
+                        padding: 5px;
+                        background-color: #1e1e1e;
+                        border-radius: 3px;
+                        border: 1px solid #28a745;
+                    }
+                """)
+                QMessageBox.information(
+                    self,
+                    "Connection Successful",
+                    f"Successfully connected to ERP!\n\n{message}"
+                )
+            else:
+                self.erp_status_label.setText("❌ Connection Failed")
+                self.erp_status_label.setStyleSheet("""
+                    QLabel {
+                        color: #ff6b6b;
+                        font-size: 12px;
+                        font-weight: bold;
+                        padding: 5px;
+                        background-color: #1e1e1e;
+                        border-radius: 3px;
+                        border: 1px solid #ff6b6b;
+                    }
+                """)
+                QMessageBox.critical(
+                    self,
+                    "Connection Failed",
+                    f"Failed to connect to ERP:\n\n{message}\n\n"
+                    f"Please check:\n"
+                    f"- ERP URL is correct\n"
+                    f"- API credentials are valid\n"
+                    f"- Network connection\n"
+                    f"- ERP server is running"
+                )
+            
+            client.close()
+            
+        except Exception as e:
+            logger.error(f"Error testing ERP connection: {e}")
+            QMessageBox.critical(
+                self,
+                "Test Error",
+                f"Error testing ERP connection:\n\n{str(e)}"
+            )
+    
+    def save_erp_settings(self):
+        """Save ERP settings to configuration."""
+        try:
+            # Get values from inputs
+            erp_settings = {
+                "enable_erp_submission": self.erp_enable_checkbox.isChecked(),
+                "erp_url": self.erp_url_input.text().strip(),
+                "erp_api_key": self.erp_api_key_input.text().strip(),
+                "erp_api_secret": self.erp_api_secret_input.text().strip(),
+                "erp_timeout": self.erp_timeout_input.value(),
+                "erp_company": self.erp_company_input.text().strip(),
+                "erp_from_warehouse": self.erp_from_warehouse_input.text().strip(),
+                "erp_to_warehouse": self.erp_to_warehouse_input.text().strip(),
+                "erp_packing_list_field": self.erp_packing_list_field_input.text().strip()
+            }
+            
+            # Add BOM data if selected (from BOM search section)
+            if hasattr(self, 'selected_bom_data') and self.selected_bom_data:
+                erp_settings.update({
+                    "bom_name": self.selected_bom_data.get("bom_name", ""),
+                    "bom_item": self.selected_bom_data.get("bom_item", ""),
+                    "bom_product_code": self.selected_bom_data.get("bom_product_code", ""),
+                    "bom_color_code": self.selected_bom_data.get("bom_color_code", ""),
+                    "bom_product_name": self.selected_bom_data.get("bom_product_name", "")
+                })
+                logger.info(f"BOM data included in save: {self.selected_bom_data.get('bom_product_code')} (Color: {self.selected_bom_data.get('bom_color_code')})")
+            else:
+                # Keep existing BOM settings if no new selection
+                erp_settings.update({
+                    "bom_name": self.current_settings.get("bom_name", ""),
+                    "bom_item": self.current_settings.get("bom_item", ""),
+                    "bom_product_code": self.current_settings.get("bom_product_code", ""),
+                    "bom_color_code": self.current_settings.get("bom_color_code", ""),
+                    "bom_product_name": self.current_settings.get("bom_product_name", "")
+                })
+                logger.info("No new BOM selected, keeping existing BOM data")
+            
+            # Update current settings
+            self.current_settings.update(erp_settings)
+            
+            # Save to config file
+            from ..config import save_config
+            save_config(self.current_settings)
+            
+            QMessageBox.information(
+                self,
+                "Settings Saved",
+                "ERP settings have been saved successfully!\n\n"
+                "The settings will take effect immediately."
+            )
+            
+            logger.info("ERP settings saved successfully")
+            
+            # Update status
+            self.update_erp_status()
+            
+        except Exception as e:
+            logger.error(f"Error saving ERP settings: {e}")
+            QMessageBox.critical(
+                self,
+                "Save Error",
+                f"Failed to save ERP settings:\n\n{str(e)}"
+            )
+    
     def _trigger_restart(self):
         """Trigger restart by finding the main window and calling its restart method."""
         try:
@@ -2026,4 +3000,162 @@ class SettingsDialog(QDialog):
                     widget.restart_application()
                     break
         except Exception as e:
-            logger.error(f"Error triggering restart: {e}") 
+            logger.error(f"Error triggering restart: {e}")
+    
+    def search_bom(self, search_text: str):
+        """Search BOM by product code in real-time."""
+        try:
+            if not search_text or len(search_text) < 2:
+                self.bom_results_list.clear()
+                self.bom_results_list.setVisible(False)
+                return
+            
+            # Get ERP URL
+            erp_url = self.erp_url_input.text().strip()
+            api_key = self.erp_api_key_input.text().strip()
+            api_secret = self.erp_api_secret_input.text().strip()
+            
+            if not erp_url or not api_key or not api_secret:
+                return
+            
+            # Build API endpoint with proper URL encoding
+            base_url = f"{erp_url}/api/resource/BOM"
+            
+            # Build filters as JSON string (properly encoded)
+            # Note: BOM doctype has "item" field (link to Item), not "item_code"
+            filters = json.dumps([["item", "like", f"%{search_text}%"]])
+            fields = json.dumps(["name", "item", "is_active"])
+            
+            # Build query parameters
+            params = {
+                "filters": filters,
+                "fields": fields,
+                "limit_page_length": "10"
+            }
+            
+            # Build URL with encoded parameters
+            url = f"{base_url}?{urllib.parse.urlencode(params)}"
+            
+            # Make API request with proper headers
+            headers = {
+                "Authorization": f"token {api_key}:{api_secret}",
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+            
+            response = requests.get(url, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                boms = data.get("data", [])
+                
+                # Clear previous results
+                self.bom_results_list.clear()
+                
+                if boms:
+                    # Add BOMs to list
+                    for bom in boms:
+                        bom_name = bom.get("name", "")
+                        item = bom.get("item", "")
+                        is_active = bom.get("is_active", 0)
+                        
+                        # Only show active BOMs
+                        if is_active:
+                            # item is the item_code in BOM doctype
+                            item_text = f"{item} - {bom_name}"
+                            list_item = QListWidgetItem(item_text)
+                            list_item.setData(Qt.ItemDataRole.UserRole, {
+                                "name": bom_name,
+                                "item": item,
+                                "item_code": item  # item field contains the item_code
+                            })
+                            self.bom_results_list.addItem(list_item)
+                    
+                    # Show results
+                    if self.bom_results_list.count() > 0:
+                        self.bom_results_list.setVisible(True)
+                    else:
+                        self.bom_results_list.setVisible(False)
+                else:
+                    self.bom_results_list.setVisible(False)
+            else:
+                logger.error(f"BOM search failed: {response.status_code} - {response.text}")
+                self.bom_results_list.setVisible(False)
+                
+        except Exception as e:
+            logger.error(f"Error searching BOM: {e}")
+            self.bom_results_list.setVisible(False)
+    
+    def select_bom(self, item: QListWidgetItem):
+        """Handle BOM selection from dropdown."""
+        try:
+            bom_data = item.data(Qt.ItemDataRole.UserRole)
+            
+            if bom_data:
+                bom_name = bom_data.get("name", "")
+                item_name = bom_data.get("item", "")
+                item_code = bom_data.get("item_code", "")
+                
+                # Update selected BOM display
+                self.selected_bom_label.setText(
+                    f"✓ Selected BOM:\n"
+                    f"Name: {bom_name}\n"
+                    f"Item: {item_name}\n"
+                    f"Product Code: {item_code}"
+                )
+                self.selected_bom_label.setStyleSheet("""
+                    QLabel {
+                        color: #4CAF50;
+                        font-size: 12px;
+                        font-weight: bold;
+                        padding: 8px;
+                        background-color: #1e1e1e;
+                        border-radius: 5px;
+                        border: 2px solid #4CAF50;
+                    }
+                """)
+                
+                # Fetch item details to get color code and other info
+                color_code = ""
+                product_name = ""
+                
+                try:
+                    # Try to get item details from product search API
+                    api_url = self.current_settings.get('api_url', '')
+                    if api_url:
+                        response = requests.post(
+                            api_url,
+                            json={'product_code': item_code},
+                            timeout=5
+                        )
+                        if response.status_code == 200:
+                            result = response.json()
+                            if isinstance(result.get('message'), dict):
+                                msg = result['message']
+                                if msg.get('success') and msg.get('data', {}).get('products'):
+                                    products = msg['data']['products']
+                                    if products:
+                                        product = products[0]
+                                        color_code = product.get('color_code', '')
+                                        product_name = product.get('product_name', '')
+                                        logger.info(f"Fetched color code: {color_code}, name: {product_name}")
+                except Exception as e:
+                    logger.warning(f"Could not fetch item details for color code: {e}")
+                
+                # Store selected BOM data
+                self.selected_bom_data = {
+                    "bom_name": bom_name,
+                    "bom_item": item_name,
+                    "bom_product_code": item_code,
+                    "bom_color_code": color_code,
+                    "bom_product_name": product_name
+                }
+                
+                # Clear search and hide results
+                self.bom_search_input.clear()
+                self.bom_results_list.setVisible(False)
+                
+                logger.info(f"BOM selected: {bom_name} - {item_code} (Color: {color_code})")
+                
+        except Exception as e:
+            logger.error(f"Error selecting BOM: {e}") 

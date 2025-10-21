@@ -59,6 +59,7 @@ class LoggingTable:
     def save_data(self, data: Dict[str, Any]):
         """
         Save production data to both local JSON and Supabase.
+        Saves to local JSON first (always succeeds), then tries Supabase (auto-queues on failure).
         
         Args:
             data: Production data to save
@@ -67,15 +68,7 @@ class LoggingTable:
         if 'timestamp' not in data:
             data['timestamp'] = datetime.now().isoformat()
         
-        # Save to Supabase first (cloud storage)
-        if self.supabase_client and self.supabase_client.is_connected:
-            try:
-                self.supabase_client.insert_production_log(data)
-                logger.debug(f"Data saved to Supabase: batch {data.get('batch')}")
-            except Exception as e:
-                logger.error(f"Error saving to Supabase: {e}")
-        
-        # Save to local JSON as backup
+        # 1. Save to local JSON FIRST (primary storage, always succeeds)
         filename = self.get_today_filename()
         existing_data = self.load_today_data()
         existing_data.append(data)
@@ -90,6 +83,17 @@ class LoggingTable:
             logger.debug(f"Data saved to local JSON: {filename}")
         except Exception as e:
             logger.error(f"Error saving log data to JSON: {e}")
+        
+        # 2. Try to save to Supabase (cloud sync, auto-queues on failure)
+        if self.supabase_client:
+            try:
+                # insert_production_log will automatically queue if connection fails
+                self.supabase_client.insert_production_log(data)
+                if self.supabase_client.is_connected:
+                    logger.debug(f"Data saved to Supabase: batch {data.get('batch')}")
+            except Exception as e:
+                logger.error(f"Error saving to Supabase: {e}")
+                # No need to manually queue - insert_production_log handles it
             
     def get_last_50_entries(self) -> List[Dict[str, Any]]:
         """Get the last 50 entries from today's log, sorted by timestamp descending (newest first)"""

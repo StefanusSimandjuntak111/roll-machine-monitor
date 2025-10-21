@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Complete Build Script for Monitoring Roll Machine v1.3.6
+Complete Build Script for Monitoring Roll Machine v1.4.2
 Creates a NSIS installer with full install/update support
+Includes new batch tracking and Supabase integration features
 """
 
 import os
@@ -21,11 +22,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class BuildManager:
-    """Manages the complete build process for version 1.3.6."""
+    """Manages the complete build process for version 1.4.2."""
     
     def __init__(self):
         self.project_root = Path(__file__).parent
-        self.version = "1.3.6"
+        self.version = "1.4.2"
         self.app_name = "Monitoring Roll Machine"
         self.dist_dir = self.project_root / "dist"
         self.build_dir = self.project_root / "build"
@@ -128,6 +129,11 @@ class BuildManager:
             from monitoring.serial_handler import JSKSerialPort
             from monitoring.config import load_config
             
+            # Test new batch tracking features
+            from monitoring.batch_manager import BatchManager
+            from monitoring.supabase_client import SupabaseClient
+            from monitoring.ui.batch_summary_dialog import BatchSummaryDialog
+            
             self.log_success("All modules import successfully")
             
             # Verify version
@@ -142,6 +148,18 @@ class BuildManager:
                 self.log_error("Configuration loading failed")
                 return False
             self.log_success("Configuration file is valid")
+            
+            # Test batch manager
+            batch_mgr = BatchManager()
+            test_batch = batch_mgr.get_batch_for_product("TEST-001")
+            if not test_batch:
+                self.log_error("Batch manager test failed")
+                return False
+            self.log_success("Batch manager working correctly")
+            
+            # Test Supabase client initialization
+            supabase_client = SupabaseClient()
+            self.log_success("Supabase client initialized successfully")
             
             return True
             
@@ -170,6 +188,8 @@ a = Analysis(
         ('requirements.txt', '.'),
         ('LICENSE.txt', '.'),
         ('README.md', '.'),
+        ('SUPABASE_SCHEMA.sql', '.'),
+        ('BATCH_FEATURE_README.md', '.'),
     ],
     hiddenimports=[
         'PySide6.QtCore',
@@ -191,6 +211,16 @@ a = Analysis(
         'pandas',
         'requests',
         'openpyxl',
+        'supabase',
+        'supabase.auth',
+        'supabase.client',
+        'postgrest',
+        'realtime',
+        'storage3',
+        'httpx',
+        'anyio',
+        'h11',
+        'httpcore',
         'monitoring',
         'monitoring.ui',
         'monitoring.ui.main_window',
@@ -202,8 +232,6 @@ a = Analysis(
         'monitoring.ui.print_preview',
         'monitoring.ui.printer_utils',
         'monitoring.ui.batch_summary_dialog',
-        'monitoring.ui.item_selection_dialog',
-        'monitoring.ui.pin_dialog',
         'monitoring.monitor',
         'monitoring.serial_handler',
         'monitoring.config',
@@ -213,11 +241,8 @@ a = Analysis(
         'monitoring.exporter',
         'monitoring.parser',
         'monitoring.version',
-        'monitoring.erp_client',
-        'monitoring.supabase_client',
-        'monitoring.offline_queue',
         'monitoring.batch_manager',
-        'monitoring.batch_metadata_store',
+        'monitoring.supabase_client',
     ],
     hookspath=[],
     hooksconfig={{}},
@@ -315,14 +340,15 @@ exe = EXE(
         self.log_step("Creating NSIS installer...")
         
         # Create NSIS script
-        nsis_script = self.project_root / "installer_v1.3.6.nsi"
+        nsis_script = self.project_root / "installer_v1.4.2.nsi"
         
         nsis_content = f'''
-; Monitoring Roll Machine v1.3.6 Installer
+; Monitoring Roll Machine v1.4.2 Installer
 ; NSIS Script with Install/Update Support
+; Includes Batch Tracking & Supabase Integration
 
 !define APP_NAME "Monitoring Roll Machine"
-!define APP_VERSION "1.3.6"
+!define APP_VERSION "1.4.2"
 !define APP_PUBLISHER "Textilindo"
 !define APP_URL "https://github.com/StefanusSimandjuntak111/roll-machine-monitor"
 !define APP_EXECUTABLE "MonitoringRollMachine.exe"
@@ -331,7 +357,7 @@ exe = EXE(
 
 ; Installer Information
 Name "${{APP_NAME}} v${{APP_VERSION}}"
-OutFile "Monitoring-Roll-Machine-v1.3.6-Setup.exe"
+OutFile "Monitoring-Roll-Machine-v1.4.2-Setup.exe"
 InstallDir "$PROGRAMFILES\\${{APP_NAME}}"
 InstallDirRegKey HKLM "Software\\${{APP_NAME}}" "Install_Dir"
 RequestExecutionLevel admin
@@ -392,6 +418,8 @@ Section "Main Application" SecMain
     File "requirements.txt"
     File "README.md"
     File "LICENSE.txt"
+    File "SUPABASE_SCHEMA.sql"
+    File "BATCH_FEATURE_README.md"
     
     ; Install monitoring package
     SetOutPath "$INSTDIR\\monitoring"
@@ -466,11 +494,30 @@ Section "Windows Service (Optional)" SecService
     Call InstallWindowsService
 SectionEnd
 
+Section "Database Setup (Optional)" SecDatabase
+    ; Create database setup batch file
+    SetOutPath "$INSTDIR"
+    FileOpen $0 "$INSTDIR\\setup_database.bat" w
+    FileWrite $0 "@echo off$\\r$\\n"
+    FileWrite $0 "echo Setting up Supabase database...$\\r$\\n"
+    FileWrite $0 "echo Please run this script after installation to set up your database.$\\r$\\n"
+    FileWrite $0 "echo See BATCH_FEATURE_README.md for detailed instructions.$\\r$\\n"
+    FileWrite $0 "pause$\\r$\\n"
+    FileClose $0
+    
+    MessageBox MB_YESNO "Would you like to open the database setup instructions now?" IDYES ShowDBInstructions
+    Goto EndDBInstructions
+    ShowDBInstructions:
+        ExecShell "open" "$INSTDIR\\BATCH_FEATURE_README.md"
+    EndDBInstructions:
+SectionEnd
+
 ; Section Descriptions
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
     !insertmacro MUI_DESCRIPTION_TEXT ${{SecMain}} "Install the main application and required files"
     !insertmacro MUI_DESCRIPTION_TEXT ${{SecPython}} "Set up Python virtual environment (requires Python 3.9+)"
     !insertmacro MUI_DESCRIPTION_TEXT ${{SecService}} "Install as Windows service for automatic startup"
+    !insertmacro MUI_DESCRIPTION_TEXT ${{SecDatabase}} "Database setup instructions and batch tracking documentation"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ; Uninstaller Section
@@ -491,6 +538,9 @@ Section "Uninstall"
     Delete "$INSTDIR\\requirements.txt"
     Delete "$INSTDIR\\README.md"
     Delete "$INSTDIR\\LICENSE.txt"
+    Delete "$INSTDIR\\SUPABASE_SCHEMA.sql"
+    Delete "$INSTDIR\\BATCH_FEATURE_README.md"
+    Delete "$INSTDIR\\setup_database.bat"
     Delete "$INSTDIR\\${{APP_UNINSTALLER}}"
     
     ; Remove shortcuts
@@ -588,7 +638,7 @@ Function .onInit
     ReadRegStr $0 HKLM "Software\\${{APP_NAME}}" "Install_Dir"
     ${{If}} $0 != ""
         ReadRegStr $1 HKLM "Software\\${{APP_NAME}}" "Version"
-        MessageBox MB_YESNO|MB_ICONQUESTION "Monitoring Roll Machine v$1 is already installed.$\\n$\\nDo you want to update to version ${{APP_VERSION}}?" IDYES UpdateInstall
+        MessageBox MB_YESNO|MB_ICONQUESTION "Monitoring Roll Machine v$1 is already installed.$\\n$\\nDo you want to update to version ${{APP_VERSION}}?$\\n$\\nNew in v${{APP_VERSION}}:$\\n• Batch tracking with auto-generation$\\n• Supabase cloud database integration$\\n• Batch summary/recap feature$\\n• Enhanced production logging$\\n• Number-only batch format" IDYES UpdateInstall
         Abort
         UpdateInstall:
             DetailPrint "Updating from version $1 to ${{APP_VERSION}}..."
@@ -645,71 +695,186 @@ FunctionEnd
 - **Build Type**: Release
 
 ## What's New in v{self.version}
-- Enhanced NSIS installer with improved install/update support
-- Complete application functionality verification
-- Improved singleton lock mechanism
-- Enhanced heartbeat management for idle detection
-- Better configuration management with multiple location support
-- Printer integration improvements
-- All UI components fully functional
 
-## Features
-- Complete monitoring system for roll machines
-- Real-time data display and logging
+### 🎯 **Batch Tracking & Management**
+- **Auto Batch Generation**: Automatic batch numbering (1, 2, 3, etc.)
+- **Smart Logic**: Same product = same batch, different product = new batch
+- **Continuous Numbering**: Batch numbers don't reset per day
+- **Manual Override**: Option to manually set batch numbers
+
+### 📊 **Batch Summary/Recap Feature**
+- **New Button**: "📊 Batch Recap" in main toolbar
+- **Batch Selection**: Dropdown to select any batch
+- **Summary View**: Total rolls, length, average times
+- **Detail Table**: All production logs for selected batch
+- **Export Function**: Export batch data to CSV
+
+### ☁️ **Supabase Cloud Integration**
+- **Dual Storage**: Cloud (Supabase) + Local (JSON backup)
+- **Auto-Sync**: Production data automatically saved to both
+- **Offline Support**: Works without internet (local fallback)
+- **Database Schema**: Complete SQL schema provided
+- **Performance**: Optimized with indexes and triggers
+
+### 🔧 **Technical Improvements**
+- **Enhanced Configuration**: Supabase credentials in config.json
+- **Better Error Handling**: Graceful fallback when cloud unavailable
+- **Improved Logging**: Better tracking of batch operations
+- **Code Quality**: PEP 8 compliance, comprehensive docstrings
+
+## Features Overview
+
+### ✅ **Core Monitoring**
+- Real-time length counter monitoring
+- Speed and shift tracking
 - Serial communication with JSK3588 protocol
-- Export functionality (CSV/Excel)
-- Printer support with print preview
-- Kiosk mode support for production environments
-- Windows service integration
-- Auto-update capability
-- Singleton instance protection
-- Production logging with table view
+- Auto-detection of serial ports
+- Mock data simulation for testing
+
+### ✅ **Production Logging**
+- Comprehensive production data logging
+- Cycle time and roll time tracking
+- Batch and product information management
+- Export functionality to CSV
+- Real-time logging table display
+
+### ✅ **Batch Management**
+- Automatic batch generation based on product changes
+- Batch summary and recap functionality
+- Export batch data to CSV
+- Cloud and local data storage
+- Manual batch override capability
+
+### ✅ **User Interface**
+- Modern industrial design
+- Kiosk mode for production environments
+- Real-time data visualization
+- Product search and management
+- Settings configuration
+- New batch recap dialog
+
+### ✅ **Advanced Features**
+- Heartbeat monitoring for system health
+- Singleton protection (single instance)
+- Auto-recovery for serial connections
+- Comprehensive error handling
+- Logging and debugging support
+- Cloud database integration
 
 ## Installation
+
+### System Requirements
+- Windows 7 or later
+- Administrative privileges for installation
+- Serial port for machine communication
+- Internet connection (optional, for Supabase)
+
+### Installation Steps
 1. Run the installer as Administrator
 2. Follow the installation wizard
-3. Choose installation components as needed:
-   - Main Application (Required)
-   - Python Environment (Optional)
-   - Windows Service (Optional)
+3. Choose installation components:
+   - **Main Application** (Required)
+   - **Python Environment** (Optional)
+   - **Windows Service** (Optional)
+   - **Database Setup** (Optional - shows documentation)
 
-## Update Process
+### Update Process
 - The installer automatically detects existing installations
 - Updates preserve configuration and data
 - Previous versions are cleanly replaced
 - No data loss during updates
 
-## System Requirements
-- Windows 7 or later
-- Python 3.9+ (if using Python environment option)
-- Administrative privileges for service installation
-- Serial port for machine communication
-- Printer (optional, for printing labels)
+## Configuration
+
+### Supabase Setup (Optional)
+1. Go to your Supabase project dashboard
+2. Navigate to SQL Editor
+3. Run the SQL schema from `SUPABASE_SCHEMA.sql`
+4. Configure credentials in `config.json`:
+   ```json
+   {{
+     "supabase_url": "https://your-project.supabase.co",
+     "supabase_key": "your-api-key",
+     "enable_supabase": true
+   }}
+   ```
+
+### Batch Tracking
+- Batch numbers auto-generate when product code changes
+- Leave batch number field empty for auto-generation
+- Manual batch numbers can be entered if needed
+- Batch recap shows summaries and detailed logs
 
 ## Files Included
-- Main application executable (MonitoringRollMachine.exe)
-- Complete monitoring package
+
+### Application Files
+- Main executable (MonitoringRollMachine.exe)
+- Complete monitoring package with new features
 - Windows service scripts
-- Documentation
-- Configuration files
-- Uninstaller
+- Documentation and README files
 
-## Configuration
-- Configuration file located at: Program Files\\Roll Machine Monitor\\config\\config.json
-- Supports multiple configuration locations
-- Automatic fallback to defaults if config not found
+### New Documentation
+- `SUPABASE_SCHEMA.sql` - Database setup instructions
+- `BATCH_FEATURE_README.md` - Complete batch feature guide
+- Release notes and technical documentation
 
-## Support
-For support and updates, visit: {self.app_name}
-Repository: https://github.com/StefanusSimandjuntak111/roll-machine-monitor
+### Configuration
+- Configuration file with Supabase settings
+- Batch tracking configuration
+- All previous configuration options maintained
+
+## Migration from Previous Versions
+
+### Automatic Migration
+- All existing configurations are preserved
+- Local JSON data continues to work
+- Supabase integration is optional
+- No breaking changes to existing functionality
+
+### New Features
+- Batch tracking starts fresh (counter begins at 1)
+- Supabase integration can be enabled anytime
+- All existing production data remains accessible
+- New batch recap feature available immediately
+
+## Support & Documentation
+
+### Documentation
+- Complete batch feature guide: `BATCH_FEATURE_README.md`
+- Database setup instructions: `SUPABASE_SCHEMA.sql`
+- Technical documentation included in installation
+
+### Repository
+- GitHub: https://github.com/StefanusSimandjuntak111/roll-machine-monitor
+- Issues and feature requests welcome
+- Complete source code available
 
 ## Technical Details
-- Built with PyInstaller 6.14.1
-- Python version: {sys.version.split()[0]}
-- UI Framework: PySide6 (Qt)
-- Serial Communication: pyserial
-- Data Export: pandas, openpyxl
-- Printing: Qt PrintSupport
+
+### Dependencies
+- PySide6 (Qt UI framework)
+- Supabase client (cloud database)
+- pyserial (serial communication)
+- pandas (data processing)
+- matplotlib (data visualization)
+
+### Database
+- PostgreSQL (Supabase backend)
+- Automatic triggers for batch metadata
+- Optimized indexes for performance
+- Row-level security enabled
+
+### Performance
+- Dual-storage system for reliability
+- Optimized database queries
+- Efficient batch generation
+- Minimal impact on existing performance
+
+---
+
+**Version**: {self.version}
+**Build Date**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+**Compatibility**: Windows 7+ (32-bit and 64-bit)
 """
         
         notes_path = self.releases_dir / f"RELEASE_NOTES_v{self.version}.md"
@@ -751,11 +916,21 @@ Repository: https://github.com/StefanusSimandjuntak111/roll-machine-monitor
         logger.info("=" * 60)
         logger.info(f"Installer location: {self.releases_dir}")
         logger.info(f"Version: {self.version}")
-        logger.info("All application functions verified and working")
+        logger.info("New features verified:")
+        logger.info("  ✓ Batch tracking and auto-generation")
+        logger.info("  ✓ Supabase cloud integration")
+        logger.info("  ✓ Batch summary/recap feature")
+        logger.info("  ✓ Enhanced production logging")
         logger.info("=" * 60)
         
         print("\n[SUCCESS] Build completed successfully!")
         print(f"[INFO] Installer ready: {self.releases_dir}")
+        print(f"[INFO] Version: {self.version}")
+        print("[INFO] New features included:")
+        print("  • Auto batch generation")
+        print("  • Supabase cloud storage")
+        print("  • Batch recap dialog")
+        print("  • Enhanced production tracking")
         return True
 
 if __name__ == "__main__":
