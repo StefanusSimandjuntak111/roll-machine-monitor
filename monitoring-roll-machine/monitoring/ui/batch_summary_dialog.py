@@ -23,15 +23,17 @@ logger = logging.getLogger(__name__)
 class BatchSummaryDialog(QDialog):
     """Dialog untuk menampilkan batch summary/recap."""
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, safe_mode=False, safe_mode_settings=None):
         super().__init__(parent)
         self.setWindowTitle("Batch Summary / Recap")
         self.setMinimumSize(1000, 600)
-        
+
         # Initialize data sources
         self.config = load_config()
-        self.logging_table = LoggingTable()
-        
+        self.safe_mode = safe_mode  # Safe Mode flag
+        self.safe_mode_settings = safe_mode_settings or {}  # Safe Mode settings
+        self.logging_table = LoggingTable(safe_mode=safe_mode)
+
         # Initialize Supabase client if enabled
         self.supabase_client = None
         if self.config.get('enable_supabase', False):
@@ -39,12 +41,12 @@ class BatchSummaryDialog(QDialog):
                 url=self.config.get('supabase_url'),
                 key=self.config.get('supabase_key')
             )
-        
+
         # Initialize ERP client if enabled
         self.erp_client = None
         if self.config.get('enable_erp_submission', False):
             self.erp_client = get_erp_client(self.config)
-        
+
         self.setup_ui()
         self.load_batches()
     
@@ -75,10 +77,52 @@ class BatchSummaryDialog(QDialog):
             }
             QComboBox:hover {
                 border: 1px solid #0078d4;
+                background-color: #0078d4;
+            }
+            QComboBox:focus {
+                border: 2px solid #0078d4;
+                background-color: #1a1a1a;
             }
             QComboBox::drop-down {
                 border: none;
                 width: 30px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #e0e0e0;
+                margin-right: 5px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #2d2d2d;
+                color: #e0e0e0;
+                border: 1px solid #444444;
+                border-radius: 4px;
+                selection-background-color: #0078d4;
+                selection-color: white;
+            }
+            QComboBox QAbstractItemView::item {
+                background-color: #2d2d2d;
+                color: #e0e0e0;
+                padding: 10px 12px;
+                border: none;
+                border-radius: 3px;
+                margin: 1px;
+            }
+            QComboBox QAbstractItemView::item:hover {
+                background-color: #1a1a1a;
+                color: #e0e0e0;
+                border: 1px solid #0078d4;
+                border-radius: 3px;
+                font-weight: bold;
+            }
+            QComboBox QAbstractItemView::item:selected {
+                background-color: #0078d4;
+                color: white;
+                border: 1px solid #1084d8;
+                border-radius: 3px;
+                font-weight: bold;
             }
             QTableWidget {
                 background-color: #2d2d2d;
@@ -233,6 +277,60 @@ class BatchSummaryDialog(QDialog):
         
         # Check if ERP is configured and update button state
         self._update_erp_button_state()
+        
+        # Initialize submitted batches tracking
+        self.submitted_batches = self._load_submitted_batches()
+    
+    def _load_submitted_batches(self):
+        """Load list of batches that have been submitted to ERP."""
+        try:
+            import json
+            import os
+            from pathlib import Path
+            
+            # Create submitted batches file path
+            submitted_file = Path("logs") / "submitted_batches.json"
+            
+            if submitted_file.exists():
+                with open(submitted_file, 'r') as f:
+                    data = json.load(f)
+                    return set(data.get('submitted_batches', []))
+            else:
+                return set()
+        except Exception as e:
+            logger.error(f"Error loading submitted batches: {e}")
+            return set()
+    
+    def _save_submitted_batches(self):
+        """Save list of submitted batches to file."""
+        try:
+            import json
+            import os
+            from pathlib import Path
+            
+            # Create logs directory if it doesn't exist
+            logs_dir = Path("logs")
+            logs_dir.mkdir(exist_ok=True)
+            
+            # Save submitted batches
+            submitted_file = logs_dir / "submitted_batches.json"
+            data = {
+                'submitted_batches': list(self.submitted_batches),
+                'last_updated': datetime.now().isoformat()
+            }
+            
+            with open(submitted_file, 'w') as f:
+                json.dump(data, f, indent=2)
+                
+            logger.info(f"Saved {len(self.submitted_batches)} submitted batches")
+        except Exception as e:
+            logger.error(f"Error saving submitted batches: {e}")
+    
+    def _mark_batch_as_submitted(self, batch_name):
+        """Mark a batch as submitted to ERP."""
+        self.submitted_batches.add(batch_name)
+        self._save_submitted_batches()
+        logger.info(f"Marked batch {batch_name} as submitted to ERP")
     
     def load_batches(self):
         """Load available batches from Supabase or local JSON."""
@@ -264,7 +362,12 @@ class BatchSummaryDialog(QDialog):
         # Merge and deduplicate batches from both sources
         # Use set to deduplicate, then convert back to list and sort
         all_batches = set(batches_from_supabase + batches_from_local)
-        batches = sorted(all_batches, reverse=True)
+        
+        # Filter out submitted batches
+        available_batches = [batch for batch in all_batches if batch not in self.submitted_batches]
+        batches = sorted(available_batches, reverse=True)
+        
+        logger.info(f"Filtered out {len(all_batches) - len(available_batches)} submitted batches")
         
         # Additional fallback to production logs if both sources are empty
         if not batches:
@@ -276,19 +379,23 @@ class BatchSummaryDialog(QDialog):
                 
                 if current_batch:
                     # Get all historical batches (1 to current)
-                    batches = [str(i) for i in range(batch_manager.current_counter, 0, -1)]
-                    logger.info(f"Loaded {len(batches)} batches from batch_manager (1 to {batch_manager.current_counter})")
+                    all_batches = [str(i) for i in range(batch_manager.current_counter, 0, -1)]
+                    # Filter out submitted batches
+                    batches = [batch for batch in all_batches if batch not in self.submitted_batches]
+                    logger.info(f"Loaded {len(batches)} batches from batch_manager (filtered from {len(all_batches)})")
                 else:
                     # Fallback to production logs
                     all_data = self.logging_table.load_today_data()
                     # Filter out None, empty strings, and "unknown" values
-                    batches = list(set(
+                    all_batches = list(set(
                         d.get('batch') for d in all_data 
                         if d.get('batch') and 
                         d.get('batch') not in [None, '', 'unknown', 'Unknown']
                     ))
+                    # Filter out submitted batches
+                    batches = [batch for batch in all_batches if batch not in self.submitted_batches]
                     batches.sort(reverse=True, key=lambda x: int(x) if x.isdigit() else 0)
-                    logger.info(f"Loaded {len(batches)} batches from local JSON")
+                    logger.info(f"Loaded {len(batches)} batches from local JSON (filtered from {len(all_batches)})")
             except Exception as e:
                 logger.error(f"Error loading batches from local sources: {e}")
         
@@ -296,7 +403,10 @@ class BatchSummaryDialog(QDialog):
             self.batch_combo.addItems(batches)
         else:
             self.batch_combo.addItem("No batches available")
-            self.summary_label.setText("No production data found for today")
+            if self.submitted_batches:
+                self.summary_label.setText(f"No new batches available. {len(self.submitted_batches)} batch(es) already submitted to ERP.")
+            else:
+                self.summary_label.setText("No production data found for today")
     
     def on_batch_selected(self, batch: str):
         """Handle batch selection."""
@@ -364,6 +474,18 @@ class BatchSummaryDialog(QDialog):
     
     def submit_to_erp(self):
         """Submit current batch data to ERP system."""
+        # Check if Safe Mode is active and ERP is not allowed
+        if self.safe_mode and not self.safe_mode_settings.get("send_erp", False):
+            QMessageBox.warning(
+                self,
+                "Safe Mode Active",
+                "Safe Mode is currently active.\n\n"
+                "ERP submission is disabled in your Safe Mode configuration.\n\n"
+                "To enable ERP submission, disable Safe Mode and reconfigure it."
+            )
+            logger.warning("ERP submission blocked - Safe Mode active and ERP not allowed")
+            return
+
         batch = self.batch_combo.currentText()
         if not batch or batch == "No batches available":
             QMessageBox.warning(
@@ -372,7 +494,7 @@ class BatchSummaryDialog(QDialog):
                 "No batch selected. Please select a batch to submit."
             )
             return
-        
+
         # Check ERP client
         if not self.erp_client:
             QMessageBox.critical(
@@ -524,6 +646,12 @@ class BatchSummaryDialog(QDialog):
                 )
                 
                 logger.info(f"Batch {batch} submitted successfully: {doc_name}")
+                
+                # Mark batch as submitted
+                self._mark_batch_as_submitted(batch)
+                
+                # Refresh batch list to remove submitted batch
+                self.load_batches()
                 
             else:
                 # Error message

@@ -16,11 +16,11 @@ from typing import Optional, Dict, Any
 from ..version import get_version_string
 APP_VERSION = get_version_string()
 from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QComboBox, QSpinBox,
     QLineEdit, QFormLayout, QGroupBox, QScrollArea,
     QSizePolicy, QApplication, QMessageBox, QFrame,
-    QStackedWidget, QDialog
+    QStackedWidget, QDialog, QCheckBox, QDialogButtonBox
 )
 from PySide6.QtCore import Qt, QTimer, Slot, Signal
 from PySide6.QtGui import QIcon, QFont, QCloseEvent, QPalette, QColor
@@ -382,6 +382,7 @@ class ModernMainWindow(QMainWindow):
         self.last_product_start_time = None  # Last product start time for cycle time calculation
         self.is_new_product_started = False  # Flag to track if new product started
         self.is_kiosk_mode = True  # Initialize kiosk mode flag
+        self.safe_mode_active = False  # Safe Mode flag - when True, no database operations
         
         # Load configuration
         self.config = load_config()
@@ -413,6 +414,10 @@ class ModernMainWindow(QMainWindow):
         self.monitoring_view = None
         self.product_form = None
         self.logging_table_widget = None
+
+        # Initialize logging table with Safe Mode awareness
+        from ..logging_table import LoggingTable
+        self.logging_table = LoggingTable(safe_mode=self.safe_mode_active)
         
         # Get screen dimensions for dynamic sizing (must be before setup_header)
         screen = QApplication.primaryScreen()
@@ -430,6 +435,16 @@ class ModernMainWindow(QMainWindow):
         self.setup_header()
         self.setup_content()
         self.setup_status_bar()
+        
+        # Safe Mode always starts OFF when application loads
+        safe_mode_enabled = False
+        if hasattr(self, 'safe_mode_switch'):
+            self.safe_mode_switch.setChecked(safe_mode_enabled)
+            logger.info(f"Safe Mode initialized: {safe_mode_enabled}")
+
+        # Initialize Safe Mode indicator visibility
+        if hasattr(self, 'safe_mode_indicator'):
+            self.safe_mode_indicator.setVisible(safe_mode_enabled)
         
         # Connect signals
         self.product_form.close_cycle.connect(self.close_cycle)
@@ -550,6 +565,70 @@ class ModernMainWindow(QMainWindow):
         header_layout.addWidget(title_label)
         header_layout.addStretch()
         
+        # Add Safe Mode toggle switch with label
+        safe_mode_container = QWidget()
+        safe_mode_layout = QHBoxLayout(safe_mode_container)
+        safe_mode_layout.setContentsMargins(0, 0, dynamic_padding, 0)
+        safe_mode_layout.setSpacing(8)
+        
+        # Safe Mode label
+        safe_mode_label = QLabel("Safe Mode:")
+        button_font_size = max(10, min(20, int(dynamic_font_size * 0.6)))
+        safe_mode_label.setStyleSheet(f"color: white; font-size: {button_font_size}px;")
+        safe_mode_layout.addWidget(safe_mode_label)
+        
+        # Safe Mode toggle switch (iOS style using QSS)
+        self.safe_mode_switch = QCheckBox()
+        self.safe_mode_switch.setChecked(False)  # Default: OFF
+
+        # iOS-style toggle dimensions
+        switch_width = 52  # 50-60px as requested
+        switch_height = 28  # 28px as requested
+        thumb_size = 24  # Thumb diameter (slightly smaller than height)
+
+        self.safe_mode_switch.setStyleSheet(f"""
+            QCheckBox {{
+                spacing: 0px;
+            }}
+            QCheckBox::indicator {{
+                width: {switch_width}px;
+                height: {switch_height}px;
+                border-radius: {switch_height//2}px;
+                background-color: #E5E5EA;
+                border: none;
+            }}
+            QCheckBox::indicator:checked {{
+                background-color: #007AFF;
+                border: none;
+            }}
+            QCheckBox::indicator:hover {{
+                background-color: #D1D1D6;
+            }}
+            QCheckBox::indicator:checked:hover {{
+                background-color: #0056CC;
+            }}
+        """)
+
+        # Create custom thumb widget for smooth animation
+        self.safe_mode_thumb = QWidget(self.safe_mode_switch)
+        self.safe_mode_thumb.setFixedSize(thumb_size, thumb_size)
+        self.safe_mode_thumb.setStyleSheet(f"""
+            background-color: white;
+            border-radius: {thumb_size//2}px;
+            border: none;
+        """)
+
+        # Position thumb initially (unchecked position)
+        self.safe_mode_thumb.move(2, 2)
+        self.safe_mode_thumb.show()
+
+        # Connect to animate thumb movement
+        self.safe_mode_switch.stateChanged.connect(self.animate_safe_mode_thumb)
+        self.safe_mode_switch.stateChanged.connect(self.on_safe_mode_changed)
+        safe_mode_layout.addWidget(self.safe_mode_switch)
+        
+        header_layout.addWidget(safe_mode_container)
+        
         # Add reset counter button with dynamic sizing
         reset_btn = QPushButton("🔄 Reset Counter")
         button_font_size = max(10, min(20, int(dynamic_font_size * 0.6)))
@@ -616,7 +695,7 @@ class ModernMainWindow(QMainWindow):
         content_layout = QHBoxLayout()
         
         # Create and add monitoring view with logging table
-        self.logging_table_widget = LoggingTableWidget()
+        self.logging_table_widget = LoggingTableWidget(safe_mode=self.safe_mode_active)
         self.monitoring_view = MonitoringView(logging_table_widget=self.logging_table_widget)
         content_layout.addWidget(self.monitoring_view, stretch=2)
         
@@ -646,6 +725,21 @@ class ModernMainWindow(QMainWindow):
         self.connection_status = QLabel("Not Connected")
         self.connection_status.setStyleSheet(f"color: #ff4444; font-size: {dynamic_status_font_size}px;")
         status_layout.addWidget(self.connection_status)
+        
+        # Add Safe Mode indicator label (initially hidden)
+        self.safe_mode_indicator = QLabel("SAFE MODE")
+        self.safe_mode_indicator.setStyleSheet(f"""
+            color: #FFD700;
+            font-size: {dynamic_status_font_size}px;
+            font-weight: bold;
+            background-color: #2d2d2d;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            margin-left: 10px;
+        """)
+        self.safe_mode_indicator.setVisible(False)  # Initially hidden
+        status_layout.addWidget(self.safe_mode_indicator)
         
         status_layout.addStretch()
         
@@ -735,11 +829,232 @@ class ModernMainWindow(QMainWindow):
         dialog.activateWindow()
         dialog.exec()
     
+    def show_safe_mode_config_dialog(self):
+        """Show Safe Mode configuration dialog with process selection."""
+        try:
+            # Create custom dialog
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Safe Mode Configuration")
+            dialog.setMinimumWidth(500)
+            dialog.setMinimumHeight(400)
+
+            # Force dialog to stay on top
+            dialog.setWindowFlags(
+                Qt.WindowType.Dialog |
+                Qt.WindowType.WindowStaysOnTopHint |
+                Qt.WindowType.WindowSystemMenuHint |
+                Qt.WindowType.WindowTitleHint
+            )
+
+            # Main layout
+            layout = QVBoxLayout(dialog)
+            layout.setSpacing(15)
+            layout.setContentsMargins(20, 20, 20, 20)
+
+            # Title
+            title = QLabel("<b>Safe Mode Configuration</b>")
+            title.setStyleSheet("font-size: 16px; color: #0078d4;")
+            layout.addWidget(title)
+
+            # Description
+            desc = QLabel(
+                "Pilih proses apa saja yang BISA dilakukan saat Safe Mode aktif.\n"
+                "Proses yang tidak dipilih akan diblokir sepenuhnya."
+            )
+            desc.setWordWrap(True)
+            desc.setStyleSheet("color: #666666; margin-bottom: 10px;")
+            layout.addWidget(desc)
+
+            # Process selection checkboxes
+            self.safe_mode_checkboxes = {}
+
+            # Available processes
+            processes = [
+                ("print", "Print - Mencetak produk"),
+                ("save_log", "Save to Log"),
+                ("save_batch", "Save to Batch"),
+                ("send_erp", "Send to ERP")
+            ]
+
+            # Load current settings from config (default only print enabled)
+            safe_mode_settings = self.config.get("safe_mode_settings", {
+                "print": True,
+                "save_log": False,
+                "save_batch": False,
+                "send_erp": False
+            })
+
+            for process_key, process_desc in processes:
+                checkbox = QCheckBox(process_desc)
+                checkbox.setChecked(safe_mode_settings.get(process_key, True))
+                checkbox.setStyleSheet("""
+                    QCheckBox {
+                        font-size: 12px;
+                        padding: 5px;
+                        margin-bottom: 5px;
+                    }
+                    QCheckBox::indicator {
+                        width: 18px;
+                        height: 18px;
+                    }
+                """)
+                layout.addWidget(checkbox)
+                self.safe_mode_checkboxes[process_key] = checkbox
+
+            # Warning text
+            warning = QLabel(
+                "<b>⚠️ Peringatan:</b> Proses yang tidak dipilih akan sepenuhnya diblokir.\n"
+                "Anda dapat mengubah pengaturan ini kapan saja dengan menonaktifkan\n"
+                "dan mengaktifkan kembali Safe Mode."
+            )
+            warning.setStyleSheet("color: #ff6b35; background-color: #fff3cd; padding: 10px; border-radius: 5px; margin-top: 10px;")
+            warning.setWordWrap(True)
+            layout.addWidget(warning)
+
+            # Buttons
+            button_layout = QHBoxLayout()
+            button_layout.addStretch()
+
+            ok_button = QPushButton("Aktifkan Safe Mode")
+            ok_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #28a745;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    padding: 10px 20px;
+                    font-weight: bold;
+                    min-width: 150px;
+                }
+                QPushButton:hover {
+                    background-color: #218838;
+                }
+            """)
+            ok_button.clicked.connect(dialog.accept)
+            button_layout.addWidget(ok_button)
+
+            cancel_button = QPushButton("Batal")
+            cancel_button.clicked.connect(dialog.reject)
+            button_layout.addWidget(cancel_button)
+
+            layout.addLayout(button_layout)
+
+            # Show dialog
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                # Save selected processes to config
+                selected_processes = {}
+                for process_key, checkbox in self.safe_mode_checkboxes.items():
+                    selected_processes[process_key] = checkbox.isChecked()
+
+                self.config["safe_mode_settings"] = selected_processes
+                save_config(self.config)
+
+                # Apply Safe Mode restrictions
+                self.apply_safe_mode_restrictions(selected_processes)
+
+                # Set Safe Mode as active
+                self.safe_mode_active = True
+
+                # Update Safe Mode indicator in footer
+                if hasattr(self, 'safe_mode_indicator'):
+                    self.safe_mode_indicator.setVisible(True)
+
+                # Update logging table Safe Mode status
+                if hasattr(self, 'logging_table'):
+                    self.logging_table.safe_mode = True
+                    logger.info("Logging table Safe Mode updated: True")
+
+                # Update logging table widget Safe Mode status
+                if hasattr(self, 'logging_table_widget'):
+                    self.logging_table_widget.logging_table.safe_mode = True
+                    logger.info("Logging table widget Safe Mode updated: True")
+
+                # Show confirmation
+                enabled_processes = [k for k, v in selected_processes.items() if v]
+                disabled_processes = [k for k, v in selected_processes.items() if not v]
+
+                confirm_msg = (
+                    f"<b>Safe Mode telah diaktifkan!</b><br><br>"
+                    f"<b>✅ Proses yang DIaktifkan ({len(enabled_processes)}):</b><br>"
+                )
+
+                process_names = {
+                    "print": "Print",
+                    "save_log": "Save to Log",
+                    "save_batch": "Save to Batch",
+                    "send_erp": "Send to ERP"
+                }
+
+                for process in enabled_processes:
+                    confirm_msg += f"• {process_names.get(process, process)}<br>"
+
+                if disabled_processes:
+                    confirm_msg += f"<br><b>❌ Proses yang Diblokir ({len(disabled_processes)}):</b><br>"
+                    for process in disabled_processes:
+                        confirm_msg += f"• {process_names.get(process, process)}<br>"
+
+                confirm_msg += (
+                    "<br><b>Semua operasi berjalan dalam mode simulasi.</b><br>"
+                    "Data hanya tersimpan di file lokal untuk testing."
+                )
+
+                self.show_kiosk_dialog(
+                    "information",
+                    "Safe Mode Enabled",
+                    confirm_msg
+                )
+
+                # Simpan status Safe Mode ke config
+                self.config["safe_mode_enabled"] = True
+                save_config(self.config)
+                logger.info(f"Safe Mode enabled with settings: {selected_processes}")
+            else:
+                # User cancelled, disable Safe Mode
+                logger.info("Safe Mode activation cancelled by user")
+                if hasattr(self, 'safe_mode_switch'):
+                    # Set toggle back to OFF position since user cancelled
+                    self.safe_mode_switch.setChecked(False)
+                self.safe_mode_active = False
+
+        except Exception as e:
+            logger.error(f"Error showing Safe Mode config dialog: {e}")
+            self.show_kiosk_dialog(
+                "critical",
+                "Safe Mode Error",
+                f"Error menampilkan dialog konfigurasi Safe Mode:\n\n{str(e)}"
+            )
+
+    def apply_safe_mode_restrictions(self, safe_mode_settings):
+        """Apply Safe Mode restrictions based on selected processes."""
+        try:
+            # Store Safe Mode settings for use in other components
+            self.safe_mode_settings = safe_mode_settings
+
+            # Update BatchSummaryDialog with Safe Mode settings
+            if hasattr(self, 'batch_summary_dialog'):
+                self.batch_summary_dialog.safe_mode_settings = safe_mode_settings
+
+            logger.info(f"Safe Mode restrictions applied: {safe_mode_settings}")
+
+        except Exception as e:
+            logger.error(f"Error applying Safe Mode restrictions: {e}")
+
     def show_batch_recap(self):
         """Show the batch summary/recap dialog."""
         try:
-            dialog = BatchSummaryDialog(self)
-            
+            # Check if Safe Mode is active and save_batch is not allowed
+            if self.safe_mode_active and not self.safe_mode_settings.get("save_batch", False):
+                self.show_kiosk_dialog(
+                    "warning",
+                    "Batch Recap Blocked - Safe Mode",
+                    "Batch recap functionality is disabled in your Safe Mode configuration.\n\n"
+                    "To enable batch recap, disable Safe Mode and reconfigure it."
+                )
+                logger.warning("Batch recap blocked - Safe Mode active and save_batch not allowed")
+                return
+
+            dialog = BatchSummaryDialog(self, safe_mode=self.safe_mode_active, safe_mode_settings=getattr(self, 'safe_mode_settings', {}))
+
             # Force dialog to stay on top in kiosk mode
             dialog.setWindowFlags(
                 Qt.WindowType.Dialog |
@@ -747,13 +1062,13 @@ class ModernMainWindow(QMainWindow):
                 Qt.WindowType.WindowSystemMenuHint |
                 Qt.WindowType.WindowTitleHint
             )
-            
+
             dialog.raise_()
             dialog.activateWindow()
             dialog.exec()
-            
+
             logger.info("Batch recap dialog shown")
-            
+
         except Exception as e:
             logger.error(f"Error showing batch recap dialog: {e}")
             self.show_kiosk_dialog(
@@ -1187,6 +1502,16 @@ del "%~f0"
         if self.monitor:
             self.monitor.update_product_info(product_info)
 
+        # Check if Safe Mode is active - skip database operations
+        if self.safe_mode_active:
+            logger.info("Safe Mode active - skipping database operations for product update")
+            return
+
+        # Check if Safe Mode is active and save_log is not allowed
+        if self.safe_mode_active and not self.safe_mode_settings.get("save_log", False):
+            logger.info("Safe Mode active and save_log not allowed - skipping database operations for product update")
+            return
+
         # Also save to Supabase if connected
         try:
             from ..supabase_client import get_supabase_client
@@ -1195,7 +1520,7 @@ del "%~f0"
             if supabase_client.is_connected:
                 # Get batch number with fallback
                 batch_number = product_info.get('batch_number') or product_info.get('batch')
-                
+
                 # If no batch number, try to get from batch_manager
                 if not batch_number or batch_number == 'Unknown':
                     from ..batch_manager import get_batch_manager
@@ -1207,7 +1532,7 @@ del "%~f0"
                         color_code = product_info.get('color_code', '')
                         batch_number = batch_manager.get_batch_for_product(product_code, color_code)
                         logger.info(f"Auto-generated batch for production log: {batch_number}")
-                
+
                 # Save production log to Supabase
                 production_log_data = {
                     'batch': batch_number or 'Unknown',
@@ -1296,44 +1621,160 @@ del "%~f0"
                 f"Error sending reset command:\n\n{str(e)}"
             )
     
+    def animate_safe_mode_thumb(self, state):
+        """Animate the Safe Mode thumb movement with smooth transition."""
+        try:
+            from PySide6.QtCore import QPropertyAnimation, QEasingCurve
+
+            is_checked = state == Qt.CheckState.Checked.value
+
+            # Create animation for thumb movement
+            self.thumb_animation = QPropertyAnimation(self.safe_mode_thumb, b"pos")
+            self.thumb_animation.setDuration(300)  # 300ms animation
+            self.thumb_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+
+            # Set start and end positions
+            start_pos = self.safe_mode_thumb.pos()
+            if is_checked:
+                # Move thumb to right (checked position)
+                end_pos = QPoint(52 - 24 - 2, 2)  # switch_width - thumb_size - padding
+            else:
+                # Move thumb to left (unchecked position)
+                end_pos = QPoint(2, 2)
+
+            self.thumb_animation.setStartValue(start_pos)
+            self.thumb_animation.setEndValue(end_pos)
+            self.thumb_animation.start()
+
+            # Handle Safe Mode logic
+            self.on_safe_mode_changed(state)
+
+            # Update logging table Safe Mode status
+            if hasattr(self, 'logging_table'):
+                self.logging_table.safe_mode = self.safe_mode_active
+                logger.info(f"Logging table Safe Mode updated: {self.safe_mode_active}")
+
+            # Update logging table widget Safe Mode status
+            if hasattr(self, 'logging_table_widget'):
+                self.logging_table_widget.logging_table.safe_mode = self.safe_mode_active
+                logger.info(f"Logging table widget Safe Mode updated: {self.safe_mode_active}")
+
+        except Exception as e:
+            logger.error(f"Error animating Safe Mode thumb: {e}")
+
+    def on_safe_mode_changed(self, state):
+        """Handle Safe Mode toggle switch changes."""
+        try:
+            is_enabled = state == Qt.CheckState.Checked.value
+
+            if is_enabled:
+                # When toggle is switched ON, temporarily disconnect signal to prevent visual change
+                # until user confirms in dialog
+                logger.info("Safe Mode toggle clicked - showing configuration dialog")
+
+                # Temporarily disconnect the signal to prevent immediate visual feedback
+                self.safe_mode_switch.stateChanged.disconnect(self.on_safe_mode_changed)
+
+                # Show Safe Mode configuration dialog
+                # The dialog will handle setting the toggle state based on user choice
+                self.show_safe_mode_config_dialog()
+
+                # Reconnect the signal after dialog is handled
+                self.safe_mode_switch.stateChanged.connect(self.on_safe_mode_changed)
+            else:
+                # When toggle is switched OFF, disable Safe Mode immediately
+                logger.info("Safe Mode DISABLED - Database operations enabled")
+
+                # Update Safe Mode indicator in footer
+                if hasattr(self, 'safe_mode_indicator'):
+                    self.safe_mode_indicator.setVisible(False)
+
+                # Set Safe Mode flag for database operations
+                self.safe_mode_active = False
+
+                # Update logging table Safe Mode status
+                if hasattr(self, 'logging_table'):
+                    self.logging_table.safe_mode = False
+                    logger.info("Logging table Safe Mode updated: False")
+
+                # Update logging table widget Safe Mode status
+                if hasattr(self, 'logging_table_widget'):
+                    self.logging_table_widget.logging_table.safe_mode = False
+                    logger.info("Logging table widget Safe Mode updated: False")
+
+                # Show confirmation message
+                self.show_kiosk_dialog(
+                    "information",
+                    "Safe Mode Disabled",
+                    "Safe Mode telah dinonaktifkan.\n\nSemua proses aplikasi akan kembali normal\ndengan penyimpanan data ke database.\n\nData akan tersimpan seperti biasa."
+                )
+
+                # Simpan status Safe Mode ke config
+                self.config["safe_mode_enabled"] = False
+                save_config(self.config)
+                logger.info("Safe Mode status saved to config: False")
+
+        except Exception as e:
+            logger.error(f"Error handling Safe Mode change: {e}")
+            # Make sure to reconnect signal if there's an error
+            try:
+                self.safe_mode_switch.stateChanged.connect(self.on_safe_mode_changed)
+            except:
+                pass
+            self.show_kiosk_dialog(
+                "critical",
+                "Safe Mode Error",
+                f"Error mengubah status Safe Mode:\n\n{str(e)}"
+            )
+    
     @Slot()
     def sync_offline_queue(self):
         """
         Automatically sync offline queue with Supabase.
         Called by timer every 5 minutes.
         """
+        # Check if Safe Mode is active - skip database operations
+        if self.safe_mode_active:
+            logger.debug("Safe Mode active - skipping offline queue sync")
+            return
+
+        # Check if Safe Mode is active and save_log is not allowed
+        if self.safe_mode_active and not self.safe_mode_settings.get("save_log", False):
+            logger.debug("Safe Mode active and save_log not allowed - skipping offline queue sync")
+            return
+
         try:
             from ..supabase_client import get_supabase_client
             supabase_client = get_supabase_client()
-            
+
             # Check if Supabase is connected
             if not supabase_client.is_connected:
                 logger.debug("Supabase not connected, skipping queue sync")
                 return
-            
+
             # Get queue count before processing
             queue_count = supabase_client.get_queue_count()
-            
+
             if queue_count == 0:
                 logger.debug("No pending operations in queue")
                 return
-            
+
             logger.info(f"Starting automatic queue sync - {queue_count} operations pending")
-            
+
             # Process the queue
             success_count, failed_count = supabase_client.process_offline_queue()
-            
+
             if success_count > 0:
                 logger.info(f"Queue sync completed: {success_count} synced, {failed_count} failed")
                 # Update status bar with sync info
                 if hasattr(self, 'status_bar'):
                     self.status_bar.showMessage(
-                        f"Synced {success_count} operations to cloud", 
+                        f"Synced {success_count} operations to cloud",
                         5000  # Show for 5 seconds
                     )
             elif failed_count > 0:
                 logger.warning(f"Queue sync had errors: {failed_count} operations failed")
-            
+
         except Exception as e:
             logger.error(f"Error during automatic queue sync: {e}")
     
@@ -1533,15 +1974,26 @@ del "%~f0"
     def handle_print_logging(self, print_data: Dict[str, Any]):
         """Handle logging when print button is clicked with correct timing according to CYCLE_TIME.md."""
         try:
+            # Check if Safe Mode is active and print is not allowed
+            if self.safe_mode_active and not self.safe_mode_settings.get("print", False):
+                self.show_kiosk_dialog(
+                    "warning",
+                    "Print Blocked - Safe Mode",
+                    "Print functionality is disabled in your Safe Mode configuration.\n\n"
+                    "To enable printing, disable Safe Mode and reconfigure it."
+                )
+                logger.warning("Print blocked - Safe Mode active and print not allowed")
+                return
+
             current_time = datetime.now()
-            
+
             # Get product info from print data
             product_name = print_data.get('product_name', 'Unknown')
             product_code = print_data.get('product_code', 'Unknown')
             product_length = print_data.get('product_length', 0.0)
             # Try both 'batch_number' and 'batch' for backwards compatibility
             batch = print_data.get('batch_number') or print_data.get('batch', 'Unknown')
-            
+
             # Store current product info for close cycle
             self.current_product_info = {
                 'product_name': product_name,
@@ -1549,45 +2001,47 @@ del "%~f0"
                 'product_length': product_length,
                 'batch': batch
             }
-            
+
             # Calculate roll time (time from roll start to print)
             roll_time = 0.0
             if hasattr(self, 'roll_start_time') and self.roll_start_time:
                 roll_time = (current_time - self.roll_start_time).total_seconds()
-            
+
             # For Print button: cycle_time is always None initially
             # Cycle time will be calculated when next product starts (length = 0.01) or Close Cycle is pressed
             cycle_time = None
-            
+
             # Store start time for this product (when length == 0.01)
             if not hasattr(self, 'product_start_times'):
                 self.product_start_times = []
-            
+
             # Use cycle_start_time if available, otherwise use current time
             start_time = self.cycle_start_time if self.cycle_start_time else current_time
             self.product_start_times.append(start_time)
-            
+
             # Log the production data with cycle_time = None initially
             if hasattr(self, 'logging_table_widget') and self.logging_table_widget:
                 # Get current settings timestamp
-                settings_timestamp = None
-                if hasattr(self, 'settings_changed_at'):
-                    settings_timestamp = self.settings_changed_at.isoformat()
-                
-                self.logging_table_widget.add_production_entry(
-                    product_name=product_name,
-                    product_code=product_code,
-                    product_length=product_length,
-                    batch=batch,
-                    cycle_time=cycle_time,  # Always None for Print
-                    roll_time=roll_time,
-                    settings_timestamp=settings_timestamp  # When settings were last changed
-                )
-                # Refresh table after print
-                self.logging_table_widget.manual_refresh()
-            
+                    settings_timestamp = None
+                    if hasattr(self, 'settings_changed_at'):
+                        settings_timestamp = self.settings_changed_at.isoformat()
+
+                    self.logging_table_widget.add_production_entry(
+                        product_name=product_name,
+                        product_code=product_code,
+                        product_length=product_length,
+                        batch=batch,
+                        cycle_time=cycle_time,  # Always None for Print
+                        roll_time=roll_time,
+                        settings_timestamp=settings_timestamp,  # When settings were last changed
+                        safe_mode=self.safe_mode_active  # Pass Safe Mode status
+                    )
+                    # Refresh table after print
+                    if hasattr(self.logging_table_widget, 'manual_refresh'):
+                        self.logging_table_widget.manual_refresh()
+
             logger.info(f"Print logged: {product_code} - Cycle: Empty (will be calculated later), Roll: {roll_time:.1f}s")
-            
+
             # Reset roll_start_time after print - roll time should stop and restart for next print
             # This ensures each print has its own roll time from the last roll start
             if hasattr(self, 'roll_start_time') and self.roll_start_time:
@@ -1595,7 +2049,7 @@ del "%~f0"
                 logger.info(f"Print logged - roll time: {roll_time:.1f}s, roll_start_time reset to None")
             else:
                 logger.info(f"Print logged - roll time: {roll_time:.1f}s, roll_start_time was already None")
-                    
+
         except Exception as e:
             logger.error(f"Error in print logging: {e}")
     

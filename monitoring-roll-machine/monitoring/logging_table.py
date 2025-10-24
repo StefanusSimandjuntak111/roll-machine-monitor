@@ -16,11 +16,12 @@ class LoggingTable:
     - Supabase database (cloud storage)
     """
     
-    def __init__(self, logs_dir: str = "logs", supabase_client: Optional[SupabaseClient] = None):
+    def __init__(self, logs_dir: str = "logs", supabase_client: Optional[SupabaseClient] = None, safe_mode: bool = False):
         self.logs_dir = logs_dir
         self.max_entries = 50
+        self.safe_mode = safe_mode  # Safe Mode flag
         self.ensure_logs_directory()
-        
+
         # Initialize Supabase client
         self.supabase_client = supabase_client
         if self.supabase_client is None:
@@ -59,32 +60,39 @@ class LoggingTable:
     def save_data(self, data: Dict[str, Any]):
         """
         Save production data to both local JSON and Supabase.
-        Saves to local JSON first (always succeeds), then tries Supabase (auto-queues on failure).
-        
+        In Safe Mode, only saves to local JSON (simulation mode).
+
         Args:
             data: Production data to save
         """
         # Add timestamp if not present
         if 'timestamp' not in data:
             data['timestamp'] = datetime.now().isoformat()
-        
+
         # 1. Save to local JSON FIRST (primary storage, always succeeds)
         filename = self.get_today_filename()
         existing_data = self.load_today_data()
         existing_data.append(data)
-        
+
         # Keep only the last max_entries
         if len(existing_data) > self.max_entries:
             existing_data = existing_data[-self.max_entries:]
-            
+
         try:
             with open(filename, 'w', encoding='utf-8') as f:
                 json.dump(existing_data, f, indent=2, ensure_ascii=False)
-            logger.debug(f"Data saved to local JSON: {filename}")
+            if self.safe_mode:
+                logger.debug(f"SAFE MODE: Data saved to local JSON only (simulation): {filename}")
+            else:
+                logger.debug(f"Data saved to local JSON: {filename}")
         except Exception as e:
             logger.error(f"Error saving log data to JSON: {e}")
-        
-        # 2. Try to save to Supabase (cloud sync, auto-queues on failure)
+
+        # 2. Try to save to Supabase (cloud sync, auto-queues on failure) - SKIP IN SAFE MODE
+        if self.safe_mode:
+            logger.debug("SAFE MODE: Skipping Supabase save - simulation mode active")
+            return
+
         if self.supabase_client:
             try:
                 # insert_production_log will automatically queue if connection fails

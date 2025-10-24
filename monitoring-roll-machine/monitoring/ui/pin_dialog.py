@@ -50,7 +50,7 @@ class PinDialog(QDialog):
             QLabel {
                 font-size: 24px;
                 font-weight: bold;
-                color: white;
+                color: black;
                 margin-bottom: 10px;
             }
         """)
@@ -62,7 +62,7 @@ class PinDialog(QDialog):
         desc.setStyleSheet("""
             QLabel {
                 font-size: 14px;
-                color: #cccccc;
+                color: black;
                 margin-bottom: 20px;
             }
         """)

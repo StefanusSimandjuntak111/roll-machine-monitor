@@ -636,7 +636,7 @@ class SettingsDialog(QDialog):
         
         # API URL Input
         self.api_url_input = QLineEdit()
-        self.api_url_input.setPlaceholderText("http://localhost:8000/api/method/textile_plus.overrides.api.product.search_product")
+        self.api_url_input.setPlaceholderText("http://192.168.2.73:8000/api/method/textile_plus.overrides.api.product.search_product")
         current_api_url = self.current_settings.get("api_url", "")
         self.api_url_input.setText(current_api_url)
         self.api_url_input.setStyleSheet("""
@@ -860,7 +860,7 @@ class SettingsDialog(QDialog):
         erp_frame.setStyleSheet("""
             QFrame {
                 background-color: #2d2d2d;
-                border: 1px solid #555555;
+                border: none;
                 border-radius: 8px;
                 padding: 15px;
             }
@@ -870,7 +870,7 @@ class SettingsDialog(QDialog):
             }
             QLineEdit {
                 background-color: #1e1e1e;
-                border: 1px solid #555555;
+                border: none;
                 border-radius: 5px;
                 padding: 8px;
                 color: white;
@@ -1035,9 +1035,53 @@ class SettingsDialog(QDialog):
 
         # Company Input
         self.erp_company_input = QLineEdit()
-        self.erp_company_input.setPlaceholderText("Company name in ERPNext")
+        self.erp_company_input.setPlaceholderText("Textilindo")
         self.erp_company_input.setText(self.current_settings.get("erp_company", "Textilindo"))
         right_form.addRow("Company:", self.erp_company_input)
+
+        # Stock Entry Type Input
+        self.erp_stock_entry_type_input = QComboBox()
+        self.erp_stock_entry_type_input.setEditable(False)
+        self.erp_stock_entry_type_input.setStyleSheet("""
+            QComboBox {
+                background-color: #1e1e1e;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                padding: 8px;
+                color: white;
+                font-size: 12px;
+            }
+            QComboBox:focus {
+                border: 2px solid #0078d4;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid white;
+                margin-right: 5px;
+            }
+        """)
+        right_form.addRow("Stock Entry Type:", self.erp_stock_entry_type_input)
+        
+        # Initialize with saved value if available
+        saved_stock_entry_type = self.current_settings.get("erp_stock_entry_type", "")
+        if saved_stock_entry_type:
+            self.erp_stock_entry_type_input.addItem(saved_stock_entry_type)
+            self.erp_stock_entry_type_input.setCurrentText(saved_stock_entry_type)
+        
+        # Refresh button for stock entry types
+        refresh_stock_types_btn = QPushButton("🔄 Refresh Stock Entry Types")
+        refresh_stock_types_btn.setStyleSheet(self.get_button_style("secondary"))
+        refresh_stock_types_btn.clicked.connect(self.load_stock_entry_types)
+        right_form.addRow("", refresh_stock_types_btn)
+        
+        # Load stock entry types from API
+        self.load_stock_entry_types()
 
         # From Warehouse Input
         self.erp_from_warehouse_input = QLineEdit()
@@ -1155,6 +1199,114 @@ class SettingsDialog(QDialog):
                 logger.info(f"Loaded saved BOM: {bom_name} - {bom_product_code}")
         except Exception as e:
             logger.error(f"Error loading saved BOM: {e}")
+
+    def load_stock_entry_types(self):
+        """Load stock entry types from ERPNext API."""
+        try:
+            # Get ERP URL from settings
+            erp_url = self.current_settings.get("erp_url", "")
+            if not erp_url:
+                # Don't add error message to combo box, just log and return
+                logger.warning("ERP URL not configured")
+                return
+            
+            # Import requests for API call
+            import requests
+            
+            # Prepare API endpoint
+            api_url = f"{erp_url}/api/resource/Stock Entry Type"
+            # api_url = f"http://192.168.2.73:8000/api/resource/Stock Entry Type"
+            
+            # Get API credentials
+            api_key = self.current_settings.get("erp_api_key", "")
+            api_secret = self.current_settings.get("erp_api_secret", "")
+            
+            if not api_key or not api_secret:
+                # Don't add error message to combo box, just log and return
+                logger.warning("ERP API credentials not configured")
+                return
+            
+            # Make API request
+            headers = {
+                'Authorization': f'token {api_key}:{api_secret}',
+                'Content-Type': 'application/json'
+            }
+            
+            # Add timeout
+            timeout = self.current_settings.get("erp_timeout", 30)
+            
+            response = requests.get(api_url, headers=headers, timeout=timeout)
+            
+            if response.status_code == 200:
+                data = response.json()
+                stock_entry_types = data.get('data', [])
+                
+                # Clear existing items completely to remove any error messages
+                self.erp_stock_entry_type_input.clear()
+                
+                # Add default option
+                self.erp_stock_entry_type_input.addItem("Select Stock Entry Type...")
+                
+                # Add stock entry types to combo box
+                for entry_type in stock_entry_types:
+                    name = entry_type.get('name', '')
+                    if name:
+                        self.erp_stock_entry_type_input.addItem(name)
+                
+                # Set current value if exists
+                current_value = self.current_settings.get("erp_stock_entry_type", "")
+                if current_value:
+                    index = self.erp_stock_entry_type_input.findText(current_value)
+                    if index >= 0:
+                        self.erp_stock_entry_type_input.setCurrentIndex(index)
+                    else:
+                        # If current value not found, add it as custom option
+                        self.erp_stock_entry_type_input.addItem(current_value)
+                        self.erp_stock_entry_type_input.setCurrentText(current_value)
+                
+                logger.info(f"Loaded {len(stock_entry_types)} stock entry types from ERPNext")
+                
+            else:
+                # Don't clear the combo box, just log the error
+                logger.error(f"Failed to load stock entry types: {response.status_code}")
+                # Only show error message if combo box is empty or only has default item
+                if self.erp_stock_entry_type_input.count() <= 1:
+                    # Clear and add error message only if no valid data exists
+                    self.erp_stock_entry_type_input.clear()
+                    self.erp_stock_entry_type_input.addItem("Unable to load stock entry types")
+                
+        except requests.exceptions.RequestException as e:
+            # Don't clear the combo box, just log the error
+            logger.error(f"Connection error loading stock entry types: {e}")
+            # Only show error message if combo box is empty or only has default/error items
+            if self.erp_stock_entry_type_input.count() <= 1 or self._has_only_error_items():
+                # Clear and add error message only if no valid data exists
+                self.erp_stock_entry_type_input.clear()
+                self.erp_stock_entry_type_input.addItem("Unable to load stock entry types")
+        except Exception as e:
+            # Don't clear the combo box, just log the error
+            logger.error(f"Error loading stock entry types: {e}")
+            # Only show error message if combo box is empty or only has default/error items
+            if self.erp_stock_entry_type_input.count() <= 1 or self._has_only_error_items():
+                # Clear and add error message only if no valid data exists
+                self.erp_stock_entry_type_input.clear()
+                self.erp_stock_entry_type_input.addItem("Unable to load stock entry types")
+
+    def _has_only_error_items(self):
+        """Check if combo box only contains error or default items."""
+        if self.erp_stock_entry_type_input.count() <= 1:
+            return True
+        
+        # Check if all items are error messages or default items
+        for i in range(self.erp_stock_entry_type_input.count()):
+            item_text = self.erp_stock_entry_type_input.itemText(i)
+            if (not item_text.startswith("Select Stock Entry Type") and 
+                not item_text.startswith("Unable to load") and
+                not item_text.startswith("Please configure") and
+                not item_text.startswith("API Error") and
+                not item_text.startswith("Connection Error")):
+                return False
+        return True
 
     def create_supabase_settings_tab(self):
         """Create the Supabase Settings tab with sync controls."""
@@ -2521,6 +2673,7 @@ class SettingsDialog(QDialog):
                 "erp_api_secret": self.erp_api_secret_input.text().strip() if hasattr(self, 'erp_api_secret_input') else self.current_settings.get("erp_api_secret", ""),
                 "erp_timeout": self.erp_timeout_input.value() if hasattr(self, 'erp_timeout_input') else self.current_settings.get("erp_timeout", 30),
                 "erp_company": self.erp_company_input.text().strip() if hasattr(self, 'erp_company_input') else self.current_settings.get("erp_company", "Textilindo"),
+                "erp_stock_entry_type": self.erp_stock_entry_type_input.currentText().strip() if hasattr(self, 'erp_stock_entry_type_input') else self.current_settings.get("erp_stock_entry_type", ""),
                 "erp_from_warehouse": self.erp_from_warehouse_input.text().strip() if hasattr(self, 'erp_from_warehouse_input') else self.current_settings.get("erp_from_warehouse", "Prancis - MGI"),
                 "erp_to_warehouse": self.erp_to_warehouse_input.text().strip() if hasattr(self, 'erp_to_warehouse_input') else self.current_settings.get("erp_to_warehouse", "Prancis - MGI"),
                 "erp_packing_list_field": self.erp_packing_list_field_input.text().strip() if hasattr(self, 'erp_packing_list_field_input') else self.current_settings.get("erp_packing_list_field", "packing_list_items"),
@@ -2935,6 +3088,7 @@ class SettingsDialog(QDialog):
                 "erp_api_secret": self.erp_api_secret_input.text().strip(),
                 "erp_timeout": self.erp_timeout_input.value(),
                 "erp_company": self.erp_company_input.text().strip(),
+                "erp_stock_entry_type": self.erp_stock_entry_type_input.currentText().strip(),
                 "erp_from_warehouse": self.erp_from_warehouse_input.text().strip(),
                 "erp_to_warehouse": self.erp_to_warehouse_input.text().strip(),
                 "erp_packing_list_field": self.erp_packing_list_field_input.text().strip()

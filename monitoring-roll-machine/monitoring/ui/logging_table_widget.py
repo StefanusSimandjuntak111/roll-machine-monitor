@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
 class LoggingTableWidget(QWidget):
     """Widget to display production logging table"""
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, safe_mode=False):
         super().__init__(parent)
-        self.logging_table = LoggingTable()
+        self.logging_table = LoggingTable(safe_mode=safe_mode)
         self.init_ui()
         self.setup_timer()
         
@@ -134,9 +134,14 @@ class LoggingTableWidget(QWidget):
                 if item:
                     item.setBackground(QColor(52, 152, 219))  # Blue highlight for dark theme
                     
-    def add_production_entry(self, product_name, product_code, product_length, 
-                           batch, cycle_time, roll_time, settings_timestamp=None):
-        """Add new production entry to logging with settings timestamp"""
+    def add_production_entry(self, product_name, product_code, product_length,
+                           batch, cycle_time, roll_time, settings_timestamp=None, safe_mode=False):
+        """Add new production entry to logging with settings timestamp and Safe Mode awareness"""
+        # Update logging table Safe Mode status if changed
+        if self.logging_table.safe_mode != safe_mode:
+            self.logging_table.safe_mode = safe_mode
+            logger.info(f"LoggingTableWidget Safe Mode updated: {safe_mode}")
+
         self.logging_table.log_production_data(
             product_name=product_name,
             product_code=product_code,
