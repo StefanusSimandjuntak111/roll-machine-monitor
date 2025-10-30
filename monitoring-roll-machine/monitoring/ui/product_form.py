@@ -2,7 +2,8 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout,
     QLineEdit, QSpinBox, QDoubleSpinBox,
     QPushButton, QFrame, QLabel, QHBoxLayout,
-    QRadioButton, QButtonGroup, QSizePolicy, QMessageBox
+    QRadioButton, QButtonGroup, QSizePolicy, QMessageBox,
+    QListWidget, QListWidgetItem, QDialog
 )
 from PySide6.QtCore import Signal, Qt, QSize, QTimer, QThread
 from PySide6.QtGui import QFont, QPixmap
@@ -13,6 +14,8 @@ from io import BytesIO
 import logging
 from datetime import datetime
 import re
+import json
+import urllib.parse
 
 from .connection_settings import ConnectionSettings
 from ..batch_manager import get_batch_manager
@@ -222,20 +225,20 @@ class ProductForm(QWidget):
         self._search_timer = QTimer()
         self._search_timer.setSingleShot(True)
         self._search_timer.timeout.connect(self._perform_product_search)
-        
+
         self._search_worker = None
         self._last_searched_code = ""
         self._is_updating = False
         self._barcode = ""
         self._image_url = None
-        
+
         # Thread safety for preventing race conditions
         self._current_request_id = None
         self._last_user_input = ""
         self._current_machine_length = None
         self._current_unit = "Meter"  # Default unit
         self._last_valid_length = 0.0  # Store last valid length to prevent reset to 0
-        
+
         # Initialize instance-specific search stats
         self._instance_search_stats = {
             'total_searches': 0,
@@ -244,7 +247,7 @@ class ProductForm(QWidget):
             'no_matches': 0,
             'api_issues': 0
         }
-        
+
         # Initialize batch manager
         # Load settings for batch manager
         try:
@@ -254,20 +257,22 @@ class ProductForm(QWidget):
         except Exception as e:
             logger.warning(f"Could not load config for batch manager: {e}")
             self._batch_manager = get_batch_manager()
-        
+
         self.setup_ui()
-        
+
         # Load BOM product code from settings
         self.load_bom_product_code()
+
+        # Settings signals connection removed as BOM search is removed
         
     def load_bom_product_code(self):
         """Load BOM product code from settings and auto-fill product code field."""
         try:
             from ..config import load_config
             config = load_config()
-            
+
             bom_product_code = config.get("bom_product_code", "")
-            
+
             if bom_product_code:
                 # Auto-fill product code
                 self.product_code.setText(bom_product_code)
@@ -283,25 +288,25 @@ class ProductForm(QWidget):
                         min-height: 40px;
                     }
                 """)
-                
+
                 logger.info(f"BOM product code loaded: {bom_product_code}")
-                
+
                 # Also load BOM color code and product name if available
                 bom_color_code = config.get("bom_color_code", "")
                 bom_product_name = config.get("bom_product_name", "")
-                
+
                 if bom_color_code:
                     self.color_code.setText(bom_color_code)
                     logger.info(f"BOM color code loaded: {bom_color_code}")
-                
+
                 if bom_product_name:
                     self.product_name.setText(bom_product_name)
                     logger.info(f"BOM product name loaded: {bom_product_name}")
-                
+
                 # Trigger product search to populate/update other fields (image, barcode, etc.)
                 logger.info("Triggering product search for BOM product code...")
                 self._perform_product_search()
-                
+
                 # Update or add info label
                 if hasattr(self, 'bom_info_label'):
                     self.bom_info_label.setText(f"✓ Using BOM Product Code: {bom_product_code}")
@@ -330,7 +335,7 @@ class ProductForm(QWidget):
                                     if label and label.text() == "Product Code:":
                                         layout.insertRow(i + 1, "", self.bom_info_label)
                                         break
-                
+
                 logger.info(f"BOM product code loaded: {bom_product_code}")
             else:
                 # No BOM selected - enable product code input
@@ -346,15 +351,34 @@ class ProductForm(QWidget):
                         min-height: 40px;
                     }
                 """)
-                
+
                 # Remove info label if exists
                 if hasattr(self, 'bom_info_label'):
                     self.bom_info_label.setVisible(False)
-                
+
                 logger.info("No BOM product code found in settings")
-                
+
         except Exception as e:
             logger.error(f"Error loading BOM product code: {e}")
+
+    def update_bom_button_visibility(self):
+        """Update BOM button visibility based on is_verified status."""
+        try:
+            from ..config import load_config
+            config = load_config()
+            is_verified = config.get("is_verified", False)
+
+            if hasattr(self, 'bom_search_button'):
+                self.bom_search_button.setVisible(is_verified)
+                logger.info(f"BOM button visibility updated: {'visible' if is_verified else 'hidden'}")
+
+                # Also update the button's tooltip to reflect the current state
+                if is_verified:
+                    self.bom_search_button.setToolTip("Click to search and select BOM for product")
+                else:
+                    self.bom_search_button.setToolTip("BOM search disabled - verification required in settings")
+        except Exception as e:
+            logger.error(f"Error updating BOM button visibility: {e}")
         
     def setup_ui(self):
         """Set up the form UI."""
@@ -370,6 +394,9 @@ class ProductForm(QWidget):
                 font-size: 14px;
             }
         """)
+
+        # Call update_bom_button_visibility after UI is set up to ensure button exists
+        self.update_bom_button_visibility()
         
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(1, 1, 1, 1)  # Reduced margins for more compact layout
@@ -380,7 +407,7 @@ class ProductForm(QWidget):
         self.setMaximumHeight(895)  # Reduced maximum height for more compact layout
         
         form_layout = QFormLayout(form_frame)
-        form_layout.setSpacing(5)  # Further reduced spacing for more compact layout
+        form_layout.setSpacing(3)  # Even more reduced spacing for more compact layout
         
         # Common style for input fields
         input_style = """
@@ -450,20 +477,49 @@ class ProductForm(QWidget):
         self.product_code.editingFinished.connect(self._on_product_code_finished)
         product_code_layout.addWidget(self.product_code)
         
-        # Loading indicator
-        self.search_status_label = QLabel("")
-        self.search_status_label.setStyleSheet("""
-            QLabel {
-                color: #ffa500;
+        # Replace "Found" label with BOM search button (show/hide based on is_verified status)
+        from ..config import load_config
+        config = load_config()
+        is_verified = config.get("is_verified", False)
+
+        # Always create the button, but control visibility
+        self.bom_search_button = QPushButton("BOM")
+        self.bom_search_button.setStyleSheet("""
+            QPushButton {
+                background-color: #0078d4;
+                border: none;
+                border-radius: 4px;
+                color: white;
                 font-size: 12px;
                 font-weight: bold;
+                padding: 5px 10px;
+                min-width: 50px;
+                max-width: 50px;
+                min-height: 30px;
+                max-height: 30px;
+            }
+            QPushButton:hover {
+                background-color: #1084d8;
+            }
+            QPushButton:pressed {
+                background-color: #006cbd;
             }
         """)
-        self.search_status_label.setFixedWidth(80)
-        product_code_layout.addWidget(self.search_status_label)
+        self.bom_search_button.clicked.connect(self.show_bom_search_dialog)
+        self.bom_search_button.setVisible(is_verified)  # Control visibility based on is_verified
+
+        # Set initial tooltip based on verification status
+        if is_verified:
+            self.bom_search_button.setToolTip("Click to search and select BOM for product")
+        else:
+            self.bom_search_button.setToolTip("BOM search disabled - verification required in settings")
+
+        product_code_layout.addWidget(self.bom_search_button)
         
         form_layout.addRow("Product Code:", product_code_container)
-        
+
+        # BOM Selection Search Input removed as requested
+
         # Product Name (auto-filled from API)
         self.product_name = QLineEdit()
         self.product_name.setPlaceholderText("Product name (auto-filled)")
@@ -1790,6 +1846,154 @@ class ProductForm(QWidget):
         except Exception as e:
             logger.error(f"Error clearing form: {e}")
 
+    def search_bom(self, search_text: str):
+        """Search BOM by product code in real-time."""
+        try:
+            if not search_text or len(search_text) < 2:
+                self.bom_results_list.clear()
+                self.bom_results_list.setVisible(False)
+                return
+
+            # Get ERP URL and credentials from config
+            from ..config import load_config
+            config = load_config()
+            erp_url = config.get("erp_url", "")
+            api_key = config.get("erp_api_key", "")
+            api_secret = config.get("erp_api_secret", "")
+
+            if not erp_url or not api_key or not api_secret:
+                logger.warning("ERP settings not configured for BOM search")
+                return
+
+            # Build API endpoint with proper URL encoding
+            base_url = f"{erp_url}/api/resource/BOM"
+
+            # Build filters as JSON string (properly encoded)
+            # Note: BOM doctype has "item" field (link to Item), not "item_code"
+            filters = json.dumps([["item", "like", f"%{search_text}%"]])
+            fields = json.dumps(["name", "item", "is_active"])
+
+            # Build query parameters
+            params = {
+                "filters": filters,
+                "fields": fields,
+                "limit_page_length": "10"
+            }
+
+            # Build URL with encoded parameters
+            url = f"{base_url}?{urllib.parse.urlencode(params)}"
+
+            # Make API request with proper headers
+            headers = {
+                "Authorization": f"token {api_key}:{api_secret}",
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+
+            response = requests.get(url, headers=headers, timeout=10)
+
+            if response.status_code == 200:
+                data = response.json()
+                boms = data.get("data", [])
+
+                # Clear previous results
+                self.bom_results_list.clear()
+
+                if boms:
+                    # Add BOMs to list
+                    for bom in boms:
+                        bom_name = bom.get("name", "")
+                        item = bom.get("item", "")
+                        is_active = bom.get("is_active", 0)
+
+                        # Only show active BOMs
+                        if is_active:
+                            # item is the item_code in BOM doctype
+                            item_text = f"{item} - {bom_name}"
+                            list_item = QListWidgetItem(item_text)
+                            list_item.setData(Qt.ItemDataRole.UserRole, {
+                                "name": bom_name,
+                                "item": item,
+                                "item_code": item  # item field contains the item_code
+                            })
+                            self.bom_results_list.addItem(list_item)
+
+                    # Show results
+                    if self.bom_results_list.count() > 0:
+                        self.bom_results_list.setVisible(True)
+                    else:
+                        self.bom_results_list.setVisible(False)
+                else:
+                    self.bom_results_list.setVisible(False)
+            else:
+                logger.error(f"BOM search failed: {response.status_code} - {response.text}")
+                self.bom_results_list.setVisible(False)
+
+        except Exception as e:
+            logger.error(f"Error searching BOM: {e}")
+            self.bom_results_list.setVisible(False)
+
+    def select_bom_and_close(self, item: QListWidgetItem, dialog: QDialog):
+        """Handle BOM selection from dialog and close dialog."""
+        try:
+            bom_data = item.data(Qt.ItemDataRole.UserRole)
+
+            if bom_data:
+                bom_name = bom_data.get("name", "")
+                item_name = bom_data.get("item", "")
+                item_code = bom_data.get("item_code", "")
+
+                # Auto-fill product code
+                self.product_code.setText(item_code)
+                self.product_code.setEnabled(False)  # Disable input
+                self.product_code.setStyleSheet("""
+                    QLineEdit {
+                        background-color: #353535;
+                        border: 1px solid #4CAF50;
+                        border-radius: 4px;
+                        padding: 5px;
+                        color: #888888;
+                        font-size: 14px;
+                        min-height: 40px;
+                    }
+                """)
+
+                # Try to get item details to fill other fields
+                try:
+                    from ..config import load_config
+                    config = load_config()
+                    api_url = config.get('api_url', '')
+                    if api_url:
+                        response = requests.post(
+                            api_url,
+                            json={'product_code': item_code},
+                            timeout=5
+                        )
+                        if response.status_code == 200:
+                            result = response.json()
+                            if isinstance(result.get('message'), dict):
+                                msg = result['message']
+                                if msg.get('success') and msg.get('data', {}).get('products'):
+                                    products = msg['data']['products']
+                                    if products:
+                                        product = products[0]
+                                        self.product_name.setText(product.get('product_name', ''))
+                                        color_code = product.get('color_code', '')
+                                        if color_code:
+                                            self.color_code.setText(str(color_code))
+                                        logger.info(f"Fetched product details for BOM: {item_code}")
+                except Exception as e:
+                    logger.warning(f"Could not fetch product details for BOM: {e}")
+
+                # Close dialog
+                dialog.accept()
+
+                logger.info(f"BOM selected: {bom_name} - {item_code}")
+
+        except Exception as e:
+            logger.error(f"Error selecting BOM: {e}")
+            dialog.reject()
+
     def search_product_details(self, product_code: str):
         """Perform API call to search for product details."""
         try:
@@ -1801,52 +2005,143 @@ class ProductForm(QWidget):
             )
             response.raise_for_status()
             data = response.json()
-            
+
             # Check if product data is found based on actual API response structure
-            if (data.get("message") and 
-                isinstance(data["message"], dict) and 
-                data["message"].get("success") and 
+            if (data.get("message") and
+                isinstance(data["message"], dict) and
+                data["message"].get("success") and
                 data["message"].get("data")):
-                
+
                 product_info = data["message"]["data"]
                 self._populate_form_from_api(product_info)
                 self._set_search_status("Found", "#28a745", f"Found: {product_info.get('item_name', product_code)}")
                 self._reset_input_style()
                 logger.info(f"Successfully found product: {product_code} - {product_info.get('item_name', '')}")
-                
+
             else:
                 self._set_search_status("Not Found", "#ff4444", "Product not found")
                 self._reset_input_style()
                 logger.warning(f"Product not found for code: {product_code}")
-                
+
         except requests.exceptions.Timeout:
             self._set_search_status("Timeout", "#ff4444", "Search timeout - please try again")
             self._reset_input_style()
             logger.error(f"Timeout searching for product: {product_code}")
-            
+
         except requests.exceptions.ConnectionError:
             self._set_search_status("No Connection", "#ff4444", "Cannot connect to server")
             self._reset_input_style()
             logger.error(f"Connection error searching for product: {product_code}")
-            
+
         except Exception as e:
             self._set_search_status("Error", "#ff4444", f"Search error: {str(e)}")
             self._reset_input_style()
             logger.error(f"Error searching for product {product_code}: {e}")
 
-    def _set_search_status(self, text: str, color: str, tooltip: str):
-        """Set search status label with text, color and tooltip."""
-        self.search_status_label.setText(text)
-        self.search_status_label.setStyleSheet(f"""
-            QLabel {{
-                color: {color};
-                font-size: 12px;
-                font-weight: bold;
-            }}
-        """)
-        self.search_status_label.setToolTip(tooltip)
-        self.search_status_label.setFixedWidth(80)
-        self.search_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    def show_bom_search_dialog(self):
+        """Show BOM search dialog when BOM button is clicked."""
+        try:
+            # Create dialog for BOM search
+            from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QListWidget, QListWidgetItem, QLabel
+            from PySide6.QtCore import Qt
+
+            dialog = QDialog(self)
+            dialog.setWindowTitle("BOM Selection")
+            dialog.setMinimumWidth(500)
+            dialog.setMinimumHeight(400)
+            dialog.setModal(True)
+
+            # Set window flags for proper dialog behavior
+            dialog.setWindowFlags(
+                Qt.WindowType.Dialog |
+                Qt.WindowType.WindowStaysOnTopHint |
+                Qt.WindowType.WindowSystemMenuHint |
+                Qt.WindowType.WindowTitleHint
+            )
+
+            layout = QVBoxLayout(dialog)
+            layout.setSpacing(15)
+            layout.setContentsMargins(20, 20, 20, 20)
+
+            # Title
+            title = QLabel("<b>Select BOM</b>")
+            title.setStyleSheet("font-size: 16px; color: #0078d4;")
+            layout.addWidget(title)
+
+            # Description
+            desc = QLabel("Search and select a BOM to auto-fill product information:")
+            desc.setWordWrap(True)
+            desc.setStyleSheet("color: #666666; margin-bottom: 10px;")
+            layout.addWidget(desc)
+
+            # Search input
+            search_layout = QHBoxLayout()
+            search_label = QLabel("Search BOM:")
+            search_layout.addWidget(search_label)
+
+            self.bom_search_input = QLineEdit()
+            self.bom_search_input.setPlaceholderText("Enter product code to search BOM...")
+            self.bom_search_input.setStyleSheet("""
+                QLineEdit {
+                    padding: 8px;
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                    font-size: 14px;
+                    min-height: 20px;
+                }
+                QLineEdit:focus {
+                    border: 1px solid #0078d4;
+                }
+            """)
+            self.bom_search_input.textChanged.connect(lambda text: self.search_bom(text))
+            search_layout.addWidget(self.bom_search_input)
+            layout.addLayout(search_layout)
+
+            # Results list
+            self.bom_results_list = QListWidget()
+            self.bom_results_list.setStyleSheet("""
+                QListWidget {
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                    background-color: white;
+                    font-size: 14px;
+                }
+                QListWidget::item {
+                    padding: 10px;
+                    border-bottom: 1px solid #eee;
+                }
+                QListWidget::item:hover {
+                    background-color: #f0f0f0;
+                }
+                QListWidget::item:selected {
+                    background-color: #0078d4;
+                    color: white;
+                }
+            """)
+            self.bom_results_list.itemDoubleClicked.connect(lambda item: self.select_bom_and_close(item, dialog))
+            self.bom_results_list.setVisible(False)
+            layout.addWidget(self.bom_results_list)
+
+            # Buttons
+            button_layout = QHBoxLayout()
+            button_layout.addStretch()
+
+            cancel_button = QPushButton("Cancel")
+            cancel_button.clicked.connect(dialog.reject)
+            button_layout.addWidget(cancel_button)
+
+            layout.addLayout(button_layout)
+
+            # Show dialog
+            dialog.exec()
+
+        except Exception as e:
+            logger.error(f"Error showing BOM search dialog: {e}")
+            self._show_kiosk_dialog(
+                "critical",
+                "BOM Search Error",
+                f"Error showing BOM search dialog:\n\n{str(e)}"
+            )
 
     def _clear_search_status(self):
         """Clear search status label."""
@@ -1944,4 +2239,6 @@ class ProductForm(QWidget):
         except Exception as e:
             logger.error(f"Error populating form from API: {e}")
             self._is_updating = False
-            self._clear_search_status() 
+            self._clear_search_status()
+
+    # BOM-related methods removed as BOM search input is removed

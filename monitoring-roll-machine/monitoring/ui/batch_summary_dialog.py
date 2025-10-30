@@ -608,13 +608,17 @@ class BatchSummaryDialog(QDialog):
             progress.setLabelText("Creating Stock Entry...")
             logger.info(f"Submitting batch {batch} to ERP...")
             
+            # Get stock entry type from config
+            stock_entry_type = self.config.get('erp_stock_entry_type', 'Repack')
+
             success, message, response_data = self.erp_client.create_stock_entry(
                 batch_data=summary,
                 company=self.config.get('erp_company', 'Textilindo'),
                 from_warehouse=self.config.get('erp_from_warehouse', 'Prancis - MGI'),
                 to_warehouse=self.config.get('erp_to_warehouse', 'Prancis - MGI'),
                 bom_name=bom_name,
-                finished_item_code=finished_item
+                finished_item_code=finished_item,
+                stock_entry_type=stock_entry_type
             )
             
             progress.close()
@@ -629,7 +633,7 @@ class BatchSummaryDialog(QDialog):
                     f"<b>Batch submitted successfully!</b><br><br>"
                     f"<b>Batch:</b> {batch}<br>"
                     f"<b>Stock Entry:</b> {doc_name}<br>"
-                    f"<b>Type:</b> Repack<br>"
+                    f"<b>Type:</b> {stock_entry_type}<br>"
                     f"<b>BOM:</b> {bom_name}<br>"
                     f"<b>Finished Item:</b> {finished_item}<br>"
                     f"<b>Rolls:</b> {summary.get('total_rolls', 0)}<br>"

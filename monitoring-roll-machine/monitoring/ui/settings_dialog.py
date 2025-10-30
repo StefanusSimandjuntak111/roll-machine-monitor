@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QLineEdit, QRadioButton, QButtonGroup, QSpinBox, QGroupBox,
     QMessageBox, QCheckBox, QWidget, QListWidget, QListWidgetItem
 )
-from PySide6.QtCore import Qt, Signal, QTimer, QThread
+from PySide6.QtCore import Qt, Signal, QTimer, QThread, QPoint
 from typing import Dict, Any
 import serial.tools.list_ports
 import logging
@@ -22,10 +22,11 @@ class SettingsDialog(QDialog):
     # Signal emitted when settings are saved
     settings_updated = Signal(dict)
     
-    def __init__(self, current_settings: Dict[str, Any]):
+    def __init__(self, current_settings: Dict[str, Any], login_credentials: Dict[str, str] = None):
         super().__init__()
         self.current_settings = current_settings
         self.selected_bom_data = None  # Initialize BOM data
+        self.login_credentials = login_credentials  # Store login credentials if available
         self.setup_ui()
         
     def setup_ui(self):
@@ -133,6 +134,10 @@ class SettingsDialog(QDialog):
         
         # Initialize connection status after all UI is created
         self.update_connection_status()
+
+        # Auto-populate API settings if login credentials are available
+        if self.login_credentials:
+            self._populate_api_settings_from_login()
     
     def create_port_settings_tab(self):
         """Create the Port Settings tab."""
@@ -901,30 +906,153 @@ class SettingsDialog(QDialog):
         left_form = QFormLayout(left_column)
         left_form.setSpacing(15)
 
-        # Enable ERP Submission checkbox
-        self.erp_enable_checkbox = QCheckBox("Enable ERP Stock Entry Submission")
-        self.erp_enable_checkbox.setStyleSheet("""
-            QCheckBox {
-                color: #e0e0e0;
-                font-size: 14px;
-                font-weight: bold;
-                spacing: 8px;
-            }
-            QCheckBox::indicator {
-                width: 18px;
-                height: 18px;
-                border-radius: 3px;
-                border: 2px solid #666666;
-                background-color: #2d2d2d;
-            }
-            QCheckBox::indicator:checked {
+        # Enable ERP Submission toggle switch
+        self.erp_enable_container = QWidget()
+        self.erp_enable_layout = QHBoxLayout(self.erp_enable_container)
+        self.erp_enable_layout.setContentsMargins(0, 0, 0, 0)
+        self.erp_enable_layout.setSpacing(8)
+
+        # Toggle switch (iOS style using QSS) - positioned first (left)
+        self.erp_enable_switch = QCheckBox()
+        self.erp_enable_switch.setChecked(self.current_settings.get("enable_erp_submission", False))
+
+        # iOS-style toggle dimensions
+        switch_width = 52  # 50-60px as requested
+        switch_height = 28  # 28px as requested
+        thumb_size = 24  # Thumb diameter (slightly smaller than height)
+
+        self.erp_enable_switch.setStyleSheet(f"""
+            QCheckBox {{
+                spacing: 0px;
+            }}
+            QCheckBox::indicator {{
+                width: {switch_width}px;
+                height: {switch_height}px;
+                border-radius: {switch_height//2}px;
+                background-color: #E5E5EA;
+                border: none;
+            }}
+            QCheckBox::indicator:checked {{
                 background-color: #28a745;
-                border: 2px solid #28a745;
-            }
+                border: none;
+            }}
+            QCheckBox::indicator:hover {{
+                background-color: #D1D1D6;
+            }}
+            QCheckBox::indicator:checked:hover {{
+                background-color: #218838;
+            }}
         """)
-        self.erp_enable_checkbox.setChecked(self.current_settings.get("enable_erp_submission", False))
-        self.erp_enable_checkbox.stateChanged.connect(self.update_erp_status)
-        left_form.addRow(self.erp_enable_checkbox)
+
+        # Create custom thumb widget for smooth animation
+        self.erp_enable_thumb = QWidget(self.erp_enable_switch)
+        self.erp_enable_thumb.setFixedSize(thumb_size, thumb_size)
+        self.erp_enable_thumb.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self.erp_enable_thumb.setStyleSheet(f"""
+            background-color: white;
+            border-radius: {thumb_size//2}px;
+            border: none;
+        """)
+
+        # Position thumb initially based on current state
+        if self.erp_enable_switch.isChecked():
+            self.erp_enable_thumb.move(52 - 24 - 2, 2)  # Checked position
+        else:
+            self.erp_enable_thumb.move(2, 2)  # Unchecked position
+
+        self.erp_enable_thumb.show()
+
+        # Connect to animate thumb movement
+        self.erp_enable_switch.stateChanged.connect(self.animate_erp_enable_thumb)
+        self.erp_enable_switch.stateChanged.connect(self.update_erp_status)
+
+        self.erp_enable_layout.addWidget(self.erp_enable_switch)
+
+        # Label - positioned after toggle switch
+        erp_enable_label = QLabel("Enable ERP Stock Entry Submission")
+        erp_enable_label.setStyleSheet("color: #e0e0e0; font-size: 14px; font-weight: bold;")
+        self.erp_enable_layout.addWidget(erp_enable_label)
+
+        self.erp_enable_layout.addStretch()
+
+        left_form.addRow(self.erp_enable_container)
+
+        # ERP Verification toggle switch
+        self.erp_verify_container = QWidget()
+        self.erp_verify_layout = QHBoxLayout(self.erp_verify_container)
+        self.erp_verify_layout.setContentsMargins(0, 0, 0, 0)
+        self.erp_verify_layout.setSpacing(8)
+
+        # Toggle switch (iOS style using QSS) - positioned first (left)
+        self.erp_verify_switch = QCheckBox()
+        self.erp_verify_switch.setChecked(self.current_settings.get("is_verified", False))
+        self.erp_verify_switch.setToolTip("Toggle verification status - this controls whether ERP submission is allowed")
+
+        # iOS-style toggle dimensions
+        switch_width = 52  # 50-60px as requested
+        switch_height = 28  # 28px as requested
+        thumb_size = 24  # Thumb diameter (slightly smaller than height)
+
+        self.erp_verify_switch.setStyleSheet(f"""
+            QCheckBox {{
+                spacing: 0px;
+            }}
+            QCheckBox::indicator {{
+                width: {switch_width}px;
+                height: {switch_height}px;
+                border-radius: {switch_height//2}px;
+                background-color: #E5E5EA;
+                border: none;
+            }}
+            QCheckBox::indicator:checked {{
+                background-color: #0078d4;
+                border: none;
+            }}
+            QCheckBox::indicator:hover {{
+                background-color: #D1D1D6;
+            }}
+            QCheckBox::indicator:checked:hover {{
+                background-color: #0056CC;
+            }}
+        """)
+
+        # Create custom thumb widget for smooth animation
+        self.erp_verify_thumb = QWidget(self.erp_verify_switch)
+        self.erp_verify_thumb.setFixedSize(thumb_size, thumb_size)
+        self.erp_verify_thumb.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self.erp_verify_thumb.setStyleSheet(f"""
+            background-color: white;
+            border-radius: {thumb_size//2}px;
+            border: none;
+        """)
+
+        # Position thumb initially based on current state
+        if self.erp_verify_switch.isChecked():
+            self.erp_verify_thumb.move(52 - 24 - 2, 2)  # Checked position
+        else:
+            self.erp_verify_thumb.move(2, 2)  # Unchecked position
+
+        self.erp_verify_thumb.show()
+
+        # Connect to animate thumb movement
+        self.erp_verify_switch.stateChanged.connect(self.animate_erp_verify_thumb)
+        self.erp_verify_switch.stateChanged.connect(self.update_erp_verify_status)
+
+        self.erp_verify_layout.addWidget(self.erp_verify_switch)
+
+        # Status label - positioned after toggle switch
+        is_verified = self.current_settings.get("is_verified", False)
+        label_text = "Verified" if is_verified else "Not Verified"
+        label_color = "#4CAF50" if is_verified else "#ff6b6b"
+
+        self.erp_verify_label = QLabel(label_text)
+        self.erp_verify_label.setStyleSheet(f"color: {label_color}; font-size: 14px; font-weight: bold;")
+        self.erp_verify_label.setToolTip("Current verification status - affects ERP submission capability")
+        self.erp_verify_layout.addWidget(self.erp_verify_label)
+
+        self.erp_verify_layout.addStretch()
+
+        left_form.addRow(self.erp_verify_container)
 
         # ERP URL Input
         self.erp_url_input = QLineEdit()
@@ -1296,17 +1424,61 @@ class SettingsDialog(QDialog):
         """Check if combo box only contains error or default items."""
         if self.erp_stock_entry_type_input.count() <= 1:
             return True
-        
+
         # Check if all items are error messages or default items
         for i in range(self.erp_stock_entry_type_input.count()):
             item_text = self.erp_stock_entry_type_input.itemText(i)
-            if (not item_text.startswith("Select Stock Entry Type") and 
+            if (not item_text.startswith("Select Stock Entry Type") and
                 not item_text.startswith("Unable to load") and
                 not item_text.startswith("Please configure") and
                 not item_text.startswith("API Error") and
                 not item_text.startswith("Connection Error")):
                 return False
         return True
+
+    def _populate_api_settings_from_login(self):
+        """Auto-populate API settings form with login credentials."""
+        try:
+            if not self.login_credentials:
+                logger.warning("No login credentials available for API settings population")
+                return
+
+            username = self.login_credentials.get("username", "")
+            api_key = self.login_credentials.get("api_key", "")
+            api_secret = self.login_credentials.get("api_secret", "")
+
+            if not api_key or not api_secret:
+                logger.warning("Incomplete API credentials received from login")
+                return
+
+            logger.info(f"Auto-populating API settings for user: {username}")
+
+            # Populate ERP API settings
+            if hasattr(self, 'erp_api_key_input') and hasattr(self, 'erp_api_secret_input'):
+                self.erp_api_key_input.setText(api_key)
+                self.erp_api_secret_input.setText(api_secret)
+                logger.info("ERP API credentials populated from login")
+
+            # Populate general API settings
+            if hasattr(self, 'api_key_input'):
+                self.api_key_input.setText(api_key)
+                logger.info("General API key populated from login")
+
+            # Show success message
+            QMessageBox.information(
+                self,
+                "API Credentials Loaded",
+                f"API credentials for user '{username}' have been automatically loaded into the settings form.\n\n"
+                f"You can now save these settings to use them for ERP integration."
+            )
+
+        except Exception as e:
+            logger.error(f"Error populating API settings from login: {e}")
+            QMessageBox.warning(
+                self,
+                "API Settings Error",
+                f"Failed to populate API settings from login credentials:\n\n{str(e)}"
+            )
 
     def create_supabase_settings_tab(self):
         """Create the Supabase Settings tab with sync controls."""
@@ -2667,7 +2839,8 @@ class SettingsDialog(QDialog):
                 "enable_supabase": self.current_settings.get("enable_supabase", False),
                 
                 # ERP settings
-                "enable_erp_submission": self.erp_enable_checkbox.isChecked() if hasattr(self, 'erp_enable_checkbox') else self.current_settings.get("enable_erp_submission", False),
+                "enable_erp_submission": self.erp_enable_switch.isChecked() if hasattr(self, 'erp_enable_switch') else self.current_settings.get("enable_erp_submission", False),
+                "is_verified": self.erp_verify_switch.isChecked() if hasattr(self, 'erp_verify_switch') else self.current_settings.get("is_verified", False),
                 "erp_url": self.erp_url_input.text().strip() if hasattr(self, 'erp_url_input') else self.current_settings.get("erp_url", ""),
                 "erp_api_key": self.erp_api_key_input.text().strip() if hasattr(self, 'erp_api_key_input') else self.current_settings.get("erp_api_key", ""),
                 "erp_api_secret": self.erp_api_secret_input.text().strip() if hasattr(self, 'erp_api_secret_input') else self.current_settings.get("erp_api_secret", ""),
@@ -2937,14 +3110,90 @@ class SettingsDialog(QDialog):
             self.erp_api_secret_input.setEchoMode(QLineEdit.EchoMode.Password)
             self.erp_show_credentials_btn.setText("👁 Show Credentials")
     
+    def animate_erp_enable_thumb(self, state):
+        """Animate the ERP enable thumb movement with smooth transition."""
+        try:
+            from PySide6.QtCore import QPropertyAnimation, QEasingCurve
+
+            is_checked = state == Qt.CheckState.Checked.value
+
+            # Create animation for thumb movement
+            self.erp_thumb_animation = QPropertyAnimation(self.erp_enable_thumb, b"pos")
+            self.erp_thumb_animation.setDuration(300)  # 300ms animation
+            self.erp_thumb_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+
+            # Set start and end positions
+            start_pos = self.erp_enable_thumb.pos()
+            if is_checked:
+                # Move thumb to right (checked position)
+                end_pos = QPoint(52 - 24 - 2, 2)  # switch_width - thumb_size - padding
+            else:
+                # Move thumb to left (unchecked position)
+                end_pos = QPoint(2, 2)
+
+            self.erp_thumb_animation.setStartValue(start_pos)
+            self.erp_thumb_animation.setEndValue(end_pos)
+            self.erp_thumb_animation.start()
+
+        except Exception as e:
+            logger.error(f"Error animating ERP enable thumb: {e}")
+
+    def animate_erp_verify_thumb(self, state):
+        """Animate the ERP verify thumb movement with smooth transition."""
+        try:
+            from PySide6.QtCore import QPropertyAnimation, QEasingCurve
+
+            is_checked = state == Qt.CheckState.Checked.value
+
+            # Create animation for thumb movement
+            self.erp_verify_animation = QPropertyAnimation(self.erp_verify_thumb, b"pos")
+            self.erp_verify_animation.setDuration(300)  # 300ms animation
+            self.erp_verify_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+
+            # Set start and end positions
+            start_pos = self.erp_verify_thumb.pos()
+            if is_checked:
+                # Move thumb to right (checked position)
+                end_pos = QPoint(52 - 24 - 2, 2)  # switch_width - thumb_size - padding
+            else:
+                # Move thumb to left (unchecked position)
+                end_pos = QPoint(2, 2)
+
+            self.erp_verify_animation.setStartValue(start_pos)
+            self.erp_verify_animation.setEndValue(end_pos)
+            self.erp_verify_animation.start()
+
+        except Exception as e:
+            logger.error(f"Error animating ERP verify thumb: {e}")
+
+    def update_erp_verify_status(self):
+        """Update ERP verification status label based on toggle state."""
+        try:
+            is_verified = self.erp_verify_switch.isChecked()
+
+            if is_verified:
+                self.erp_verify_label.setText("Verified")
+                self.erp_verify_label.setStyleSheet("color: #4CAF50; font-size: 14px; font-weight: bold;")
+            else:
+                self.erp_verify_label.setText("Not Verified")
+                self.erp_verify_label.setStyleSheet("color: #ff6b6b; font-size: 14px; font-weight: bold;")
+
+            # Update the current settings to reflect the change
+            self.current_settings["is_verified"] = is_verified
+
+            logger.info(f"ERP verification status updated: {'Verified' if is_verified else 'Not Verified'}")
+
+        except Exception as e:
+            logger.error(f"Error updating ERP verify status: {e}")
+
     def update_erp_status(self):
         """Update ERP connection status display."""
         try:
-            enabled = self.erp_enable_checkbox.isChecked()
+            enabled = self.erp_enable_switch.isChecked()
             url = self.erp_url_input.text().strip()
             api_key = self.erp_api_key_input.text().strip()
             api_secret = self.erp_api_secret_input.text().strip()
-            
+
             if not enabled:
                 self.erp_status_label.setText("Disabled")
                 self.erp_status_label.setStyleSheet("""
@@ -3082,7 +3331,8 @@ class SettingsDialog(QDialog):
         try:
             # Get values from inputs
             erp_settings = {
-                "enable_erp_submission": self.erp_enable_checkbox.isChecked(),
+                "enable_erp_submission": self.erp_enable_switch.isChecked(),
+                "is_verified": self.erp_verify_switch.isChecked(),
                 "erp_url": self.erp_url_input.text().strip(),
                 "erp_api_key": self.erp_api_key_input.text().strip(),
                 "erp_api_secret": self.erp_api_secret_input.text().strip(),
@@ -3093,6 +3343,9 @@ class SettingsDialog(QDialog):
                 "erp_to_warehouse": self.erp_to_warehouse_input.text().strip(),
                 "erp_packing_list_field": self.erp_packing_list_field_input.text().strip()
             }
+
+            # Debug logging
+            logger.info(f"Saving ERP settings - is_verified: {erp_settings['is_verified']}")
             
             # Add BOM data if selected (from BOM search section)
             if hasattr(self, 'selected_bom_data') and self.selected_bom_data:
@@ -3126,13 +3379,34 @@ class SettingsDialog(QDialog):
                 self,
                 "Settings Saved",
                 "ERP settings have been saved successfully!\n\n"
+                f"Verification status: {'Verified' if erp_settings['is_verified'] else 'Not Verified'}\n\n"
                 "The settings will take effect immediately."
             )
-            
+
             logger.info("ERP settings saved successfully")
             
             # Update status
             self.update_erp_status()
+
+            # Notify product form to update BOM button visibility
+            try:
+                from PySide6.QtWidgets import QApplication
+                app = QApplication.instance()
+                for widget in app.topLevelWidgets():
+                    # Check if this is the main window and has product_form
+                    if hasattr(widget, 'product_form') and widget.product_form:
+                        widget.product_form.update_bom_button_visibility()
+                        logger.info("Notified product form to update BOM button visibility")
+                        break
+                    # Also check if the widget contains product_form in its children
+                    elif hasattr(widget, 'findChild'):
+                        product_form = widget.findChild(QWidget, 'product_form')
+                        if product_form and hasattr(product_form, 'update_bom_button_visibility'):
+                            product_form.update_bom_button_visibility()
+                            logger.info("Found and notified product form via findChild")
+                            break
+            except Exception as e:
+                logger.error(f"Error notifying product form about BOM button visibility: {e}")
             
         except Exception as e:
             logger.error(f"Error saving ERP settings: {e}")

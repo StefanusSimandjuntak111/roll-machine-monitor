@@ -368,7 +368,10 @@ class Statistics(QGroupBox):
 
 class ModernMainWindow(QMainWindow):
     """Main window for the monitoring application with modern industrial design."""
-    
+
+    # Signals
+    settings_updated = Signal(dict)  # Emitted when settings are updated
+
     def __init__(self):
         super().__init__()
         
@@ -383,6 +386,12 @@ class ModernMainWindow(QMainWindow):
         self.is_new_product_started = False  # Flag to track if new product started
         self.is_kiosk_mode = True  # Initialize kiosk mode flag
         self.safe_mode_active = False  # Safe Mode flag - when True, no database operations
+
+        # Login session tracking
+        self.user_logged_in = False  # Track if user is logged in
+        self.login_time = None  # Track login timestamp
+        self.login_timeout_minutes = 30  # Login session timeout (30 minutes)
+        self.temp_api_credentials = None  # Temporary storage for API credentials from login
         
         # Load configuration
         self.config = load_config()
@@ -418,6 +427,15 @@ class ModernMainWindow(QMainWindow):
         # Initialize logging table with Safe Mode awareness
         from ..logging_table import LoggingTable
         self.logging_table = LoggingTable(safe_mode=self.safe_mode_active)
+
+        # Initialize Safe Mode settings from config
+        self.safe_mode_settings = self.config.get("safe_mode_settings", {
+            "print": True,
+            "save_log": False,
+            "save_batch": False,
+            "send_erp": False
+        })
+        logger.info(f"Safe Mode settings loaded: {self.safe_mode_settings}")
         
         # Get screen dimensions for dynamic sizing (must be before setup_header)
         screen = QApplication.primaryScreen()
@@ -436,15 +454,29 @@ class ModernMainWindow(QMainWindow):
         self.setup_content()
         self.setup_status_bar()
         
-        # Safe Mode always starts OFF when application loads
-        safe_mode_enabled = False
+        # Safe Mode starts based on config.json status
+        safe_mode_enabled = self.config.get("safe_mode_enabled", False)
         if hasattr(self, 'safe_mode_switch'):
             self.safe_mode_switch.setChecked(safe_mode_enabled)
-            logger.info(f"Safe Mode initialized: {safe_mode_enabled}")
+            logger.info(f"Safe Mode initialized from config: {safe_mode_enabled}")
 
         # Initialize Safe Mode indicator visibility
         if hasattr(self, 'safe_mode_indicator'):
             self.safe_mode_indicator.setVisible(safe_mode_enabled)
+
+        # Initialize Safe Mode status label
+        if hasattr(self, 'safe_mode_status_label'):
+            if safe_mode_enabled:
+                self.safe_mode_status_label.setText("ON")
+                self.safe_mode_status_label.setStyleSheet("color: #0078d4; font-size: 14px; font-weight: bold;")
+            else:
+                self.safe_mode_status_label.setText("OFF")
+                self.safe_mode_status_label.setStyleSheet("color: #ff6b6b; font-size: 14px; font-weight: bold;")
+            logger.info(f"Safe Mode status label initialized: {'ON' if safe_mode_enabled else 'OFF'}")
+
+        # Initialize Safe Mode active flag based on config
+        self.safe_mode_active = safe_mode_enabled
+        logger.info(f"Safe Mode active flag set to: {self.safe_mode_active}")
         
         # Connect signals
         self.product_form.close_cycle.connect(self.close_cycle)
@@ -460,6 +492,11 @@ class ModernMainWindow(QMainWindow):
         self.heartbeat_timer = QTimer()
         self.heartbeat_timer.timeout.connect(self.heartbeat.update_heartbeat)
         self.heartbeat_timer.start(30000)  # Update every 30 seconds
+
+        # Setup timer for login session timeout check
+        self.login_check_timer = QTimer()
+        self.login_check_timer.timeout.connect(self._check_login_session_timeout)
+        self.login_check_timer.start(60000)  # Check every minute
         
         # Setup timer for Supabase offline queue sync (every 5 minutes)
         self.sync_timer = QTimer()
@@ -576,6 +613,12 @@ class ModernMainWindow(QMainWindow):
         button_font_size = max(10, min(20, int(dynamic_font_size * 0.6)))
         safe_mode_label.setStyleSheet(f"color: white; font-size: {button_font_size}px;")
         safe_mode_layout.addWidget(safe_mode_label)
+
+        # Safe Mode status label
+        self.safe_mode_status_label = QLabel("OFF")
+        self.safe_mode_status_label.setStyleSheet(f"color: #ff6b6b; font-size: {button_font_size}px; font-weight: bold;")
+        self.safe_mode_status_label.setToolTip("Current Safe Mode status - affects database operations")
+        safe_mode_layout.addWidget(self.safe_mode_status_label)
         
         # Safe Mode toggle switch (iOS style using QSS)
         self.safe_mode_switch = QCheckBox()
@@ -598,7 +641,7 @@ class ModernMainWindow(QMainWindow):
                 border: none;
             }}
             QCheckBox::indicator:checked {{
-                background-color: #007AFF;
+                background-color: #0078d4;
                 border: none;
             }}
             QCheckBox::indicator:hover {{
@@ -612,14 +655,18 @@ class ModernMainWindow(QMainWindow):
         # Create custom thumb widget for smooth animation
         self.safe_mode_thumb = QWidget(self.safe_mode_switch)
         self.safe_mode_thumb.setFixedSize(thumb_size, thumb_size)
+        self.safe_mode_thumb.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.safe_mode_thumb.setStyleSheet(f"""
             background-color: white;
             border-radius: {thumb_size//2}px;
             border: none;
         """)
 
-        # Position thumb initially (unchecked position)
-        self.safe_mode_thumb.move(2, 2)
+        # Position thumb initially based on config status
+        if self.safe_mode_active:
+            self.safe_mode_thumb.move(52 - 24 - 2, 2)  # Checked position
+        else:
+            self.safe_mode_thumb.move(2, 2)  # Unchecked position
         self.safe_mode_thumb.show()
 
         # Connect to animate thumb movement
@@ -800,22 +847,52 @@ class ModernMainWindow(QMainWindow):
     
     def show_settings(self):
         """Show the settings dialog with PIN protection."""
+        # Check if user is already logged in and session is still valid
+        if self.user_logged_in and self._is_login_session_valid():
+            logger.info("User already logged in, skipping PIN verification")
+            # Show settings dialog directly
+            dialog = SettingsDialog(self.config)
+
+            # Force settings dialog to stay on top too
+            dialog.setWindowFlags(
+                Qt.WindowType.Dialog |
+                Qt.WindowType.WindowStaysOnTopHint |
+                Qt.WindowType.WindowSystemMenuHint |
+                Qt.WindowType.WindowTitleHint
+            )
+
+            dialog.settings_updated.connect(self.handle_settings_update)
+            dialog.raise_()
+            dialog.activateWindow()
+            dialog.exec()
+            return
+
         # Get PIN from config
         pin = self.config.get("settings_pin", "668899")
-        
+
         # Show PIN dialog first
         pin_dialog = PinDialog(correct_pin=pin, parent=self)
+
+        # Connect to login successful signal to handle API credentials
+        pin_dialog.login_successful.connect(self._handle_login_credentials)
+
         pin_dialog.raise_()
         pin_dialog.activateWindow()
-        
+
         if pin_dialog.exec() != QDialog.DialogCode.Accepted:
             # User cancelled or failed PIN verification
             logger.info("Settings access denied - PIN verification failed or cancelled")
             return
-        
-        # PIN verified, show settings dialog
-        dialog = SettingsDialog(self.config)
-        
+
+        # PIN verified, mark user as logged in
+        self.user_logged_in = True
+        self.login_time = datetime.now()
+        logger.info(f"User logged in successfully at {self.login_time}")
+
+        # Show settings dialog with login credentials if available
+        login_credentials = getattr(self, 'temp_api_credentials', None)
+        dialog = SettingsDialog(self.config, login_credentials)
+
         # Force settings dialog to stay on top too
         dialog.setWindowFlags(
             Qt.WindowType.Dialog |
@@ -823,7 +900,7 @@ class ModernMainWindow(QMainWindow):
             Qt.WindowType.WindowSystemMenuHint |
             Qt.WindowType.WindowTitleHint
         )
-        
+
         dialog.settings_updated.connect(self.handle_settings_update)
         dialog.raise_()
         dialog.activateWindow()
@@ -968,6 +1045,17 @@ class ModernMainWindow(QMainWindow):
                 if hasattr(self, 'logging_table_widget'):
                     self.logging_table_widget.logging_table.safe_mode = True
                     logger.info("Logging table widget Safe Mode updated: True")
+
+                # Update Safe Mode switch to ON position
+                if hasattr(self, 'safe_mode_switch'):
+                    self.safe_mode_switch.setChecked(True)
+                    logger.info("Safe Mode switch set to ON position")
+
+                # Update Safe Mode status label
+                if hasattr(self, 'safe_mode_status_label'):
+                    self.safe_mode_status_label.setText("ON")
+                    self.safe_mode_status_label.setStyleSheet("color: #0078d4; font-size: 14px; font-weight: bold;")
+                    logger.info("Safe Mode status label updated to ON")
 
                 # Show confirmation
                 enabled_processes = [k for k, v in selected_processes.items() if v]
@@ -1432,7 +1520,10 @@ del "%~f0"
         logger.info(f"Settings updated: {settings}")
         self.config.update(settings)
         save_config(self.config)
-        
+
+        # Emit settings updated signal for other components
+        self.settings_updated.emit(settings)
+
         # Refresh BOM product code in product form if BOM settings changed
         if any(key in settings for key in ['bom_name', 'bom_item', 'bom_product_code']):
             try:
@@ -1441,7 +1532,16 @@ del "%~f0"
                     logger.info("BOM product code refreshed in product form")
             except Exception as e:
                 logger.error(f"Error refreshing BOM product code: {e}")
-        
+
+        # Update BOM button visibility if verification status changed
+        if 'is_verified' in settings:
+            try:
+                if hasattr(self, 'product_form') and self.product_form:
+                    self.product_form.update_bom_button_visibility()
+                    logger.info("BOM button visibility updated after verification status change")
+            except Exception as e:
+                logger.error(f"Error updating BOM button visibility: {e}")
+
         # Update BatchManager settings if batch name settings changed
         if any(key in settings for key in ['batch_name_format', 'batch_start_number']):
             try:
@@ -1450,30 +1550,30 @@ del "%~f0"
                 logger.info("Updated BatchManager with new batch name settings")
             except Exception as e:
                 logger.error(f"Error updating BatchManager settings: {e}")
-        
+
         # Check if settings require monitoring restart
         needs_restart = self._needs_monitoring_restart(settings)
-        
+
         if needs_restart:
             # Port settings changed - need restart
             logger.info("Port settings changed, restarting monitoring...")
             self.kill_port_connection()
-            
+
             # Store settings change timestamp for port settings
             self.settings_changed_at = datetime.now()
-            
+
             # Restart monitoring with new settings
             try:
                 logger.info("Restarting monitoring with new settings...")
                 self.toggle_monitoring()  # Start with new settings
-                
+
                 # Show success message
                 self.show_kiosk_dialog(
                     "information",
                     "Settings Updated",
                     "Port settings have been updated.\n\nMonitoring has been restarted with new configuration.\n\nNew settings will apply to current and future products only."
                 )
-                
+
             except Exception as e:
                 logger.error(f"Error restarting monitoring: {e}")
                 self.show_kiosk_dialog(
@@ -1484,10 +1584,10 @@ del "%~f0"
         else:
             # Only display settings changed - no restart needed
             logger.info("Display settings updated, no restart needed")
-            
+
             # Update Length Print immediately for current data
             self._update_display_settings()
-            
+
             # Show success message
             self.show_kiosk_dialog(
                 "information",
@@ -1701,6 +1801,17 @@ del "%~f0"
                 if hasattr(self, 'logging_table_widget'):
                     self.logging_table_widget.logging_table.safe_mode = False
                     logger.info("Logging table widget Safe Mode updated: False")
+
+                # Update Safe Mode switch to OFF position
+                if hasattr(self, 'safe_mode_switch'):
+                    self.safe_mode_switch.setChecked(False)
+                    logger.info("Safe Mode switch set to OFF position")
+
+                # Update Safe Mode status label
+                if hasattr(self, 'safe_mode_status_label'):
+                    self.safe_mode_status_label.setText("OFF")
+                    self.safe_mode_status_label.setStyleSheet("color: #ff6b6b; font-size: 14px; font-weight: bold;")
+                    logger.info("Safe Mode status label updated to OFF")
 
                 # Show confirmation message
                 self.show_kiosk_dialog(
@@ -2204,26 +2315,81 @@ del "%~f0"
     def auto_detect_port(self):
         """Auto-detect available serial ports."""
         import serial.tools.list_ports
-        
+
         # Common port patterns for JSK3588
         preferred_patterns = ['ttyUSB', 'ttyACM', 'COM']
-        
+
         ports = serial.tools.list_ports.comports()
-        
+
         # First try to find ports with preferred patterns
         for pattern in preferred_patterns:
             for port in ports:
                 if pattern in port.device:
                     logger.info(f"Found preferred serial port: {port.device}")
                     return port.device
-        
+
         # If no preferred pattern found, return first available port
         if ports:
             logger.info(f"Found serial port: {ports[0].device}")
             return ports[0].device
-        
+
         logger.warning("No serial ports detected")
         return None
+
+    def _is_login_session_valid(self):
+        """Check if the current login session is still valid."""
+        if not self.user_logged_in or not self.login_time:
+            return False
+
+        # Check if session has timed out
+        elapsed_minutes = (datetime.now() - self.login_time).total_seconds() / 60
+        if elapsed_minutes >= self.login_timeout_minutes:
+            logger.info(f"Login session expired after {elapsed_minutes:.1f} minutes")
+            self.user_logged_in = False
+            self.login_time = None
+            return False
+
+        return True
+
+    def _check_login_session_timeout(self):
+        """Check login session timeout periodically."""
+        if self.user_logged_in and not self._is_login_session_valid():
+            logger.info("Login session timeout detected during periodic check")
+            # Session has expired, no need to show message as user might not be actively using settings
+
+    def _handle_login_credentials(self, username: str, api_key: str, api_secret: str):
+        """Handle successful login credentials from PIN dialog."""
+        try:
+            logger.info(f"=== RECEIVED LOGIN CREDENTIALS ===")
+            logger.info(f"Username: {username}")
+            logger.info(f"API Key: {api_key}")
+            logger.info(f"API Secret: {api_secret}")
+            logger.info(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+            # Store the credentials temporarily for settings dialog
+            self.temp_api_credentials = {
+                "username": username,
+                "api_key": api_key,
+                "api_secret": api_secret
+            }
+
+            logger.info("API credentials stored temporarily for settings dialog")
+            
+            # Log credential validation status
+            if api_key and api_secret:
+                logger.info(f"Credential Status: VALID - User has API access")
+                logger.info(f"API Key Length: {len(api_key)}")
+                logger.info(f"API Secret Length: {len(api_secret)}")
+            else:
+                logger.warning(f"Credential Status: INVALID - User lacks API credentials")
+            
+            logger.info(f"=== END LOGIN CREDENTIALS HANDLING ===")
+
+        except Exception as e:
+            logger.error(f"Error handling login credentials: {e}")
+            logger.error(f"Exception type: {type(e).__name__}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
     
     def keyPressEvent(self, event):
         """Override key press events to handle shortcuts and disable certain shortcuts in kiosk mode."""

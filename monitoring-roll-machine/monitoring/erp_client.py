@@ -119,7 +119,8 @@ class ERPClient:
         from_warehouse: str = "Prancis - MGI",
         to_warehouse: str = "Prancis - MGI",
         bom_name: Optional[str] = None,
-        finished_item_code: Optional[str] = None
+        finished_item_code: Optional[str] = None,
+        stock_entry_type: str = "Repack"
     ) -> Tuple[bool, str, Optional[Dict]]:
         """
         Create Stock Entry document in ERP from batch data.
@@ -161,7 +162,8 @@ class ERPClient:
                 to_warehouse=to_warehouse,
                 bom_items=bom_items,
                 finished_item_code=finished_item_code,
-                packing_list_field=packing_list_field
+                packing_list_field=packing_list_field,
+                stock_entry_type=stock_entry_type
             )
             
             # Log the prepared document for debugging (summary only to avoid huge logs)
@@ -209,7 +211,8 @@ class ERPClient:
         to_warehouse: str,
         bom_items: List[Dict[str, Any]] = None,
         finished_item_code: Optional[str] = None,
-        packing_list_field: str = "packing_list_items"
+        packing_list_field: str = "packing_list_items",
+        stock_entry_type: str = "Repack"
     ) -> Dict[str, Any]:
         """
         Prepare Stock Entry document from batch data.
@@ -319,8 +322,8 @@ class ERPClient:
         # Create Stock Entry document
         stock_entry = {
             'doctype': 'Stock Entry',
-            'stock_entry_type': 'Repack',
-            'purpose': 'Repack',
+            'stock_entry_type': stock_entry_type,
+            'purpose': stock_entry_type,
             'company': company,
             'posting_date': datetime.now().strftime('%Y-%m-%d'),
             'posting_time': datetime.now().strftime('%H:%M:%S'),
@@ -341,7 +344,7 @@ class ERPClient:
         logger.info(f"Added {len(packing_list)} packing list entries to Stock Entry")
         logger.info(f"Packing list field name: '{packing_list_field}'")
         logger.info(f"Packing list sample (first item): {json.dumps(packing_list[0] if packing_list else None, indent=2)}")
-        logger.info(f"Prepared Stock Entry: Type={stock_entry['stock_entry_type']}, Purpose={stock_entry['purpose']}, Items={len(items)}, Packing List={len(packing_list)}")
+        logger.info(f"Prepared Stock Entry: Type={stock_entry['stock_entry_type']}, Purpose={stock_entry['purpose']}, Items={len(items)}, Packing List={len(packing_list)} (from config)")
         
         # Log full document for debugging
         logger.info(f"Full Stock Entry document being sent:")

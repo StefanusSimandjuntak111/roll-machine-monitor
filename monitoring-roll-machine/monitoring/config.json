@@ -1,5 +1,5 @@
 {
-    "serial_port": "COM3",
+    "serial_port": "",
     "baudrate": 19200,
     "length_tolerance": 1.0,
     "decimal_points": 0,
@@ -32,7 +32,7 @@
     "selected_printer": "Microsoft Print to PDF",
     "label_width_mm": 100.0,
     "label_height_mm": 100.0,
-    "erp_url": "http://192.168.2.73:8000",
+    "erp_url": "http://192.168.2.73:8080",
     "erp_api_key": "0958a2259da8fbe",
     "erp_api_secret": "ab7427003864767",
     "erp_timeout": 30,
@@ -46,12 +46,14 @@
     "bom_product_code": "BD-21",
     "bom_color_code": "21",
     "bom_product_name": "Baby Doll-21",
-    "erp_stock_entry_type": "Roll Kain",
+    "erp_stock_entry_type": "Unable to load stock entry types",
     "safe_mode_enabled": false,
     "safe_mode_settings": {
-        "print": false,
+        "print": true,
         "save_log": false,
         "save_batch": false,
         "send_erp": false
-    }
+    },
+    "erp_verified": true,
+    "is_verified": true
 }
