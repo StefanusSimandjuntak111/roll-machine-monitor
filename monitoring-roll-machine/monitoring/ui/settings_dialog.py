@@ -193,7 +193,7 @@ class SettingsDialog(QDialog):
         self.port_combo = QComboBox()
         self.refresh_ports()
         settings_form.addRow("Serial Port:", self.port_combo)
-        
+
         # Baudrate selection
         self.baudrate_combo = QComboBox()
         self.baudrate_combo.addItems([
@@ -203,6 +203,52 @@ class SettingsDialog(QDialog):
             str(self.current_settings.get("baudrate", 19200))
         )
         settings_form.addRow("Baudrate:", self.baudrate_combo)
+
+        # Roll Time Minimum Duration
+        self.roll_time_min_input = QSpinBox()
+        self.roll_time_min_input.setRange(0, 300)  # 0-300 seconds (5 minutes)
+        self.roll_time_min_input.setValue(self.current_settings.get("roll_time_minimum_seconds", 60))
+        self.roll_time_min_input.setSuffix(" detik")
+        self.roll_time_min_input.setToolTip("Minimum waktu roll yang disyaratkan sebelum mengizinkan print. Set 0 untuk menonaktifkan validasi.")
+        # Style to match dark theme
+        self.roll_time_min_input.setStyleSheet("""
+            QSpinBox {
+                background-color: #2d2d2d;
+                border: 1px solid #444444;
+                border-radius: 5px;
+                padding: 8px;
+                color: white;
+                font-size: 14px;
+                min-height: 20px;
+                min-width: 120px;
+            }
+            QSpinBox:focus {
+                border: 1px solid #0078d4;
+            }
+            QSpinBox::up-button, QSpinBox::down-button {
+                background-color: #404040;
+                border: none;
+                width: 20px;
+            }
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover {
+                background-color: #555555;
+            }
+            QSpinBox::up-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-bottom: 4px solid white;
+                margin-bottom: 2px;
+            }
+            QSpinBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 4px solid white;
+                margin-top: 2px;
+            }
+        """)
+        settings_form.addRow("Minimum Waktu Roll:", self.roll_time_min_input)
         
         port_layout.addWidget(settings_frame)
         port_layout.addStretch()
@@ -2815,21 +2861,25 @@ class SettingsDialog(QDialog):
                 baudrate = int(self.baudrate_combo.currentText())
             except ValueError:
                 raise ValueError(f"Invalid baudrate: {self.baudrate_combo.currentText()}")
+
+            # Get roll time minimum duration
+            roll_time_minimum_seconds = self.roll_time_min_input.value()
             
             settings = {
                 # Port settings
                 "serial_port": serial_port,
                 "baudrate": baudrate,
-                
+                "roll_time_minimum_seconds": roll_time_minimum_seconds,
+
                 # Page settings
                 "length_tolerance": tolerance,
                 "decimal_points": decimal_points_map[decimal_format],
                 "rounding": rounding,
                 "print_copy_count": print_copy_count,
-                
+
                 # Printer settings
                 "selected_printer": selected_printer,
-                
+
                 # API settings
                 "api_url": self.current_settings.get("api_url", ""),
 
@@ -2837,7 +2887,7 @@ class SettingsDialog(QDialog):
                 "supabase_url": self.current_settings.get("supabase_url", ""),
                 "supabase_key": self.current_settings.get("supabase_key", ""),
                 "enable_supabase": self.current_settings.get("enable_supabase", False),
-                
+
                 # ERP settings
                 "enable_erp_submission": self.erp_enable_switch.isChecked() if hasattr(self, 'erp_enable_switch') else self.current_settings.get("enable_erp_submission", False),
                 "is_verified": self.erp_verify_switch.isChecked() if hasattr(self, 'erp_verify_switch') else self.current_settings.get("is_verified", False),
@@ -2851,7 +2901,7 @@ class SettingsDialog(QDialog):
                 "erp_to_warehouse": self.erp_to_warehouse_input.text().strip() if hasattr(self, 'erp_to_warehouse_input') else self.current_settings.get("erp_to_warehouse", "Prancis - MGI"),
                 "erp_packing_list_field": self.erp_packing_list_field_input.text().strip() if hasattr(self, 'erp_packing_list_field_input') else self.current_settings.get("erp_packing_list_field", "packing_list_items"),
                 "bom_name": self.erp_bom_name_input.text().strip() if hasattr(self, 'erp_bom_name_input') else self.current_settings.get("bom_name", ""),
-                
+
                 # Batch name settings
                 "batch_name_format": self.batch_format_input.text() if hasattr(self, 'batch_format_input') else "YYYY-MM-DD_product-code_color-code",
                 "batch_start_number": self.batch_start_number_input.text() if hasattr(self, 'batch_start_number_input') else "1"

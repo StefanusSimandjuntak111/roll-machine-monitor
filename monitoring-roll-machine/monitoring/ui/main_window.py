@@ -2118,6 +2118,24 @@ del "%~f0"
             if hasattr(self, 'roll_start_time') and self.roll_start_time:
                 roll_time = (current_time - self.roll_start_time).total_seconds()
 
+            # Check minimum roll time requirement BEFORE logging
+            min_roll_time = self.config.get("roll_time_minimum_seconds", 60)
+            if min_roll_time > 0 and roll_time < min_roll_time:
+                # Show warning dialog and ask user to confirm
+                reply = self.show_kiosk_dialog(
+                    "question",
+                    "Waktu Roll Terlalu Singkat",
+                    f"⚠️ PERINGATAN: Waktu roll saat ini hanya {roll_time:.1f} detik.\n\n"
+                    f"Minimum waktu roll yang disyaratkan: {min_roll_time} detik.\n\n"
+                    f"Apakah data ini benar-benar ingin disimpan?\n\n"
+                    f"Jika waktu roll terlalu singkat, mungkin ada kesalahan dalam proses rolling."
+                )
+
+                if reply != 0x00004000:  # QMessageBox.StandardButton.Yes
+                    logger.info(f"User cancelled print due to short roll time: {roll_time:.1f}s < {min_roll_time}s")
+                    # User chose not to save - return silently without notification
+                    return
+
             # For Print button: cycle_time is always None initially
             # Cycle time will be calculated when next product starts (length = 0.01) or Close Cycle is pressed
             cycle_time = None
@@ -2153,13 +2171,9 @@ del "%~f0"
 
             logger.info(f"Print logged: {product_code} - Cycle: Empty (will be calculated later), Roll: {roll_time:.1f}s")
 
-            # Reset roll_start_time after print - roll time should stop and restart for next print
-            # This ensures each print has its own roll time from the last roll start
-            if hasattr(self, 'roll_start_time') and self.roll_start_time:
-                self.roll_start_time = None
-                logger.info(f"Print logged - roll time: {roll_time:.1f}s, roll_start_time reset to None")
-            else:
-                logger.info(f"Print logged - roll time: {roll_time:.1f}s, roll_start_time was already None")
+            # DO NOT reset roll_start_time after print - roll time should accumulate until new product starts
+            # Roll time represents the time spent rolling for each individual print operation
+            logger.info(f"Print logged - roll time: {roll_time:.1f}s, roll_start_time preserved for next print")
 
         except Exception as e:
             logger.error(f"Error in print logging: {e}")
