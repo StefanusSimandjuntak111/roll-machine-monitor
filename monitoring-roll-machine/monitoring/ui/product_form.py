@@ -874,11 +874,11 @@ class ProductForm(QWidget):
                 self.emit_print_logged(product_info)
                 
                 # Show success message
-                self._show_kiosk_dialog(
-                    "information",
-                    "Save & Print Success",
-                    f"Product saved and print job sent successfully to '{selected_printer}'!\n\nBatch: {product_info['batch_number']}\nProduct: {product_info['product_code']}"
-                )
+                # self._show_kiosk_dialog(
+                #     "information",
+                #     "Save & Print Success",
+                #     f"Product saved and print job sent successfully to '{selected_printer}'!\n\nBatch: {product_info['batch_number']}\nProduct: {product_info['product_code']}"
+                # )
             else:
                 logger.error("Print job failed")
                 self._show_kiosk_dialog(

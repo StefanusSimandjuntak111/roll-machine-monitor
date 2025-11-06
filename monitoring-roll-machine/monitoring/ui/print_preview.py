@@ -322,12 +322,6 @@ class PrintPreviewDialog(QDialog):
             print_product_label(self.product_info, self.current_machine_length)
             
             # Show success message
-            from PySide6.QtWidgets import QMessageBox
-            QMessageBox.information(
-                self,
-                "Print Success",
-                "Label printed successfully!"
-            )
             
         except Exception as e:
             logger.error(f"Error printing label: {e}")
