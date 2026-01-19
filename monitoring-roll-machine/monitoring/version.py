@@ -3,7 +3,7 @@ Version configuration for Roll Machine Monitor application.
 """
 
 # Application version
-VERSION = "1.4.2"
+VERSION = "1.4.3"
 VERSION_STRING = f"v{VERSION}"
 
 # Add __version__ for installer compatibility

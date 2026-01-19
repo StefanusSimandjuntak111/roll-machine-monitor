@@ -205,6 +205,7 @@ class PinDialog(QDialog):
             }
         """)
         self.login_btn.clicked.connect(self.switch_to_login_mode)
+        self.login_btn.setVisible(False)  # Hidden per request
         button_layout.addWidget(self.login_btn)
 
         # Store reference to verify button for mode switching

@@ -32,9 +32,9 @@
     "selected_printer": "EPSON L3250 Series R.DGM",
     "label_width_mm": 100.0,
     "label_height_mm": 100.0,
-    "erp_url": "http://192.168.2.73:8080",
-    "erp_api_key": "0958a2259da8fbe",
-    "erp_api_secret": "ab7427003864767",
+    "erp_url": "https://dev-tex.wijayacorp.com",
+    "erp_api_key": "453d77d61674284",
+    "erp_api_secret": "257889cbe1bdee3",
     "erp_timeout": 30,
     "erp_company": "Textilindo",
     "erp_from_warehouse": "Prancis - MGI",
@@ -49,8 +49,8 @@
     "erp_stock_entry_type": "Unable to load stock entry types",
     "safe_mode_enabled": false,
     "safe_mode_settings": {
-        "print": true,
-        "save_log": false,
+        "print": false,
+        "save_log": true,
         "save_batch": false,
         "send_erp": false
     },

@@ -1942,6 +1942,22 @@ class ProductForm(QWidget):
                 bom_name = bom_data.get("name", "")
                 item_name = bom_data.get("item", "")
                 item_code = bom_data.get("item_code", "")
+                
+                # Log complete BOM data that was selected
+                logger.info("=" * 80)
+                logger.info("📋 BOM SELECTION - Complete BOM Data")
+                logger.info("=" * 80)
+                logger.info(f"BOM Name: {bom_name}")
+                logger.info(f"Item Name: {item_name}")
+                logger.info(f"Item Code: {item_code}")
+                logger.info(f"List Item Text: {item.text()}")
+                logger.info("-" * 80)
+                logger.info("Complete BOM Data Structure:")
+                for key, value in bom_data.items():
+                    logger.info(f"  {key}: {value}")
+                logger.info("-" * 80)
+                logger.info(f"Raw BOM Data (JSON): {json.dumps(bom_data, indent=2, ensure_ascii=False)}")
+                logger.info("=" * 80)
 
                 # Auto-fill product code
                 self.product_code.setText(item_code)
@@ -1958,37 +1974,208 @@ class ProductForm(QWidget):
                     }
                 """)
 
-                # Try to get item details to fill other fields
+                # Clear Product Name and Color Code before fetching new data
+                # This ensures old data doesn't persist if API fails or returns no data
+                self.product_name.setText("")
+                self.color_code.setText("")
+                logger.info("Cleared Product Name and Color Code fields before fetching new data")
+
+                # Try to get item details from ERP Item API first
+                color_code = ""  # Initialize color_code
+                product_name = ""  # Initialize product_name
+                
+                # Step 1: Fetch Item details from ERP API /api/resource/Item/{product_code}
                 try:
                     from ..config import load_config
                     config = load_config()
-                    api_url = config.get('api_url', '')
-                    if api_url:
-                        response = requests.post(
-                            api_url,
-                            json={'product_code': item_code},
-                            timeout=5
-                        )
-                        if response.status_code == 200:
-                            result = response.json()
-                            if isinstance(result.get('message'), dict):
-                                msg = result['message']
-                                if msg.get('success') and msg.get('data', {}).get('products'):
-                                    products = msg['data']['products']
-                                    if products:
-                                        product = products[0]
-                                        self.product_name.setText(product.get('product_name', ''))
-                                        color_code = product.get('color_code', '')
-                                        if color_code:
-                                            self.color_code.setText(str(color_code))
-                                        logger.info(f"Fetched product details for BOM: {item_code}")
+                    erp_url = config.get("erp_url", "")
+                    api_key = config.get("erp_api_key", "")
+                    api_secret = config.get("erp_api_secret", "")
+                    
+                    if erp_url and api_key and api_secret:
+                        # Fetch Item details from ERP API
+                        item_api_url = f"{erp_url}/api/resource/Item/{item_code}"
+                        headers = {
+                            "Authorization": f"token {api_key}:{api_secret}",
+                            "Content-Type": "application/json",
+                            "Accept": "application/json"
+                        }
+                        
+                        logger.info(f"Fetching Item details from ERP API: {item_api_url}")
+                        item_response = requests.get(item_api_url, headers=headers, timeout=10)
+                        logger.info(f"ERP Item API response status: {item_response.status_code}")
+                        
+                        if item_response.status_code == 200:
+                            item_data = item_response.json().get('data', {})
+                            logger.info(f"ERP Item API response data: {json.dumps(item_data, indent=2, ensure_ascii=False)}")
+                            
+                            # Get Product Name from item_name
+                            product_name = item_data.get('item_name', '')
+                            if product_name:
+                                self.product_name.setText(str(product_name))
+                                logger.info(f"✓ Auto-filled Product Name from ERP Item API: {product_name}")
+                            
+                            # Get Color Code from attribute_value
+                            # attribute_value might be in different places, try multiple locations
+                            color_code = ""
+                            
+                            # Try direct attribute_value field
+                            if item_data.get('attribute_value'):
+                                color_code = item_data.get('attribute_value')
+                            
+                            # Try in attributes array/list
+                            if not color_code and item_data.get('attributes'):
+                                attributes = item_data.get('attributes', [])
+                                if isinstance(attributes, list):
+                                    for attr in attributes:
+                                        if isinstance(attr, dict) and attr.get('attribute_value'):
+                                            color_code = attr.get('attribute_value')
+                                            break
+                                elif isinstance(attributes, dict):
+                                    color_code = attributes.get('attribute_value', '')
+                            
+                            # Try custom field for color code
+                            if not color_code:
+                                # Try common custom field names for color code
+                                color_code = (item_data.get('color_code') or 
+                                            item_data.get('color') or 
+                                            item_data.get('custom_color_code') or
+                                            item_data.get('custom_color') or "")
+                            
+                            if color_code:
+                                self.color_code.setText(str(color_code))
+                                logger.info(f"✓ Auto-filled Color Code from ERP Item API: {color_code}")
+                            else:
+                                logger.warning(f"⚠ Color code (attribute_value) not found in ERP Item API response for {item_code}")
+                            
+                            logger.info(f"✅ Successfully fetched Item details from ERP API: {item_code} - Product: {product_name}, Color: {color_code}")
+                        else:
+                            logger.warning(f"⚠ ERP Item API request failed with status {item_response.status_code}: {item_response.text}")
                 except Exception as e:
-                    logger.warning(f"Could not fetch product details for BOM: {e}")
+                    logger.warning(f"⚠ Could not fetch Item details from ERP API: {e}", exc_info=True)
+                
+                # Step 2: Fallback to product search API if ERP Item API didn't provide complete data
+                if not product_name or not color_code:
+                    logger.info("Fallback: Using product search API to get missing data")
+                    try:
+                        from ..config import load_config
+                        config = load_config()
+                        api_url = config.get('api_url', '')
+                        if api_url:
+                            logger.info(f"Fetching product details for BOM item: {item_code} from API: {api_url}")
+                            response = requests.post(
+                                api_url,
+                                json={'product_code': item_code},
+                                timeout=10  # Increased timeout for reliability
+                            )
+                            logger.info(f"API response status: {response.status_code}")
+                            
+                            if response.status_code == 200:
+                                result = response.json()
+                                logger.info(f"API response data: {result}")
+                                
+                                # Try different response structures
+                                product_data = None
+                                
+                                # Structure 1: message.success with data.products
+                                if isinstance(result.get('message'), dict):
+                                    msg = result['message']
+                                    if msg.get('success') and msg.get('data', {}).get('products'):
+                                        products = msg['data']['products']
+                                        if products and len(products) > 0:
+                                            product_data = products[0]
+                                
+                                # Structure 2: Direct product data in message.data
+                                if not product_data and isinstance(result.get('message'), dict):
+                                    msg = result['message']
+                                    if msg.get('success') and msg.get('data'):
+                                        data = msg['data']
+                                        # If data is a dict with product fields directly
+                                        if isinstance(data, dict) and data.get('product_code'):
+                                            product_data = data
+                                
+                                # Structure 3: Direct product data at root level
+                                if not product_data and result.get('product_code'):
+                                    product_data = result
+                                
+                                if product_data:
+                                    # Log complete product data from API
+                                    logger.info("-" * 80)
+                                    logger.info("📦 PRODUCT DATA FROM API - Complete Structure")
+                                    logger.info("-" * 80)
+                                    logger.info(f"Product Data (JSON): {json.dumps(product_data, indent=2, ensure_ascii=False)}")
+                                    logger.info("-" * 80)
+                                    logger.info("Product Data Fields:")
+                                    for key, value in product_data.items():
+                                        logger.info(f"  {key}: {value}")
+                                    logger.info("-" * 80)
+                                    
+                                    # Auto-fill Product Name (only if not already filled from ERP Item API)
+                                    if not product_name:
+                                        fallback_product_name = product_data.get('product_name') or product_data.get('item_name') or ""
+                                        if fallback_product_name:
+                                            self.product_name.setText(str(fallback_product_name))
+                                            product_name = fallback_product_name
+                                            logger.info(f"✓ Auto-filled Product Name from fallback API: {fallback_product_name}")
+                                    
+                                    # Auto-fill Color Code (only if not already filled from ERP Item API)
+                                    if not color_code:
+                                        fallback_color_code = product_data.get('color_code') or product_data.get('color') or ""
+                                        if fallback_color_code:
+                                            self.color_code.setText(str(fallback_color_code))
+                                            color_code = fallback_color_code
+                                            logger.info(f"✓ Auto-filled Color Code from fallback API: {fallback_color_code}")
+                                    
+                                    logger.info(f"✅ Successfully fetched product details from fallback API: {item_code} - Product: {product_name}, Color: {color_code}")
+                                else:
+                                    # API returned data but structure doesn't match expected format
+                                    logger.warning(f"⚠ Product data not found in fallback API response for {item_code}. Response structure: {result}")
+                            else:
+                                # API request failed
+                                logger.error(f"❌ Fallback API request failed with status {response.status_code}: {response.text}")
+                    except Exception as e:
+                        # Exception occurred during fallback API call
+                        logger.error(f"❌ Could not fetch product details from fallback API: {e}", exc_info=True)
+
+                # Auto-generate Batch Number after filling Product Name and Color Code
+                try:
+                    # Ensure batch_manager has latest settings
+                    from ..config import load_config
+                    config = load_config()
+                    if hasattr(self, '_batch_manager') and self._batch_manager:
+                        self._batch_manager.update_settings(config)
+                        # Generate batch number using product_code and color_code
+                        batch_number = self._batch_manager.get_batch_for_product(item_code, color_code)
+                        if batch_number:
+                            self.batch_number.setText(batch_number)
+                            logger.info(f"Auto-generated batch number: {batch_number} for BOM: {item_code}")
+                except Exception as e:
+                    logger.warning(f"Could not generate batch number for BOM: {e}")
 
                 # Close dialog
                 dialog.accept()
 
-                logger.info(f"BOM selected: {bom_name} - {item_code}")
+                # Log final summary of all filled fields
+                logger.info("=" * 80)
+                logger.info("✅ BOM SELECTION COMPLETED - Summary of Filled Fields")
+                logger.info("=" * 80)
+                logger.info(f"Product Code: {item_code}")
+                logger.info(f"Product Name: {self.product_name.text().strip() or '(empty)'}")
+                logger.info(f"Color Code: {self.color_code.text().strip() or '(empty)'}")
+                logger.info(f"Batch Number: {self.batch_number.text().strip() or '(empty)'}")
+                logger.info(f"BOM Name: {bom_name}")
+                logger.info(f"Item Name: {item_name}")
+                logger.info("-" * 80)
+                logger.info(f"Final BOM Selection Summary: {bom_name} ({item_code})")
+                if product_name:
+                    logger.info(f"  -> Product Name: {product_name} (from API)")
+                else:
+                    logger.warning(f"  -> Product Name: NOT FOUND (API did not return product_name)")
+                if color_code:
+                    logger.info(f"  -> Color Code: {color_code} (from API)")
+                else:
+                    logger.warning(f"  -> Color Code: NOT FOUND (API did not return color_code)")
+                logger.info("=" * 80)
 
         except Exception as e:
             logger.error(f"Error selecting BOM: {e}")

@@ -79,8 +79,9 @@ class SettingsDialog(QDialog):
         self.create_port_management_tab()
         self.create_page_settings_tab()
         self.create_printer_settings_tab()
-        self.create_api_settings_tab()
-        self.create_supabase_settings_tab()
+        # Hidden per request: API Settings and Supabase tabs
+        # self.create_api_settings_tab()
+        # self.create_supabase_settings_tab()
         self.create_batch_name_settings_tab()
         self.create_security_settings_tab()
         
@@ -92,6 +93,7 @@ class SettingsDialog(QDialog):
         refresh_btn = QPushButton("Refresh Ports")
         refresh_btn.clicked.connect(self.refresh_ports)
         refresh_btn.setStyleSheet(self.get_button_style("secondary"))
+        refresh_btn.setVisible(False)  # Hidden per request
         button_layout.addWidget(refresh_btn)
         
         button_layout.addStretch()
@@ -118,6 +120,7 @@ class SettingsDialog(QDialog):
                 border: 1px solid #ff6b00;
             }
         """)
+        restart_btn.setVisible(False)  # Hidden per request
         button_layout.addWidget(restart_btn)
         
         save_btn = QPushButton("Save Settings")
@@ -356,6 +359,7 @@ class SettingsDialog(QDialog):
             }
         """)
         self.kill_port_btn.clicked.connect(self.kill_port_connection)
+        self.kill_port_btn.setVisible(False)  # Hidden per request
         control_layout.addWidget(self.kill_port_btn)
         
         # Auto Connect Button
@@ -1261,19 +1265,28 @@ class SettingsDialog(QDialog):
         self.erp_from_warehouse_input = QLineEdit()
         self.erp_from_warehouse_input.setPlaceholderText("Source warehouse")
         self.erp_from_warehouse_input.setText(self.current_settings.get("erp_from_warehouse", "Prancis - MGI"))
-        right_form.addRow("From Warehouse:", self.erp_from_warehouse_input)
+        from_warehouse_label = QLabel("From Warehouse:")
+        from_warehouse_label.setVisible(False)  # Hidden per request
+        self.erp_from_warehouse_input.setVisible(False)  # Hidden per request
+        right_form.addRow(from_warehouse_label, self.erp_from_warehouse_input)
 
         # To Warehouse Input
         self.erp_to_warehouse_input = QLineEdit()
         self.erp_to_warehouse_input.setPlaceholderText("Target warehouse")
         self.erp_to_warehouse_input.setText(self.current_settings.get("erp_to_warehouse", "Prancis - MGI"))
-        right_form.addRow("To Warehouse:", self.erp_to_warehouse_input)
+        to_warehouse_label = QLabel("To Warehouse:")
+        to_warehouse_label.setVisible(False)  # Hidden per request
+        self.erp_to_warehouse_input.setVisible(False)  # Hidden per request
+        right_form.addRow(to_warehouse_label, self.erp_to_warehouse_input)
 
         # Packing List Field Name
         self.erp_packing_list_field_input = QLineEdit()
         self.erp_packing_list_field_input.setPlaceholderText("packing_list_items")
         self.erp_packing_list_field_input.setText(self.current_settings.get("erp_packing_list_field", "packing_list_items"))
-        right_form.addRow("Packing List Field:", self.erp_packing_list_field_input)
+        packing_list_label = QLabel("Packing List Field:")
+        packing_list_label.setVisible(False)  # Hidden per request
+        self.erp_packing_list_field_input.setVisible(False)  # Hidden per request
+        right_form.addRow(packing_list_label, self.erp_packing_list_field_input)
 
         # ERP Status Display
         self.erp_status_label = QLabel("Not Configured")
