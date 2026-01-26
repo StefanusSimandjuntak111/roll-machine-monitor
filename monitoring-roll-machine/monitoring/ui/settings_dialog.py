@@ -1260,11 +1260,9 @@ class SettingsDialog(QDialog):
         """)
         right_form.addRow("Stock Entry Type:", self.erp_stock_entry_type_input)
         
-        # Initialize with saved value if available
-        saved_stock_entry_type = self.current_settings.get("erp_stock_entry_type", "")
-        if saved_stock_entry_type:
-            self.erp_stock_entry_type_input.addItem(saved_stock_entry_type)
-            self.erp_stock_entry_type_input.setCurrentText(saved_stock_entry_type)
+        # Store saved value to set after loading from API
+        self.saved_stock_entry_type = self.current_settings.get("erp_stock_entry_type", "")
+        logger.info(f"📋 Loaded Stock Entry Type from config: '{self.saved_stock_entry_type}'")
         
         # Refresh button for stock entry types
         refresh_stock_types_btn = QPushButton("🔄 Refresh Stock Entry Types")
@@ -1272,7 +1270,7 @@ class SettingsDialog(QDialog):
         refresh_stock_types_btn.clicked.connect(self.load_stock_entry_types)
         right_form.addRow("", refresh_stock_types_btn)
         
-        # Load stock entry types from API
+        # Load stock entry types from API (will set saved value after loading)
         self.load_stock_entry_types()
 
         # From Warehouse Input
@@ -1468,22 +1466,28 @@ class SettingsDialog(QDialog):
                     if name:
                         self.erp_stock_entry_type_input.addItem(name)
                 
-                # Set current value if exists
-                current_value = self.current_settings.get("erp_stock_entry_type", "")
-                if current_value:
-                    index = self.erp_stock_entry_type_input.findText(current_value)
+                logger.info(f"✅ Loaded {len(stock_entry_types)} stock entry types from ERPNext API")
+                
+                # Set saved value from config.json (syncing UI with config)
+                saved_value = getattr(self, 'saved_stock_entry_type', '') or self.current_settings.get("erp_stock_entry_type", "")
+                if saved_value:
+                    # Try to find saved value in loaded list
+                    index = self.erp_stock_entry_type_input.findText(saved_value)
                     if index >= 0:
                         self.erp_stock_entry_type_input.setCurrentIndex(index)
+                        logger.info(f"✅ Set Stock Entry Type to saved value: '{saved_value}'")
                     else:
-                        # If current value not found, add it as custom option
-                        self.erp_stock_entry_type_input.addItem(current_value)
-                        self.erp_stock_entry_type_input.setCurrentText(current_value)
-                
-                logger.info(f"Loaded {len(stock_entry_types)} stock entry types from ERPNext")
+                        # If saved value not found in API list, add it as custom option
+                        # This handles cases where user has a valid type that's not in the current API response
+                        self.erp_stock_entry_type_input.addItem(saved_value)
+                        self.erp_stock_entry_type_input.setCurrentText(saved_value)
+                        logger.warning(f"⚠️ Saved value '{saved_value}' not in API list - added as custom option")
+                else:
+                    logger.warning("⚠️ No saved Stock Entry Type found - please select one")
                 
             else:
                 # Don't clear the combo box, just log the error
-                logger.error(f"Failed to load stock entry types: {response.status_code}")
+                logger.error(f"Failed to load stock entry types: HTTP {response.status_code}")
                 # Only show error message if combo box is empty or only has default item
                 if self.erp_stock_entry_type_input.count() <= 1:
                     # Add default fallback options instead of error message
@@ -1492,7 +1496,17 @@ class SettingsDialog(QDialog):
                     self.erp_stock_entry_type_input.addItem("Repack")
                     self.erp_stock_entry_type_input.addItem("Manufacture")
                     self.erp_stock_entry_type_input.addItem("Material Transfer")
-                    self.erp_stock_entry_type_input.setCurrentIndex(1)  # Set to "Repack"
+                    
+                    # Try to set saved value or default to "Repack"
+                    saved_value = getattr(self, 'saved_stock_entry_type', '')
+                    if saved_value and saved_value in ["Repack", "Manufacture", "Material Transfer"]:
+                        index = self.erp_stock_entry_type_input.findText(saved_value)
+                        if index >= 0:
+                            self.erp_stock_entry_type_input.setCurrentIndex(index)
+                            logger.info(f"✅ Set to saved value (fallback): '{saved_value}'")
+                    else:
+                        self.erp_stock_entry_type_input.setCurrentIndex(1)  # Default to "Repack"
+                        logger.warning(f"⚠️ Using default 'Repack' as fallback")
                 
         except requests.exceptions.RequestException as e:
             # Don't clear the combo box, just log the error
@@ -1505,7 +1519,17 @@ class SettingsDialog(QDialog):
                 self.erp_stock_entry_type_input.addItem("Repack")
                 self.erp_stock_entry_type_input.addItem("Manufacture")
                 self.erp_stock_entry_type_input.addItem("Material Transfer")
-                self.erp_stock_entry_type_input.setCurrentIndex(1)  # Set to "Repack"
+                
+                # Try to set saved value or default to "Repack"
+                saved_value = getattr(self, 'saved_stock_entry_type', '')
+                if saved_value and saved_value in ["Repack", "Manufacture", "Material Transfer"]:
+                    index = self.erp_stock_entry_type_input.findText(saved_value)
+                    if index >= 0:
+                        self.erp_stock_entry_type_input.setCurrentIndex(index)
+                        logger.info(f"✅ Set to saved value (connection error fallback): '{saved_value}'")
+                else:
+                    self.erp_stock_entry_type_input.setCurrentIndex(1)  # Default to "Repack"
+                    logger.warning(f"⚠️ Using default 'Repack' as fallback (connection error)")
         except Exception as e:
             # Don't clear the combo box, just log the error
             logger.error(f"Error loading stock entry types: {e}")
@@ -1517,7 +1541,17 @@ class SettingsDialog(QDialog):
                 self.erp_stock_entry_type_input.addItem("Repack")
                 self.erp_stock_entry_type_input.addItem("Manufacture")
                 self.erp_stock_entry_type_input.addItem("Material Transfer")
-                self.erp_stock_entry_type_input.setCurrentIndex(1)  # Set to "Repack"
+                
+                # Try to set saved value or default to "Repack"
+                saved_value = getattr(self, 'saved_stock_entry_type', '')
+                if saved_value and saved_value in ["Repack", "Manufacture", "Material Transfer"]:
+                    index = self.erp_stock_entry_type_input.findText(saved_value)
+                    if index >= 0:
+                        self.erp_stock_entry_type_input.setCurrentIndex(index)
+                        logger.info(f"✅ Set to saved value (error fallback): '{saved_value}'")
+                else:
+                    self.erp_stock_entry_type_input.setCurrentIndex(1)  # Default to "Repack"
+                    logger.warning(f"⚠️ Using default 'Repack' as fallback (error)")
 
     def _has_only_error_items(self):
         """Check if combo box only contains error or default items."""
@@ -2963,20 +2997,30 @@ class SettingsDialog(QDialog):
             }
             
             # Validate and set stock entry type (CRITICAL: prevent invalid values)
+            # This ensures config.json always syncs with Settings UI
             if hasattr(self, 'erp_stock_entry_type_input'):
                 stock_entry_type = self.erp_stock_entry_type_input.currentText().strip()
+                logger.info(f"📋 Stock Entry Type from UI: '{stock_entry_type}'")
+                
                 # Filter out error messages and placeholders
-                if stock_entry_type and not any(keyword in stock_entry_type.lower() for keyword in [
+                is_invalid = any(keyword in stock_entry_type.lower() for keyword in [
                     'unable to load', 'gagal load', 'select stock', 'pilih stock', 
-                    'please configure', 'api error', 'connection error', '--'
-                ]):
+                    'please configure', 'api error', 'connection error', '--', 'select '
+                ])
+                
+                if stock_entry_type and not is_invalid:
                     settings["erp_stock_entry_type"] = stock_entry_type
+                    logger.info(f"✅ Saving Stock Entry Type: '{stock_entry_type}'")
                 else:
                     # Use default if invalid
                     settings["erp_stock_entry_type"] = "Repack"
-                    logger.warning(f"Invalid stock entry type '{stock_entry_type}' - using default 'Repack'")
+                    logger.warning(f"⚠️ Invalid stock entry type '{stock_entry_type}' - using default 'Repack'")
+                    logger.warning(f"⚠️ Please select a valid Stock Entry Type from dropdown")
             else:
-                settings["erp_stock_entry_type"] = self.current_settings.get("erp_stock_entry_type", "Repack")
+                # Fallback: use existing value from current_settings
+                fallback_value = self.current_settings.get("erp_stock_entry_type", "Repack")
+                settings["erp_stock_entry_type"] = fallback_value
+                logger.warning(f"⚠️ erp_stock_entry_type_input not found, using fallback: '{fallback_value}'")
 
             # Ensure BOM fields always included on Save Settings
             settings.update(bom_data)

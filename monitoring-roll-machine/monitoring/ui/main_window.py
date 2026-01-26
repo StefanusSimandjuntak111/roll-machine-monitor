@@ -2361,16 +2361,22 @@ del "%~f0"
                     if hasattr(self, 'settings_changed_at'):
                         settings_timestamp = self.settings_changed_at.isoformat()
 
+                    # Use length_print_value for both product_length and length_print
+                    # This ensures consistency - both values are the same (with tolerance applied)
+                    final_length = length_print_value if length_print_value is not None else product_length
+                    
+                    logger.info(f"💾 Saving to log - product_length: {final_length:.2f}, length_print: {final_length:.2f}")
+
                     self.logging_table_widget.add_production_entry(
                         product_name=product_name,
                         product_code=product_code,
-                        product_length=product_length,
+                        product_length=final_length,  # Use length_print value (with tolerance)
                         batch=batch,
                         cycle_time=cycle_time,  # Always None for Print
                         roll_time=roll_time,
                         settings_timestamp=settings_timestamp,  # When settings were last changed
                         safe_mode=self.safe_mode_active,  # Pass Safe Mode status
-                        length_print=length_print_value  # Length with tolerance
+                        length_print=final_length  # Same as product_length
                     )
                     # Refresh table after print
                     if hasattr(self.logging_table_widget, 'manual_refresh'):
@@ -2450,14 +2456,20 @@ del "%~f0"
 
             # Log the final production data for this cycle
             if hasattr(self, 'logging_table_widget') and self.logging_table_widget and hasattr(self, 'current_product_info') and self.current_product_info:
+                # Use length_print_value for both product_length and length_print
+                # This ensures consistency - both values are the same (with tolerance applied)
+                final_length = length_print_value if length_print_value is not None else self.current_product_info.get('product_length', 0.0)
+                
+                logger.info(f"💾 Saving to log (timeout) - product_length: {final_length:.2f}, length_print: {final_length:.2f}")
+                
                 self.logging_table_widget.add_production_entry(
                     product_name=self.current_product_info.get('product_name', 'Unknown'),
                     product_code=self.current_product_info.get('product_code', 'Unknown'),
-                    product_length=self.current_product_info.get('product_length', 0.0),
+                    product_length=final_length,  # Use length_print value (with tolerance)
                     batch=self.current_product_info.get('batch', 'Unknown'),
                     cycle_time=cycle_time,
                     roll_time=roll_time,
-                    length_print=length_print_value
+                    length_print=final_length  # Same as product_length
                 )
                 # Refresh table after timeout
                 self.logging_table_widget.manual_refresh()

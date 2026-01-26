@@ -1,5 +1,5 @@
 {
-    "serial_port": "",
+    "serial_port": "COM5",
     "baudrate": 19200,
     "length_tolerance": 1.0,
     "decimal_points": 0,
@@ -41,7 +41,7 @@
     "erp_to_warehouse": "Prancis Lt 2 - MGI",
     "erp_packing_list_field": "packing_list_items",
     "enable_erp_submission": true,
-    "erp_stock_entry_type": "Material Issue",
+    "erp_stock_entry_type": "Repack",
     "safe_mode_enabled": false,
     "safe_mode_settings": {
         "print": false,
@@ -52,9 +52,9 @@
     "erp_verified": true,
     "is_verified": true,
     "roll_time_minimum_seconds": 60,
-    "bom_name": "BOM-BD-21-001",
-    "bom_item": "BD-21",
-    "bom_product_code": "BD-21",
-    "bom_color_code": "21",
-    "bom_product_name": "Baby Doll-21"
+    "bom_name": "BOM-PBDS-8-001",
+    "bom_item": "PBDS-8",
+    "bom_product_code": "PBDS-8",
+    "bom_color_code": "8",
+    "bom_product_name": "Pashmina Baby Doll Shadia-8"
 }
