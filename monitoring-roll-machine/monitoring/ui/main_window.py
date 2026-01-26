@@ -397,7 +397,16 @@ class ModernMainWindow(QMainWindow):
         self.login_timeout_minutes = 30  # Login session timeout (30 minutes)
         self.temp_api_credentials = None  # Temporary storage for API credentials from login
         
-        # Load configuration
+        # CLEAR BOM SETTINGS ON STARTUP - Ensure clean start
+        # BOM data should only be set when user manually selects from BOM dropdown
+        try:
+            from ..config import clear_bom_settings
+            logger.info("Clearing BOM settings on application startup for clean session")
+            clear_bom_settings()
+        except Exception as e:
+            logger.warning(f"Failed to clear BOM settings on startup: {e}")
+        
+        # Load configuration (after clearing BOM settings)
         self.config = load_config()
         
         # Setup logging
@@ -1324,6 +1333,14 @@ del "%~f0"
                 logger.info("Releasing singleton lock before restart")
                 self.singleton_lock.release()
             
+            # Clear BOM settings from config
+            try:
+                from ..config import clear_bom_settings
+                logger.info("Clearing BOM settings before restart")
+                clear_bom_settings()
+            except Exception as e:
+                logger.warning(f"Failed to clear BOM settings: {e}")
+            
             logger.info("Cleanup completed before restart")
             
         except Exception as e:
@@ -2110,11 +2127,11 @@ del "%~f0"
             
             # Detect start of a new product cycle.
             #
-            # Sebelumnya memakai trigger "length ~ 0.01", namun di lapangan nilai bisa meloncat
-            # (misal langsung 0.20) sehingga event start terlewat dan cycle time jadi N/A.
-            # Untuk lebih robust, kita anggap cycle mulai saat length sudah bergerak di atas 0.1m
-            # setelah reset (is_new_product_started False).
-            if length > 0.1 and not self.is_new_product_started:
+            # Trigger cycle time saat length mencapai 0.01 yard untuk menandai mulainya produk baru.
+            # Menggunakan >= 0.01 untuk menangkap nilai yang tepat atau sedikit lebih tinggi.
+            # Jika nilai meloncat (misal langsung 0.20), kita tetap tangkap dengan fallback >= 0.05
+            if (length >= 0.01 and length < 0.05 and not self.is_new_product_started) or \
+               (length >= 0.05 and not self.is_new_product_started and self.last_length < 0.01):
                 # New product cycle started
                 self.cycle_start_time = current_time
                 self.roll_start_time = current_time
@@ -2739,7 +2756,15 @@ del "%~f0"
             except Exception as e:
                 logger.warning(f"Error stopping monitor: {e}")
         
-        # Save configuration
+        # Clear BOM settings before saving config
+        try:
+            from ..config import clear_bom_settings
+            logger.info("Clearing BOM settings on application close")
+            clear_bom_settings()
+        except Exception as e:
+            logger.warning(f"Failed to clear BOM settings: {e}")
+        
+        # Save configuration (after BOM clearing)
         try:
             save_config(self.config)
             logger.info("Configuration saved")

@@ -12,6 +12,7 @@ from typing import Dict, Any, List, Optional
 import logging
 import re
 from datetime import datetime, date
+import html
 
 from ..logging_table import LoggingTable
 from ..supabase_client import SupabaseClient
@@ -19,6 +20,36 @@ from ..config import load_config
 from ..erp_client import get_erp_client
 
 logger = logging.getLogger(__name__)
+
+
+def _clean_error_message(error_msg: str) -> str:
+    """
+    Clean error message from HTML tags and extract the actual error.
+    
+    Args:
+        error_msg: Raw error message (may contain HTML)
+        
+    Returns:
+        Cleaned error message
+    """
+    # If it's an HTML response (starts with <!doctype or <html)
+    if error_msg.strip().lower().startswith(('<!doctype', '<html', '<title>')):
+        # Try to extract error from <title> tag
+        title_match = re.search(r'<title>([^<]+)</title>', error_msg, re.IGNORECASE)
+        if title_match:
+            error_title = title_match.group(1)
+            # Remove "// Werkzeug Debugger" or similar suffixes
+            error_title = re.sub(r'\s*//.*$', '', error_title).strip()
+            return error_title
+        
+        # If no title found, return generic message
+        return "Server mengalami internal error"
+    
+    # If it's not HTML, return as is (truncate if too long)
+    if len(error_msg) > 300:
+        return error_msg[:300] + "..."
+    
+    return error_msg
 
 
 class BatchSummaryDialog(QDialog):
@@ -699,8 +730,24 @@ class BatchSummaryDialog(QDialog):
             progress.setLabelText("Creating Stock Entry...")
             logger.info(f"Submitting batch {batch} to ERP...")
             
-            # Get stock entry type from config
+            # Get stock entry type from config with validation
             stock_entry_type = self.config.get('erp_stock_entry_type', 'Repack')
+            
+            # CRITICAL: Validate stock entry type before sending to ERP
+            # Prevent error messages from being sent as actual values
+            if stock_entry_type and any(keyword in stock_entry_type.lower() for keyword in [
+                'unable to load', 'gagal load', 'select stock', 'pilih stock',
+                'please configure', 'api error', 'connection error', '--'
+            ]):
+                logger.warning(f"Invalid stock entry type in config: '{stock_entry_type}' - using default 'Repack'")
+                stock_entry_type = 'Repack'
+            
+            # Ensure not empty
+            if not stock_entry_type or not stock_entry_type.strip():
+                logger.warning("Empty stock entry type - using default 'Repack'")
+                stock_entry_type = 'Repack'
+            
+            logger.info(f"Using Stock Entry Type: {stock_entry_type}")
 
             success, message, response_data = self.erp_client.create_stock_entry(
                 batch_data=summary,
@@ -749,12 +796,15 @@ class BatchSummaryDialog(QDialog):
                 self.load_batches()
                 
             else:
+                # Clean error message (remove HTML if any)
+                clean_message = _clean_error_message(message)
+                
                 # Error message
                 error_msg = (
                     f"<b>Failed to submit batch to ERP</b><br><br>"
-                    f"<b>Error:</b> {message}<br><br>"
-                    f"Please check the error message and try again.<br>"
-                    f"If the problem persists, contact your administrator."
+                    f"<b>Error:</b> {clean_message}<br><br>"
+                    f"Silakan periksa error message dan coba lagi.<br>"
+                    f"Jika masalah berlanjut, hubungi administrator."
                 )
                 
                 QMessageBox.critical(

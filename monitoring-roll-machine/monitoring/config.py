@@ -211,4 +211,44 @@ def get_print_length_info(target_length: float, tolerance_percent: float, decima
         "formula": f"P_roll = {target_length} / (1 - {tolerance_percent}/100) = {target_length} / {1 - tolerance_percent/100:.3f}",
         "calculation": f"{target_length} / {1 - tolerance_percent/100:.3f} = {target_length / (1 - tolerance_percent/100):.6f}",
         "rounded": f"{print_length:.{decimal_points}f}"
-    } 
+    }
+
+def clear_bom_settings() -> None:
+    """
+    Clear BOM settings from config file when application closes.
+    This removes temporary BOM data that should not persist between sessions.
+    """
+    try:
+        config = load_config()
+        
+        # List of BOM-related keys to clear
+        bom_keys = [
+            'bom_name',
+            'bom_item',
+            'bom_product_code',
+            'bom_color_code',
+            'bom_product_name'
+        ]
+        
+        # Check if any BOM data exists
+        has_bom_data = any(config.get(key) for key in bom_keys)
+        
+        if has_bom_data:
+            print("=" * 80)
+            print("CLEARING BOM SETTINGS ON APPLICATION CLOSE")
+            
+            # Remove BOM keys from config
+            for key in bom_keys:
+                if key in config:
+                    print(f"  Removing: {key} = {config[key]}")
+                    del config[key]
+            
+            # Save cleaned config
+            save_config(config)
+            print("BOM settings cleared successfully")
+            print("=" * 80)
+        else:
+            print("No BOM settings to clear")
+            
+    except Exception as e:
+        print(f"Error clearing BOM settings: {e}") 

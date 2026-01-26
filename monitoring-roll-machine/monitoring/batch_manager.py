@@ -272,6 +272,7 @@ class BatchManager:
     def _generate_batch_name_with_counter(self, product_code: str, color_code: str, counter: int, additional_data: Optional[Dict[str, Any]] = None) -> str:
         """
         Generate batch name dengan counter yang ditentukan (untuk preview).
+        Menggunakan batch_format dari settings.
 
         Args:
             product_code: Kode produk
@@ -288,9 +289,30 @@ class BatchManager:
 
             sanitized_product_code = self._sanitize_product_code(product_code or "PRODUCT")
 
-            # Format standar: Batch_{product_code}_YYYY-MM-DD_#### (autoincrement selalu 4 digit)
+            # Prepare data for format replacement
+            format_data = {
+                "product_code": sanitized_product_code,
+                "date": batch_date,
+                "color_code": color_code or "",
+            }
+            
+            # Add additional data if provided
+            if additional_data:
+                format_data.update(additional_data)
+            
+            # Use custom batch format from settings
+            batch_name = self.batch_format
+            
+            # Replace placeholders
+            for key, value in format_data.items():
+                placeholder = "{" + key + "}"
+                batch_name = batch_name.replace(placeholder, str(value))
+            
+            # Add auto increment (always 4 digits)
             auto_increment = f"{counter:04d}"
-            return f"Batch_{sanitized_product_code}_{batch_date}_{auto_increment}"
+            final_batch_name = f"{batch_name}_{auto_increment}"
+            
+            return final_batch_name
             
         except Exception as e:
             logger.error(f"Error generating batch name with counter: {e}")

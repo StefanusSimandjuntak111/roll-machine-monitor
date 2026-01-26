@@ -1,5 +1,5 @@
 {
-    "serial_port": "COM5",
+    "serial_port": "",
     "baudrate": 19200,
     "length_tolerance": 1.0,
     "decimal_points": 0,
@@ -8,7 +8,7 @@
     "supabase_url": "https://ifhwcfpakstnljkkfcfl.supabase.co",
     "supabase_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmaHdjZnBha3N0bmxqa2tmY2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NTk4NzAsImV4cCI6MjA3NTAzNTg3MH0.1_jBQcXGIwu91l3-425G4yi__dU3h0PkgY6WyLepR7Y",
     "enable_supabase": true,
-    "batch_name_format": "PRE.BD-21_0212_2026-01-19",
+    "batch_name_format": "Lots_Batch_{product_code}_{date}",
     "batch_start_number": "2",
     "timeout": 1.0,
     "use_mock_data": true,
@@ -41,12 +41,7 @@
     "erp_to_warehouse": "Prancis Lt 2 - MGI",
     "erp_packing_list_field": "packing_list_items",
     "enable_erp_submission": true,
-    "bom_name": "BOM-BD-21-001",
-    "bom_item": "BD-21",
-    "bom_product_code": "BD-21",
-    "bom_color_code": "21",
-    "bom_product_name": "Baby Doll-21",
-    "erp_stock_entry_type": "Unable to load stock entry types",
+    "erp_stock_entry_type": "Material Issue",
     "safe_mode_enabled": false,
     "safe_mode_settings": {
         "print": false,
@@ -56,5 +51,10 @@
     },
     "erp_verified": true,
     "is_verified": true,
-    "roll_time_minimum_seconds": 60
+    "roll_time_minimum_seconds": 60,
+    "bom_name": "BOM-BD-21-001",
+    "bom_item": "BD-21",
+    "bom_product_code": "BD-21",
+    "bom_color_code": "21",
+    "bom_product_name": "Baby Doll-21"
 }

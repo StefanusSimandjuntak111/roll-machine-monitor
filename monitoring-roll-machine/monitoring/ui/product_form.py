@@ -261,14 +261,22 @@ class ProductForm(QWidget):
 
         self.setup_ui()
 
-        # Load BOM product code from settings setelah UI selesai di-setup
-        # Gunakan QTimer dengan delay lebih lama untuk memastikan UI sudah benar-benar siap
-        QTimer.singleShot(500, self.load_bom_product_code)
+        # AUTO-LOAD BOM DISABLED: Do NOT load BOM product code from settings on startup
+        # BOM data should only be loaded when user manually selects from BOM dropdown
+        # This ensures clean start and prevents auto-filling from previous session
+        
+        # OLD CODE (DISABLED):
+        # QTimer.singleShot(500, self.load_bom_product_code)
 
         # Settings signals connection removed as BOM search is removed
         
     def load_bom_product_code(self):
-        """Load BOM product code from settings and auto-fill product code field."""
+        """
+        Load BOM product code from settings and auto-fill product code field.
+        
+        NOTE: This function is now ONLY called when user manually selects BOM from dropdown.
+        It is NO LONGER auto-called on startup to ensure clean start.
+        """
         try:
             from ..config import load_config
             config = load_config()
@@ -277,8 +285,13 @@ class ProductForm(QWidget):
             bom_color_code = config.get("bom_color_code", "")
             bom_product_name = config.get("bom_product_name", "")
             
+            # Only proceed if BOM data exists
+            if not bom_product_code:
+                logger.info("No BOM data in config - skipping auto-fill")
+                return
+            
             logger.info("=" * 80)
-            logger.info("LOADING BOM DATA FROM CONFIG")
+            logger.info("LOADING BOM DATA FROM CONFIG (Manual Selection)")
             logger.info(f"  - Product Code: '{bom_product_code}'")
             logger.info(f"  - Product Name: '{bom_product_name}'")
             logger.info(f"  - Color Code: '{bom_color_code}'")

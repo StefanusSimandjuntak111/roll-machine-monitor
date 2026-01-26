@@ -64,24 +64,20 @@ class ERPClient:
                 data = response.json()
                 user = data.get('message', 'Unknown')
                 logger.info(f"ERP connection successful. Authenticated as: {user}")
-                return True, f"Connected successfully as {user}"
+                return True, f"Terhubung sebagai {user}"
             else:
-                error_msg = f"Connection failed: HTTP {response.status_code}"
-                logger.error(error_msg)
-                return False, error_msg
+                logger.error(f"Connection failed: HTTP {response.status_code}")
+                return False, "Koneksi gagal, periksa URL dan API key"
                 
         except requests.exceptions.Timeout:
-            error_msg = "Connection timeout"
-            logger.error(error_msg)
-            return False, error_msg
+            logger.error("Connection timeout")
+            return False, "Koneksi timeout"
         except requests.exceptions.ConnectionError as e:
-            error_msg = f"Connection error: {str(e)}"
-            logger.error(error_msg)
-            return False, error_msg
+            logger.error(f"Connection error: {str(e)}")
+            return False, "Tidak dapat terhubung ke server ERP"
         except Exception as e:
-            error_msg = f"Unexpected error: {str(e)}"
-            logger.error(error_msg)
-            return False, error_msg
+            logger.error(f"Unexpected error: {str(e)}")
+            return False, "Terjadi kesalahan saat menghubungi server"
     
     def get_bom_items(self, bom_name: str) -> Tuple[bool, List[Dict[str, Any]], str]:
         """
@@ -103,14 +99,12 @@ class ERPClient:
                 logger.info(f"Retrieved {len(items)} items from BOM: {bom_name}")
                 return True, items, ""
             else:
-                error_msg = f"Failed to get BOM: HTTP {response.status_code}"
-                logger.error(error_msg)
-                return False, [], error_msg
+                logger.error(f"Failed to get BOM: HTTP {response.status_code}")
+                return False, [], f"BOM '{bom_name}' tidak ditemukan"
                 
         except Exception as e:
-            error_msg = f"Error fetching BOM: {str(e)}"
-            logger.error(error_msg)
-            return False, [], error_msg
+            logger.error(f"Error fetching BOM: {str(e)}")
+            return False, [], f"Gagal mengambil data BOM: {str(e)}"
     
     def create_stock_entry(
         self,
@@ -172,35 +166,103 @@ class ERPClient:
             
             # Submit to ERP
             url = f"{self.base_url}/api/resource/Stock Entry"
+            logger.info(f"Submitting Stock Entry to: {url}")
+            logger.info(f"Authentication: token {self.api_key[:10]}...:{self.api_secret[:5]}...")
+            
             response = self.session.post(
                 url,
                 json=stock_entry_doc,
                 timeout=self.timeout
             )
             
+            logger.info(f"Response status code: {response.status_code}")
+            logger.info(f"Response headers: {dict(response.headers)}")
+            logger.info(f"Response content length: {len(response.content)} bytes")
+            
             if response.status_code in [200, 201]:
-                response_data = response.json()
-                doc_name = response_data.get('data', {}).get('name', 'Unknown')
-                success_msg = f"Stock Entry created successfully: {doc_name}"
-                logger.info(success_msg)
-                return True, success_msg, response_data
+                try:
+                    response_data = response.json()
+                    doc_name = response_data.get('data', {}).get('name', 'Unknown')
+                    success_msg = f"Stock Entry created successfully: {doc_name}"
+                    logger.info(success_msg)
+                    return True, success_msg, response_data
+                except ValueError as json_err:
+                    logger.error(f"Failed to parse success response as JSON: {json_err}")
+                    logger.error(f"Response content: {response.text[:500]}")
+                    return False, "Server returned invalid response format", None
             else:
-                error_data = response.json() if response.content else {}
-                error_msg = error_data.get('exception') or error_data.get('message') or f"HTTP {response.status_code}"
+                # Log response for debugging (full detail with HTTP code)
+                logger.error(f"HTTP {response.status_code} response: {response.text[:500]}")
+                
+                try:
+                    error_data = response.json() if response.content else {}
+                    # Extract error message from response (without HTTP code in user-facing message)
+                    raw_error = error_data.get('exception') or error_data.get('message') or error_data.get('exc') or ''
+                    
+                    # Clean up error message for display
+                    if raw_error:
+                        # Remove technical traceback if present
+                        if 'Traceback' in raw_error:
+                            # Extract just the last line (the actual error message)
+                            error_lines = raw_error.split('\n')
+                            # Get the last non-empty line
+                            for line in reversed(error_lines):
+                                if line.strip():
+                                    error_msg = line.strip()
+                                    break
+                            else:
+                                error_msg = "Server error occurred"
+                        else:
+                            error_msg = raw_error
+                    else:
+                        # No error message from server
+                        error_msg = "Server error occurred"
+                    
+                except ValueError:
+                    # Response is not JSON
+                    logger.error(f"Non-JSON error response - HTTP {response.status_code}: {response.text[:200]}")
+                    # Extract text content if available, otherwise generic message
+                    if response.text:
+                        # Check if it's HTML error page
+                        if response.text.strip().lower().startswith(('<!doctype', '<html', '<title>')):
+                            # Try to extract error from <title> tag
+                            import re
+                            title_match = re.search(r'<title>([^<]+)</title>', response.text, re.IGNORECASE)
+                            if title_match:
+                                error_title = title_match.group(1)
+                                # Remove "// Werkzeug Debugger" or similar suffixes
+                                error_msg = re.sub(r'\s*//.*$', '', error_title).strip()
+                            else:
+                                error_msg = "Server mengalami internal error"
+                        else:
+                            # Plain text error
+                            error_msg = response.text[:200].strip()
+                    else:
+                        error_msg = "Server mengembalikan response kosong"
+                    error_data = None
+                
+                # Log full error for debugging
                 logger.error(f"Failed to create Stock Entry: {error_msg}")
-                return False, f"Failed to create Stock Entry: {error_msg}", error_data
+                
+                # Return user-friendly error without HTTP code
+                return False, f"ERP Error: {error_msg}", error_data
                 
         except requests.exceptions.Timeout:
-            error_msg = "Request timeout - ERP server not responding"
-            logger.error(error_msg)
+            error_msg = "ERP server tidak merespon (timeout)"
+            logger.error(f"Request timeout - ERP server not responding")
             return False, error_msg, None
         except requests.exceptions.ConnectionError as e:
-            error_msg = f"Connection error: {str(e)}"
-            logger.error(error_msg)
+            error_msg = "Tidak dapat terhubung ke ERP server"
+            logger.error(f"Connection error: {str(e)}")
+            return False, error_msg, None
+        except ValueError as ve:
+            # Validation errors from _prepare_stock_entry
+            error_msg = str(ve)
+            logger.error(f"Validation error: {error_msg}")
             return False, error_msg, None
         except Exception as e:
-            error_msg = f"Unexpected error: {str(e)}"
-            logger.error(error_msg, exc_info=True)
+            error_msg = f"Terjadi kesalahan: {str(e)}"
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
             return False, error_msg, None
     
     def _prepare_stock_entry(
@@ -296,6 +358,11 @@ class ERPClient:
                 bom_qty = bom_item.get('qty', 0)
                 uom = bom_item.get('uom', 'Yard')
                 
+                # Validate item_code exists
+                if not item_code:
+                    logger.error(f"BOM item has no item_code: {bom_item}")
+                    raise ValueError(f"BOM item missing item_code")
+                
                 # Calculate actual qty based on batch total_qty
                 # BOM qty is per unit, multiply by total production qty
                 actual_qty = float(bom_qty) * total_qty
@@ -308,6 +375,11 @@ class ERPClient:
                 })
                 logger.info(f"BOM Item: {item_code}, BOM qty: {bom_qty}, Actual qty: {actual_qty:.2f} {uom}")
         
+        # Validate finished item code
+        if not finished_item:
+            logger.error(f"Finished item code is empty! Product code: {product_code}, Finished item code: {finished_item_code}")
+            raise ValueError("Finished item code cannot be empty")
+        
         # Add finished item (finished good being produced)
         items.append({
             'item_code': finished_item,
@@ -318,6 +390,16 @@ class ERPClient:
         
         logger.info(f"Finished item: {finished_item}, qty: {total_qty:.2f} yards (to {to_warehouse})")
         logger.info(f"Total items in Stock Entry: {len(items)} (Source: {len(bom_items) if bom_items else 0}, Finished: 1)")
+        
+        # Validate warehouses
+        if not from_warehouse or not to_warehouse:
+            logger.error(f"Warehouse validation failed - From: '{from_warehouse}', To: '{to_warehouse}'")
+            raise ValueError("Both from_warehouse and to_warehouse must be specified")
+        
+        # Validate company
+        if not company:
+            logger.error("Company name is empty")
+            raise ValueError("Company name must be specified")
         
         # Create Stock Entry document
         stock_entry = {
@@ -332,6 +414,8 @@ class ERPClient:
             'remarks': f"Batch {batch_number} - {batch_data.get('product_name', '')} - Auto-generated from Roll Machine Monitor",
             'items': items
         }
+        
+        logger.info(f"Stock Entry header: Company={company}, Type={stock_entry_type}, From={from_warehouse}, To={to_warehouse}")
         
         # IMPORTANT: packing_list is REQUIRED for Repack operations
         if not packing_list:
@@ -376,16 +460,14 @@ class ERPClient:
             
             if response.status_code == 200:
                 logger.info(f"Document {docname} submitted successfully")
-                return True, f"Document {docname} submitted"
+                return True, f"Dokumen {docname} berhasil disubmit"
             else:
-                error_msg = f"Submit failed: HTTP {response.status_code}"
-                logger.error(error_msg)
-                return False, error_msg
+                logger.error(f"Submit failed: HTTP {response.status_code}")
+                return False, "Gagal submit dokumen"
                 
         except Exception as e:
-            error_msg = f"Error submitting document: {str(e)}"
-            logger.error(error_msg)
-            return False, error_msg
+            logger.error(f"Error submitting document: {str(e)}")
+            return False, f"Gagal submit dokumen: {str(e)}"
     
     def close(self):
         """Close the session."""

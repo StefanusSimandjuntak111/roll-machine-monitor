@@ -1486,26 +1486,38 @@ class SettingsDialog(QDialog):
                 logger.error(f"Failed to load stock entry types: {response.status_code}")
                 # Only show error message if combo box is empty or only has default item
                 if self.erp_stock_entry_type_input.count() <= 1:
-                    # Clear and add error message only if no valid data exists
+                    # Add default fallback options instead of error message
                     self.erp_stock_entry_type_input.clear()
-                    self.erp_stock_entry_type_input.addItem("Unable to load stock entry types")
+                    self.erp_stock_entry_type_input.addItem("-- Gagal load dari ERP, gunakan default --")
+                    self.erp_stock_entry_type_input.addItem("Repack")
+                    self.erp_stock_entry_type_input.addItem("Manufacture")
+                    self.erp_stock_entry_type_input.addItem("Material Transfer")
+                    self.erp_stock_entry_type_input.setCurrentIndex(1)  # Set to "Repack"
                 
         except requests.exceptions.RequestException as e:
             # Don't clear the combo box, just log the error
             logger.error(f"Connection error loading stock entry types: {e}")
             # Only show error message if combo box is empty or only has default/error items
             if self.erp_stock_entry_type_input.count() <= 1 or self._has_only_error_items():
-                # Clear and add error message only if no valid data exists
+                # Add default fallback options instead of error message
                 self.erp_stock_entry_type_input.clear()
-                self.erp_stock_entry_type_input.addItem("Unable to load stock entry types")
+                self.erp_stock_entry_type_input.addItem("-- Gagal load dari ERP, gunakan default --")
+                self.erp_stock_entry_type_input.addItem("Repack")
+                self.erp_stock_entry_type_input.addItem("Manufacture")
+                self.erp_stock_entry_type_input.addItem("Material Transfer")
+                self.erp_stock_entry_type_input.setCurrentIndex(1)  # Set to "Repack"
         except Exception as e:
             # Don't clear the combo box, just log the error
             logger.error(f"Error loading stock entry types: {e}")
             # Only show error message if combo box is empty or only has default/error items
             if self.erp_stock_entry_type_input.count() <= 1 or self._has_only_error_items():
-                # Clear and add error message only if no valid data exists
+                # Add default fallback options instead of error message
                 self.erp_stock_entry_type_input.clear()
-                self.erp_stock_entry_type_input.addItem("Unable to load stock entry types")
+                self.erp_stock_entry_type_input.addItem("-- Gagal load dari ERP, gunakan default --")
+                self.erp_stock_entry_type_input.addItem("Repack")
+                self.erp_stock_entry_type_input.addItem("Manufacture")
+                self.erp_stock_entry_type_input.addItem("Material Transfer")
+                self.erp_stock_entry_type_input.setCurrentIndex(1)  # Set to "Repack"
 
     def _has_only_error_items(self):
         """Check if combo box only contains error or default items."""
@@ -1879,11 +1891,11 @@ class SettingsDialog(QDialog):
         # Custom format input
         self.batch_format_input = QLineEdit()
         self.batch_format_input.setPlaceholderText("Batch_{product_code}_{date}")
-        # Format batch dikunci sesuai requirement.
+        # Allow user to customize batch format
         current_batch_format = self.current_settings.get("batch_name_format", "Batch_{product_code}_{date}")
-        self.batch_format_input.setText("Batch_{product_code}_{date}")
-        self.batch_format_input.setReadOnly(True)
-        self.batch_format_input.setToolTip("Format batch dikunci: Batch_{product_code}_YYYY-MM-DD_####")
+        self.batch_format_input.setText(current_batch_format)
+        self.batch_format_input.setReadOnly(False)  # Allow editing
+        self.batch_format_input.setToolTip("Enter custom batch format. Available placeholders: {product_code}, {date}")
         self.batch_format_input.textChanged.connect(self.update_batch_preview)
         format_layout.addWidget(QLabel("Custom Format (tanpa auto increment):"))
         format_layout.addWidget(self.batch_format_input)
@@ -2160,6 +2172,9 @@ class SettingsDialog(QDialog):
     def update_batch_preview(self):
         """Update the batch name preview based on current settings."""
         try:
+            # Get custom format from input field
+            batch_format = self.batch_format_input.text() or "Batch_{product_code}_{date}"
+            
             # Get starting number
             start_number = self.batch_start_number_input.text() or "1"
             try:
@@ -2173,11 +2188,18 @@ class SettingsDialog(QDialog):
             
             sample_data = {
                 "date": now.strftime("%Y-%m-%d"),
-                "product_code": (self.current_settings.get("bom_product_code") or "BD-1"),
+                "product_code": (self.current_settings.get("bom_product_code") or "PBDS-1"),
             }
 
+            # Replace placeholders in custom format
+            preview_format = batch_format
+            for key, value in sample_data.items():
+                placeholder = "{" + key + "}"
+                preview_format = preview_format.replace(placeholder, str(value))
+            
+            # Add auto increment
             auto_increment = f"{start_num:04d}"
-            final_preview = f"Batch_{sample_data['product_code']}_{sample_data['date']}_{auto_increment}"
+            final_preview = f"{preview_format}_{auto_increment}"
             
             # Update preview
             self.batch_preview.setText(final_preview)
@@ -2931,7 +2953,6 @@ class SettingsDialog(QDialog):
                 "erp_api_secret": self.erp_api_secret_input.text().strip() if hasattr(self, 'erp_api_secret_input') else self.current_settings.get("erp_api_secret", ""),
                 "erp_timeout": self.erp_timeout_input.value() if hasattr(self, 'erp_timeout_input') else self.current_settings.get("erp_timeout", 30),
                 "erp_company": self.erp_company_input.text().strip() if hasattr(self, 'erp_company_input') else self.current_settings.get("erp_company", "Textilindo"),
-                "erp_stock_entry_type": self.erp_stock_entry_type_input.currentText().strip() if hasattr(self, 'erp_stock_entry_type_input') else self.current_settings.get("erp_stock_entry_type", ""),
                 "erp_from_warehouse": self.erp_from_warehouse_input.text().strip() if hasattr(self, 'erp_from_warehouse_input') else self.current_settings.get("erp_from_warehouse", "Prancis - MGI"),
                 "erp_to_warehouse": self.erp_to_warehouse_input.text().strip() if hasattr(self, 'erp_to_warehouse_input') else self.current_settings.get("erp_to_warehouse", "Prancis - MGI"),
                 "erp_packing_list_field": self.erp_packing_list_field_input.text().strip() if hasattr(self, 'erp_packing_list_field_input') else self.current_settings.get("erp_packing_list_field", "packing_list_items"),
@@ -2940,6 +2961,22 @@ class SettingsDialog(QDialog):
                 "batch_name_format": self.batch_format_input.text() if hasattr(self, 'batch_format_input') else "YYYY-MM-DD_product-code_color-code",
                 "batch_start_number": self.batch_start_number_input.text() if hasattr(self, 'batch_start_number_input') else "1"
             }
+            
+            # Validate and set stock entry type (CRITICAL: prevent invalid values)
+            if hasattr(self, 'erp_stock_entry_type_input'):
+                stock_entry_type = self.erp_stock_entry_type_input.currentText().strip()
+                # Filter out error messages and placeholders
+                if stock_entry_type and not any(keyword in stock_entry_type.lower() for keyword in [
+                    'unable to load', 'gagal load', 'select stock', 'pilih stock', 
+                    'please configure', 'api error', 'connection error', '--'
+                ]):
+                    settings["erp_stock_entry_type"] = stock_entry_type
+                else:
+                    # Use default if invalid
+                    settings["erp_stock_entry_type"] = "Repack"
+                    logger.warning(f"Invalid stock entry type '{stock_entry_type}' - using default 'Repack'")
+            else:
+                settings["erp_stock_entry_type"] = self.current_settings.get("erp_stock_entry_type", "Repack")
 
             # Ensure BOM fields always included on Save Settings
             settings.update(bom_data)
