@@ -4,7 +4,7 @@ block_cipher = None
 
 a = Analysis(
     ['run_app.py'],
-    pathex=[r'D:\Apps\monitoring-roll-machine\monitoring-roll-machine'],
+    pathex=[r'D:\htdocs\roll-machine-monitor\monitoring-roll-machine'],
     binaries=[],
     datas=[
         ('monitoring/ui/assets', 'monitoring/ui/assets'),
@@ -13,7 +13,6 @@ a = Analysis(
         ('LICENSE.txt', '.'),
         ('README.md', '.'),
         ('SUPABASE_SCHEMA.sql', '.'),
-        ('BATCH_FEATURE_README.md', '.'),
     ],
     hiddenimports=[
         'PySide6.QtCore',
@@ -67,6 +66,8 @@ a = Analysis(
         'monitoring.version',
         'monitoring.batch_manager',
         'monitoring.supabase_client',
+        'monitoring.erp_client',
+        'monitoring.offline_queue',
     ],
     hookspath=[],
     hooksconfig={},

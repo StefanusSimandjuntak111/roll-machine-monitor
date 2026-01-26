@@ -238,6 +238,7 @@ class ProductForm(QWidget):
         self._current_machine_length = None
         self._current_unit = "Meter"  # Default unit
         self._last_valid_length = 0.0  # Store last valid length to prevent reset to 0
+        self._user_manually_selected_unit = False  # Flag to track if user manually selected unit
 
         # Initialize instance-specific search stats
         self._instance_search_stats = {
@@ -260,8 +261,9 @@ class ProductForm(QWidget):
 
         self.setup_ui()
 
-        # Load BOM product code from settings
-        self.load_bom_product_code()
+        # Load BOM product code from settings setelah UI selesai di-setup
+        # Gunakan QTimer dengan delay lebih lama untuk memastikan UI sudah benar-benar siap
+        QTimer.singleShot(500, self.load_bom_product_code)
 
         # Settings signals connection removed as BOM search is removed
         
@@ -272,10 +274,23 @@ class ProductForm(QWidget):
             config = load_config()
 
             bom_product_code = config.get("bom_product_code", "")
+            bom_color_code = config.get("bom_color_code", "")
+            bom_product_name = config.get("bom_product_name", "")
+            
+            logger.info("=" * 80)
+            logger.info("LOADING BOM DATA FROM CONFIG")
+            logger.info(f"  - Product Code: '{bom_product_code}'")
+            logger.info(f"  - Product Name: '{bom_product_name}'")
+            logger.info(f"  - Color Code: '{bom_color_code}'")
+            logger.info("=" * 80)
 
             if bom_product_code:
                 # Auto-fill product code
+                # Block signal sementara agar tidak memicu _on_product_code_finished() yang akan mengubah batch number
+                # Batch number hanya berubah saat Print diklik, bukan saat load BOM dari settings
+                self.product_code.blockSignals(True)
                 self.product_code.setText(bom_product_code)
+                self.product_code.blockSignals(False)
                 self.product_code.setEnabled(False)  # Disable input
                 self.product_code.setStyleSheet("""
                     QLineEdit {
@@ -283,29 +298,57 @@ class ProductForm(QWidget):
                         border: 1px solid #4CAF50;
                         border-radius: 4px;
                         padding: 5px;
-                        color: #888888;
+                        color: white;
                         font-size: 14px;
                         min-height: 40px;
                     }
                 """)
+                self.product_code.repaint()  # Force UI update
 
-                logger.info(f"BOM product code loaded: {bom_product_code}")
+                logger.info(f"✓ BOM product code set to field: {bom_product_code}")
 
-                # Also load BOM color code and product name if available
-                bom_color_code = config.get("bom_color_code", "")
-                bom_product_name = config.get("bom_product_name", "")
-
+                # Load BOM color code and product name
                 if bom_color_code:
+                    self.color_code.blockSignals(True)
                     self.color_code.setText(bom_color_code)
-                    logger.info(f"BOM color code loaded: {bom_color_code}")
+                    self.color_code.blockSignals(False)
+                    self.color_code.repaint()  # Force UI update
+                    logger.info(f"✓ BOM color code set to field: {bom_color_code}")
+                else:
+                    self.color_code.setText("")
+                    logger.info("⚠ No BOM color code in config")
 
                 if bom_product_name:
+                    self.product_name.blockSignals(True)
                     self.product_name.setText(bom_product_name)
-                    logger.info(f"BOM product name loaded: {bom_product_name}")
+                    self.product_name.blockSignals(False)
+                    self.product_name.repaint()  # Force UI update
+                    logger.info(f"✓ BOM product name set to field: {bom_product_name}")
+                else:
+                    self.product_name.setText("")
+                    logger.info("⚠ No BOM product name in config")
 
+                # Generate batch number dengan autoincrement saat BOM di-load
+                # Ini akan increment counter jika product code berbeda dari sebelumnya
+                try:
+                    from ..config import load_config
+                    config = load_config()
+                    self._batch_manager.update_settings(config)
+                except Exception as e:
+                    logger.warning(f"Could not update batch manager settings: {e}")
+                
+                batch_number = self._batch_manager.update_product_and_increment(bom_product_code, bom_color_code)
+                self.batch_number.setText(batch_number)
+                self.batch_number.repaint()  # Force UI update
+                logger.info(f"✓ Batch number autoincremented: {batch_number}")
+                
                 # Trigger product search to populate/update other fields (image, barcode, etc.)
-                logger.info("Triggering product search for BOM product code...")
-                self._perform_product_search()
+                # Only if product name or color code is not already set from BOM
+                if not bom_product_name or not bom_color_code:
+                    logger.info("Triggering product search for BOM product code to fetch missing data...")
+                    self._perform_product_search()
+                else:
+                    logger.info("BOM data complete, skipping product search")
 
                 # Update or add info label
                 if hasattr(self, 'bom_info_label'):
@@ -360,6 +403,83 @@ class ProductForm(QWidget):
 
         except Exception as e:
             logger.error(f"Error loading BOM product code: {e}")
+
+    def apply_bom_to_form(
+        self,
+        bom_product_code: str,
+        bom_product_name: str = "",
+        bom_color_code: str = "",
+    ) -> None:
+        """Apply BOM data langsung ke form (tanpa baca ulang config).
+
+        Ini dipakai saat user memilih BOM di Settings lalu klik Save Settings,
+        agar sidebar utama langsung ter-update walaupun file config belum
+        terbaca karena timing/path.
+        """
+        try:
+            bom_product_code = (bom_product_code or "").strip()
+            bom_product_name = (bom_product_name or "").strip()
+            bom_color_code = (bom_color_code or "").strip()
+
+            if not bom_product_code:
+                logger.warning("apply_bom_to_form called with empty bom_product_code")
+                return
+
+            # Set Product Code (disable input)
+            self.product_code.blockSignals(True)
+            self.product_code.setText(bom_product_code)
+            self.product_code.blockSignals(False)
+            self.product_code.setEnabled(False)
+            self.product_code.setStyleSheet(
+                """
+                QLineEdit {
+                    background-color: #353535;
+                    border: 1px solid #4CAF50;
+                    border-radius: 4px;
+                    padding: 5px;
+                    color: white;
+                    font-size: 14px;
+                    min-height: 40px;
+                }
+                """
+            )
+            self.product_code.repaint()
+
+            # Set Color Code & Product Name if provided
+            self.color_code.blockSignals(True)
+            self.color_code.setText(bom_color_code)
+            self.color_code.blockSignals(False)
+            self.color_code.repaint()
+
+            self.product_name.blockSignals(True)
+            self.product_name.setText(bom_product_name)
+            self.product_name.blockSignals(False)
+            self.product_name.repaint()
+
+            # Update batch manager settings then generate batch (increment if product changed)
+            try:
+                from ..config import load_config
+                config = load_config()
+                self._batch_manager.update_settings(config)
+            except Exception as e:
+                logger.warning(f"Could not update batch manager settings in apply_bom_to_form: {e}")
+
+            batch_number = self._batch_manager.update_product_and_increment(
+                bom_product_code, bom_color_code
+            )
+            self.batch_number.setText(batch_number)
+            self.batch_number.repaint()
+
+            # If some info missing, trigger product search
+            if not bom_product_name or not bom_color_code:
+                self._perform_product_search()
+
+            logger.info(
+                "Applied BOM to form directly: "
+                f"{bom_product_code} / {bom_product_name} / {bom_color_code}"
+            )
+        except Exception as e:
+            logger.error(f"Error applying BOM to form: {e}")
 
     def update_bom_button_visibility(self):
         """Update BOM button visibility based on is_verified status."""
@@ -811,6 +931,7 @@ class ProductForm(QWidget):
             
         self.target_length.setValue(round(new_value, 2))
         self._current_unit = new_unit  # Update current unit
+        self._user_manually_selected_unit = True  # Mark that user manually selected unit
         self._is_updating = False
         
     def on_length_changed(self, value: int):
@@ -830,7 +951,31 @@ class ProductForm(QWidget):
         Save product information first, then print product label.
         Combines save and print functionality into one action.
         """
-        # First, save the product information
+        # Validate inputs first
+        if not self.validate_inputs():
+            return  # If validation failed, don't proceed
+        
+        # Get product code
+        product_code = self.product_code.text().strip()
+        color_code = self.color_code.text().strip() if hasattr(self, 'color_code') else ""
+        
+        # Get batch number untuk print (TIDAK increment counter)
+        # Counter hanya increment saat product code berubah, bukan saat print
+        # Ensure batch_manager has latest settings
+        try:
+            from ..config import load_config
+            config = load_config()
+            self._batch_manager.update_settings(config)
+        except Exception as e:
+            logger.warning(f"Could not update batch manager settings: {e}")
+        
+        # Get batch yang sudah ada (tidak increment counter)
+        new_batch_number = self._batch_manager.increment_and_get_batch(product_code, color_code)
+        # Update the batch_number field dengan batch yang sudah ada
+        self.batch_number.setText(new_batch_number)
+        logger.info(f"Using batch for print: {new_batch_number} (no counter increment on print)")
+        
+        # Now save product information dengan batch number yang sudah di-increment
         if not self._save_product_info():
             return  # If save failed, don't proceed with printing
             
@@ -844,13 +989,14 @@ class ProductForm(QWidget):
         logger.info(f"Print button clicked - Selected printer: {selected_printer}")
         
         # Get product info with consistent field names for printing (same structure as print preview)
+        # Use the new batch number that was just incremented
         product_info = {
-            'product_code': self.product_code.text().strip(),
+            'product_code': product_code,
             'product_name': self.product_name.text().strip(),
-            'color_code': self.color_code.text().strip(),
-            'color': self.color_code.text().strip(),  # For backward compatibility
+            'color_code': color_code,
+            'color': color_code,  # For backward compatibility
             'barcode': self._barcode,
-            'batch_number': self.batch_number.text().strip(),
+            'batch_number': new_batch_number,  # Use incremented batch number
             'current_length': self.current_length.value(),
             'target_length': self.target_length.value(),
             'units': self.unit_group.checkedButton().text(),
@@ -872,6 +1018,11 @@ class ProductForm(QWidget):
                 logger.info("Print job sent successfully")
                 # Emit print logged signal for logging
                 self.emit_print_logged(product_info)
+                
+                # Setelah print selesai, tetap gunakan batch yang sama (tidak increment)
+                # Batch number tetap sama karena counter hanya increment saat product code berubah
+                # Tidak perlu update batch number field
+                logger.info(f"✓ Print completed with batch: {new_batch_number} (counter remains: {self._batch_manager.current_counter})")
                 
                 # Show success message
                 # self._show_kiosk_dialog(
@@ -1056,6 +1207,13 @@ class ProductForm(QWidget):
     def batch_text(self) -> str:
         """Get batch from form."""
         return self.batch_number.text().strip() if hasattr(self, 'batch_number') else "Unknown"
+    
+    @property
+    def selected_unit(self) -> str:
+        """Get currently selected unit from radio button."""
+        if hasattr(self, 'unit_group') and self.unit_group.checkedButton():
+            return self.unit_group.checkedButton().text()
+        return self._current_unit
         
     def set_product_info(self, info: Dict[str, Any]):
         """Set product information in the form."""
@@ -1075,6 +1233,10 @@ class ProductForm(QWidget):
         else:
             self.meter_radio.setChecked(True)
             self._current_unit = "Meter"
+        
+        # Reset manual selection flag when loading saved product info
+        # This allows monitoring to update unit if needed
+        self._user_manually_selected_unit = False
 
     def increment_length(self):
         """Increment target length by 1 and automatically send to device."""
@@ -1134,7 +1296,13 @@ class ProductForm(QWidget):
                 self._is_updating = False
 
     def update_unit_from_monitoring(self, unit: str):
-        """Update unit radio button based on monitoring data."""
+        """Update unit radio button based on monitoring data.
+        Only updates if user hasn't manually selected a unit."""
+        # Don't update if user has manually selected a unit
+        if self._user_manually_selected_unit:
+            logger.debug(f"Skipping unit update from monitoring - user manually selected: {self._current_unit}")
+            return
+            
         if not self._is_updating:
             self._is_updating = True
             
@@ -1392,10 +1560,11 @@ class ProductForm(QWidget):
 
             # Get color code for batch generation
             color_code = self.color_code.text().strip() if hasattr(self, 'color_code') else ""
+            # Get batch without incrementing counter (just for display)
             batch_number = self._batch_manager.get_batch_for_product(product_code, color_code)
             # Update the batch_number field with auto-generated batch
             self.batch_number.setText(batch_number)
-            logger.info(f"Auto-generated batch: {batch_number} for product: {product_code}")
+            logger.info(f"Auto-generated batch (preview): {batch_number} for product: {product_code}")
         else:
             batch_number = batch_number_input
             logger.info(f"Using manual batch: {batch_number}")
@@ -1478,6 +1647,27 @@ class ProductForm(QWidget):
         """Handle editing finished in product code input."""
         self._search_timer.stop()  # Stop timer
         self._perform_product_search()
+        
+        # Update batch number dengan autoincrement saat product code berubah
+        product_code = self.product_code.text().strip()
+        if product_code:
+            try:
+                from ..config import load_config
+                config = load_config()
+                self._batch_manager.update_settings(config)
+            except Exception as e:
+                logger.warning(f"Could not update batch manager settings: {e}")
+            
+            # Get color code for batch generation
+            color_code = self.color_code.text().strip() if hasattr(self, 'color_code') else ""
+            
+            # Increment counter dan generate batch saat product code berubah
+            # Ini akan increment counter jika product code berbeda dari sebelumnya
+            batch_number = self._batch_manager.update_product_and_increment(product_code, color_code)
+            
+            # Update the batch_number field dengan batch yang sudah di-generate
+            self.batch_number.setText(batch_number)
+            logger.info(f"✓ Batch number autoincremented and updated: {batch_number} for product: {product_code}")
 
     def _get_cached_product(self, product_code: str) -> Optional[Dict[str, Any]]:
         """Get product from cache if available."""
@@ -1842,6 +2032,7 @@ class ProductForm(QWidget):
             self._barcode = ""
             self._image_url = None
             self.load_default_image()
+            self._user_manually_selected_unit = False  # Reset flag when form is cleared
             logger.info("Form cleared")
         except Exception as e:
             logger.error(f"Error clearing form: {e}")
@@ -1960,7 +2151,10 @@ class ProductForm(QWidget):
                 logger.info("=" * 80)
 
                 # Auto-fill product code
+                # Block signal sementara agar tidak memicu _on_product_code_finished() yang akan double-trigger
+                self.product_code.blockSignals(True)
                 self.product_code.setText(item_code)
+                self.product_code.blockSignals(False)
                 self.product_code.setEnabled(False)  # Disable input
                 self.product_code.setStyleSheet("""
                     QLineEdit {
@@ -2137,18 +2331,19 @@ class ProductForm(QWidget):
                         # Exception occurred during fallback API call
                         logger.error(f"❌ Could not fetch product details from fallback API: {e}", exc_info=True)
 
-                # Auto-generate Batch Number after filling Product Name and Color Code
+                # Auto-generate Batch Number dengan autoincrement setelah BOM dipilih
+                # Ini akan increment counter jika product code berbeda dari sebelumnya
                 try:
                     # Ensure batch_manager has latest settings
                     from ..config import load_config
                     config = load_config()
                     if hasattr(self, '_batch_manager') and self._batch_manager:
                         self._batch_manager.update_settings(config)
-                        # Generate batch number using product_code and color_code
-                        batch_number = self._batch_manager.get_batch_for_product(item_code, color_code)
+                        # Increment counter dan generate batch saat BOM dipilih
+                        batch_number = self._batch_manager.update_product_and_increment(item_code, color_code)
                         if batch_number:
                             self.batch_number.setText(batch_number)
-                            logger.info(f"Auto-generated batch number: {batch_number} for BOM: {item_code}")
+                            logger.info(f"✓ Batch number autoincremented: {batch_number} for BOM: {item_code}")
                 except Exception as e:
                     logger.warning(f"Could not generate batch number for BOM: {e}")
 

@@ -61,7 +61,7 @@ class LoggingTableWidget(QWidget):
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)  # Date/Time      
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)  # Product Code
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)           # Product Name   
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)  # Length
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)  # Length (m)
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)  # Batch
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)  # Cycle Time     
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.ResizeToContents)  # Roll Time      
@@ -110,13 +110,23 @@ class LoggingTableWidget(QWidget):
             cycle_time = entry.get('cycle_time', 0)
             cycle_time_str = f"{cycle_time:.1f}" if cycle_time is not None else ""
                 
+            # Get length_print value (with tolerance) or fallback to product_length
+            # Display length_print in the "Length (m)" column
+            length_print = entry.get('length_print')
+            if length_print is not None:
+                # Use length_print (with tolerance) - this is what's displayed on the label
+                length_display = f"{length_print:.2f}"
+            else:
+                # Fallback to product_length if length_print not available
+                length_display = f"{entry.get('product_length', 0):.2f}"
+            
             # Create table items with row number
             items = [
                 QTableWidgetItem(str(row + 1)),  # No
                 QTableWidgetItem(time_str),
                 QTableWidgetItem(entry.get('product_code', 'N/A')),
                 QTableWidgetItem(entry.get('product_name', 'N/A')),
-                QTableWidgetItem(f"{entry.get('product_length', 0):.2f}"),
+                QTableWidgetItem(length_display),  # Length (m) - shows length_print (with tolerance)
                 QTableWidgetItem(entry.get('batch', 'N/A')),
                 QTableWidgetItem(cycle_time_str),  # Use formatted cycle time string
                 QTableWidgetItem(f"{entry.get('roll_time', 0):.1f}")
@@ -135,7 +145,7 @@ class LoggingTableWidget(QWidget):
                     item.setBackground(QColor(52, 152, 219))  # Blue highlight for dark theme
                     
     def add_production_entry(self, product_name, product_code, product_length,
-                           batch, cycle_time, roll_time, settings_timestamp=None, safe_mode=False):
+                           batch, cycle_time, roll_time, settings_timestamp=None, safe_mode=False, length_print=None):
         """Add new production entry to logging with settings timestamp and Safe Mode awareness"""
         # Update logging table Safe Mode status if changed
         if self.logging_table.safe_mode != safe_mode:
@@ -149,7 +159,8 @@ class LoggingTableWidget(QWidget):
             batch=batch,
             cycle_time=cycle_time,
             roll_time=roll_time,
-            settings_timestamp=settings_timestamp
+            settings_timestamp=settings_timestamp,
+            length_print=length_print
         )
         self.refresh_table()
     

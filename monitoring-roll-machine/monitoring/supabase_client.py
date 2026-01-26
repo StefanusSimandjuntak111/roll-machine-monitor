@@ -156,7 +156,11 @@ class SupabaseClient:
             return None
         
         total_rolls = len(logs)
-        total_length = sum(log.get('product_length', 0) for log in logs)
+        # Gunakan length_print jika tersedia (dengan tolerance), fallback ke product_length
+        total_length = sum(
+            log.get('length_print') if log.get('length_print') is not None else log.get('product_length', 0)
+            for log in logs
+        )
         avg_cycle_time = sum(log.get('cycle_time', 0) or 0 for log in logs) / total_rolls if total_rolls > 0 else 0
         avg_roll_time = sum(log.get('roll_time', 0) for log in logs) / total_rolls if total_rolls > 0 else 0
         

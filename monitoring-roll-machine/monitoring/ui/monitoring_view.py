@@ -8,6 +8,9 @@ from PySide6.QtGui import QFont, QTextCursor
 import pyqtgraph as pg
 from typing import List, Dict, Any, Tuple, Optional
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MonitoringView(QWidget):
     """Main monitoring view with real-time data display."""
@@ -30,6 +33,8 @@ class MonitoringView(QWidget):
         
         # Store last valid length to prevent reset to 0
         self.last_valid_length: float = 0.0
+        self.allow_reset: bool = False  # Flag to allow reset when reset_counter or close_cycle is called
+        self.previous_length: float = 0.0  # Track previous length to detect device reset
         
         # Serial data display
         # Serial display removed
@@ -186,18 +191,42 @@ class MonitoringView(QWidget):
         """Update display with new data from parsed JSK3588 packet."""
         # Update info cards with parsed data
         if self.length_value_label:
-            # Display in original unit from machine (not always meters)
+            # Get unit from user selection, fallback to machine unit
             fields = data.get('fields', {})
             current_count = fields.get('current_count', 0.0)
-            unit = fields.get('unit', 'meter')
-            factor = fields.get('factor', '×1.0')
+            machine_unit = fields.get('unit', 'meter')  # Unit from machine
+            user_selected_unit = data.get('user_selected_unit', machine_unit)  # User selected unit
             
-            # Prevent length reset to 0 - use last valid length if current is 0
-            if current_count > 0.001:  # If current length is valid (> 0.001)
+            # Detect device reset: length drops from > 0.1 to <= 0.1 (hardware reset button pressed)
+            device_reset_detected = (self.previous_length > 0.1 and current_count <= 0.1)
+            
+            # When device sends 0, always reset to 0 (device has reset the counter)
+            # Trust the device data - if device sends 0, display 0
+            if current_count <= 0.001:
+                # Device sent 0 - always reset display to 0
+                self.last_valid_length = 0.0
+                self.allow_reset = False  # Reset flag after use
+                display_length = 0.0
+                if device_reset_detected:
+                    logger.info(f"Device reset detected: length dropped from {self.previous_length:.3f} to {current_count:.3f}")
+                elif self.previous_length > 0.001:
+                    logger.info(f"Device sent 0: resetting display from {self.previous_length:.3f} to 0")
+            else:
+                # Device sent valid length > 0
                 self.last_valid_length = current_count
+                display_length = current_count
             
-            # Use last valid length if current is 0 or very small
-            display_length = current_count if current_count > 0.001 else self.last_valid_length
+            # Update previous length for next detection
+            self.previous_length = current_count
+            
+            # Convert to user selected unit if different from machine unit
+            if user_selected_unit != machine_unit:
+                if machine_unit == 'yard' and user_selected_unit == 'meter':
+                    # Convert from yard to meter
+                    display_length = display_length * 0.9144
+                elif machine_unit == 'meter' and user_selected_unit == 'yard':
+                    # Convert from meter to yard
+                    display_length = display_length * 1.09361
             
             # Get decimal points from config (default to 2)
             try:
@@ -207,15 +236,34 @@ class MonitoringView(QWidget):
             except:
                 decimal_points = 2
             
-            # Format display with proper decimal points
-            if unit == 'yard':
+            # Format display with proper decimal points using user selected unit
+            if user_selected_unit == 'yard':
                 self.length_value_label.setText(f"{display_length:.{decimal_points}f} yard")
             else:
                 self.length_value_label.setText(f"{display_length:.{decimal_points}f} m")
         
         if self.speed_value_label:
-            # Use parsed speed from JSK3588 packet
-            speed_text = data.get('fields', {}).get('speed_text', '0.00 m/min')
+            # Get speed and convert to user selected unit
+            fields = data.get('fields', {})
+            machine_unit = fields.get('unit', 'meter')
+            user_selected_unit = data.get('user_selected_unit', machine_unit)
+            current_speed = fields.get('current_speed', 0.0)
+            
+            # Convert speed to user selected unit if different
+            if user_selected_unit != machine_unit:
+                if machine_unit == 'yard' and user_selected_unit == 'meter':
+                    # Convert from yd/min to m/min
+                    current_speed = current_speed * 0.9144
+                elif machine_unit == 'meter' and user_selected_unit == 'yard':
+                    # Convert from m/min to yd/min
+                    current_speed = current_speed * 1.09361
+            
+            # Format speed with user selected unit
+            if user_selected_unit == 'yard':
+                speed_text = f"{current_speed:.2f} yd/min"
+            else:
+                speed_text = f"{current_speed:.2f} m/min"
+            
             self.speed_value_label.setText(speed_text)
         
         if self.shift_value_label:
@@ -229,7 +277,7 @@ class MonitoringView(QWidget):
         if self.batch_value_label:
             self.batch_value_label.setText(data.get('batch_number', 'Not Set'))
         if self.target_value_label:
-            # Display length print with tolerance (calculated in main_window)
+            # Display length print with tolerance (calculated in main_window using user selected unit)
             length_print_text = data.get('length_print_text', '0.00 m')
             self.target_value_label.setText(length_print_text)
         
@@ -282,6 +330,21 @@ class MonitoringView(QWidget):
                 pass  # Ignore if plot widget is also deleted
     
     # Serial display methods removed - no longer needed
+    
+    def reset_length_display(self):
+        """Reset length display to 0 (called when reset_counter or close_cycle is triggered)."""
+        self.allow_reset = True
+        self.last_valid_length = 0.0
+        # Immediately update display to 0
+        if self.length_value_label:
+            try:
+                from monitoring.config import get_config
+                config = get_config()
+                decimal_points = config.get("decimal_points", 2)
+            except:
+                decimal_points = 2
+            self.length_value_label.setText(f"0.{'0' * decimal_points} m")
+        logger.info("Length display reset flag set - will reset to 0 on next data update")
     
     def cleanup(self):
         """Clean up resources to prevent memory leaks."""

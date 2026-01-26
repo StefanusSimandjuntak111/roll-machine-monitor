@@ -10,6 +10,7 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont
 from typing import Dict, Any, List, Optional
 import logging
+import re
 from datetime import datetime, date
 
 from ..logging_table import LoggingTable
@@ -29,26 +30,58 @@ class BatchSummaryDialog(QDialog):
         self.setMinimumSize(1000, 600)
 
         # Initialize data sources
-        self.config = load_config()
+        self.config = self._load_config_from_parent_or_disk()
         self.safe_mode = safe_mode  # Safe Mode flag
         self.safe_mode_settings = safe_mode_settings or {}  # Safe Mode settings
         self.logging_table = LoggingTable(safe_mode=safe_mode)
 
-        # Initialize Supabase client if enabled
-        self.supabase_client = None
-        if self.config.get('enable_supabase', False):
-            self.supabase_client = SupabaseClient(
-                url=self.config.get('supabase_url'),
-                key=self.config.get('supabase_key')
-            )
-
-        # Initialize ERP client if enabled
+        # Initialize external clients based on config
+        self.supabase_client: Optional[SupabaseClient] = None
         self.erp_client = None
-        if self.config.get('enable_erp_submission', False):
-            self.erp_client = get_erp_client(self.config)
+        self._refresh_external_clients()
 
         self.setup_ui()
         self.load_batches()
+
+    def _load_config_from_parent_or_disk(self) -> Dict[str, Any]:
+        """Load konfigurasi terbaru dari parent (jika ada) atau dari disk.
+
+        Ini mencegah kasus di mana dialog ini memakai snapshot config lama, padahal
+        Settings sudah disimpan (misalnya BOM sudah dipilih).
+        """
+        parent = self.parent()
+        try:
+            parent_config = getattr(parent, "config", None) if parent is not None else None
+            if isinstance(parent_config, dict) and parent_config:
+                return dict(parent_config)
+        except Exception as exc:
+            logger.warning(f"Failed to read config from parent: {exc}")
+
+        return load_config()
+
+    def _refresh_external_clients(self) -> None:
+        """(Re)inisialisasi client Supabase/ERP sesuai konfigurasi."""
+        # Supabase
+        self.supabase_client = None
+        if self.config.get("enable_supabase", False):
+            self.supabase_client = SupabaseClient(
+                url=self.config.get("supabase_url"),
+                key=self.config.get("supabase_key"),
+            )
+
+        # ERP
+        self.erp_client = None
+        if self.config.get("enable_erp_submission", False):
+            self.erp_client = get_erp_client(self.config)
+
+    def apply_settings_update(self, settings: Dict[str, Any]) -> None:
+        """Terima update settings saat dialog sudah terbuka."""
+        if not settings:
+            return
+
+        self.config.update(settings)
+        self._refresh_external_clients()
+        self._update_erp_button_state()
     
     def setup_ui(self):
         """Setup UI components."""
@@ -144,6 +177,10 @@ class BatchSummaryDialog(QDialog):
                 border: 1px solid #444444;
                 font-weight: bold;
             }
+            QTableCornerButton::section {
+                background-color: #252525;
+                border: 1px solid #444444;
+            }
             QPushButton {
                 background-color: #0078d4;
                 color: white;
@@ -219,6 +256,12 @@ class BatchSummaryDialog(QDialog):
             "No", "Product Code", "Product Name", "Length (m)", 
             "Cycle Time (s)", "Roll Time (s)", "Timestamp"
         ])
+
+        # Hide default vertical header (row number strip) to avoid light/white area on empty rows.
+        # We already have a "No" column for numbering.
+        self.detail_table.verticalHeader().setVisible(False)
+        self.detail_table.setCornerButtonEnabled(False)
+        self.detail_table.setShowGrid(True)
         
         # Set column widths
         header = self.detail_table.horizontalHeader()
@@ -332,6 +375,56 @@ class BatchSummaryDialog(QDialog):
         self._save_submitted_batches()
         logger.info(f"Marked batch {batch_name} as submitted to ERP")
     
+    def _extract_increment_number(self, batch_name: str) -> int:
+        """
+        Extract 4 digit autoincrement number dari akhir nama batch.
+        
+        Args:
+            batch_name: Nama batch (contoh: PRE.BD_2026-01-20_021_0101_0046)
+            
+        Returns:
+            Angka increment (contoh: 46) atau 0 jika tidak ditemukan
+        """
+        try:
+            # Ambil 4 digit terakhir dari nama batch
+            # Format: PRE.BD_2026-01-20_021_0101_0046
+            # Split by underscore dan ambil bagian terakhir
+            parts = batch_name.split('_')
+            if parts:
+                last_part = parts[-1]
+                # Extract angka dari bagian terakhir
+                if last_part.isdigit():
+                    return int(last_part)
+                # Jika tidak langsung angka, coba extract angka dari akhir string
+                match = re.search(r'(\d{4})$', batch_name)
+                if match:
+                    return int(match.group(1))
+        except Exception as e:
+            logger.warning(f"Error extracting increment number from batch '{batch_name}': {e}")
+        return 0
+    
+    def _sort_batches_by_increment(self, batches: List[str]) -> List[str]:
+        """
+        Sort batch list berdasarkan 4 digit autoincrement di akhir nama batch.
+        Angka terbesar berada di paling atas, angka terkecil di paling bawah (descending).
+        
+        Args:
+            batches: List of batch names
+            
+        Returns:
+            Sorted list of batch names (descending by increment number)
+        """
+        try:
+            # Sort berdasarkan increment number (descending: besar ke kecil)
+            # Angka terbesar di atas, angka terkecil di bawah
+            sorted_batches = sorted(batches, key=lambda x: self._extract_increment_number(x), reverse=True)
+            logger.info(f"Sorted {len(sorted_batches)} batches by increment number (descending)")
+            return sorted_batches
+        except Exception as e:
+            logger.error(f"Error sorting batches by increment: {e}")
+            # Fallback to original order if sorting fails
+            return batches
+    
     def load_batches(self):
         """Load available batches from Supabase or local JSON."""
         self.batch_combo.clear()
@@ -365,37 +458,28 @@ class BatchSummaryDialog(QDialog):
         
         # Filter out submitted batches
         available_batches = [batch for batch in all_batches if batch not in self.submitted_batches]
-        batches = sorted(available_batches, reverse=True)
+        # Sort berdasarkan 4 digit autoincrement di akhir nama batch (ascending: kecil ke besar)
+        batches = self._sort_batches_by_increment(available_batches)
         
         logger.info(f"Filtered out {len(all_batches) - len(available_batches)} submitted batches")
         
         # Additional fallback to production logs if both sources are empty
+        # HANYA ambil dari data logging hari ini, TIDAK generate dari batch_manager counter
         if not batches:
             try:
-                # Try to get batch from batch_manager state file
-                from ..batch_manager import get_batch_manager
-                batch_manager = get_batch_manager()
-                current_batch = batch_manager.get_current_batch()
-                
-                if current_batch:
-                    # Get all historical batches (1 to current)
-                    all_batches = [str(i) for i in range(batch_manager.current_counter, 0, -1)]
-                    # Filter out submitted batches
-                    batches = [batch for batch in all_batches if batch not in self.submitted_batches]
-                    logger.info(f"Loaded {len(batches)} batches from batch_manager (filtered from {len(all_batches)})")
-                else:
-                    # Fallback to production logs
-                    all_data = self.logging_table.load_today_data()
-                    # Filter out None, empty strings, and "unknown" values
-                    all_batches = list(set(
-                        d.get('batch') for d in all_data 
-                        if d.get('batch') and 
-                        d.get('batch') not in [None, '', 'unknown', 'Unknown']
-                    ))
-                    # Filter out submitted batches
-                    batches = [batch for batch in all_batches if batch not in self.submitted_batches]
-                    batches.sort(reverse=True, key=lambda x: int(x) if x.isdigit() else 0)
-                    logger.info(f"Loaded {len(batches)} batches from local JSON (filtered from {len(all_batches)})")
+                # HANYA ambil dari production logs hari ini
+                all_data = self.logging_table.load_today_data()
+                # Filter out None, empty strings, and "unknown" values
+                all_batches = list(set(
+                    d.get('batch') for d in all_data 
+                    if d.get('batch') and 
+                    d.get('batch') not in [None, '', 'unknown', 'Unknown']
+                ))
+                # Filter out submitted batches
+                batches = [batch for batch in all_batches if batch not in self.submitted_batches]
+                # Sort berdasarkan 4 digit autoincrement di akhir nama batch (ascending: kecil ke besar)
+                batches = self._sort_batches_by_increment(batches)
+                logger.info(f"Loaded {len(batches)} batches from today's production logs (filtered from {len(all_batches)})")
             except Exception as e:
                 logger.error(f"Error loading batches from local sources: {e}")
         
@@ -443,7 +527,9 @@ class BatchSummaryDialog(QDialog):
             self.detail_table.setItem(i, 0, QTableWidgetItem(str(i + 1)))
             self.detail_table.setItem(i, 1, QTableWidgetItem(log.get('product_code', '')))
             self.detail_table.setItem(i, 2, QTableWidgetItem(log.get('product_name', '')))
-            self.detail_table.setItem(i, 3, QTableWidgetItem(f"{log.get('product_length', 0):.2f}"))
+            # Gunakan length_print jika tersedia (dengan tolerance), fallback ke product_length
+            length_value = log.get('length_print') if log.get('length_print') is not None else log.get('product_length', 0)
+            self.detail_table.setItem(i, 3, QTableWidgetItem(f"{length_value:.2f}"))
             
             cycle_time = log.get('cycle_time')
             self.detail_table.setItem(i, 4, QTableWidgetItem(
@@ -474,6 +560,11 @@ class BatchSummaryDialog(QDialog):
     
     def submit_to_erp(self):
         """Submit current batch data to ERP system."""
+        # Always refresh config before submission (avoid stale BOM/ERP settings)
+        self.config = self._load_config_from_parent_or_disk()
+        self._refresh_external_clients()
+        self._update_erp_button_state()
+
         # Check if Safe Mode is active and ERP is not allowed
         if self.safe_mode and not self.safe_mode_settings.get("send_erp", False):
             QMessageBox.warning(

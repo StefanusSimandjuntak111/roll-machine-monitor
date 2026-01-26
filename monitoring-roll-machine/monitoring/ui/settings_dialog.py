@@ -32,8 +32,8 @@ class SettingsDialog(QDialog):
     def setup_ui(self):
         """Set up the settings dialog UI with tabs."""
         self.setWindowTitle("Settings")
-        self.setMinimumWidth(500)
-        self.setMinimumHeight(400)
+        self.setMinimumWidth(900)
+        self.setMinimumHeight(700)
         
         # Set window flags for proper dialog behavior
         self.setWindowFlags(
@@ -1164,13 +1164,27 @@ class SettingsDialog(QDialog):
         
         # BOM Search Input
         self.bom_search_input = QLineEdit()
-        self.bom_search_input.setPlaceholderText("Search BOM by product code...")
+        self.bom_search_input.setPlaceholderText("Type product code to search BOM (min 2 characters)...")
         self.bom_search_input.textChanged.connect(self.search_bom)
+        self.bom_search_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #2d2d2d;
+                color: #e0e0e0;
+                border: 1px solid #555555;
+                border-radius: 4px;
+                padding: 8px;
+                font-size: 13px;
+                min-height: 30px;
+            }
+            QLineEdit:focus {
+                border: 2px solid #0078d4;
+            }
+        """)
         bom_layout.addWidget(self.bom_search_input)
         
         # BOM Results Dropdown (initially hidden)
         self.bom_results_list = QListWidget()
-        self.bom_results_list.setMaximumHeight(150)
+        self.bom_results_list.setMaximumHeight(300)
         self.bom_results_list.setStyleSheet("""
             QListWidget {
                 background-color: #1e1e1e;
@@ -1263,20 +1277,18 @@ class SettingsDialog(QDialog):
 
         # From Warehouse Input
         self.erp_from_warehouse_input = QLineEdit()
-        self.erp_from_warehouse_input.setPlaceholderText("Source warehouse")
+        self.erp_from_warehouse_input.setPlaceholderText("Source warehouse (e.g., Prancis - MGI)")
         self.erp_from_warehouse_input.setText(self.current_settings.get("erp_from_warehouse", "Prancis - MGI"))
+        self.erp_from_warehouse_input.setToolTip("Warehouse where raw materials are taken from")
         from_warehouse_label = QLabel("From Warehouse:")
-        from_warehouse_label.setVisible(False)  # Hidden per request
-        self.erp_from_warehouse_input.setVisible(False)  # Hidden per request
         right_form.addRow(from_warehouse_label, self.erp_from_warehouse_input)
 
         # To Warehouse Input
         self.erp_to_warehouse_input = QLineEdit()
-        self.erp_to_warehouse_input.setPlaceholderText("Target warehouse")
+        self.erp_to_warehouse_input.setPlaceholderText("Target warehouse (e.g., Prancis - MGI)")
         self.erp_to_warehouse_input.setText(self.current_settings.get("erp_to_warehouse", "Prancis - MGI"))
+        self.erp_to_warehouse_input.setToolTip("Warehouse where finished goods are stored")
         to_warehouse_label = QLabel("To Warehouse:")
-        to_warehouse_label.setVisible(False)  # Hidden per request
-        self.erp_to_warehouse_input.setVisible(False)  # Hidden per request
         right_form.addRow(to_warehouse_label, self.erp_to_warehouse_input)
 
         # Packing List Field Name
@@ -1332,11 +1344,27 @@ class SettingsDialog(QDialog):
 
         # Main layout
         erp_layout.addWidget(erp_frame)
+        
+        # Load saved BOM data after UI is set up
+        self.load_saved_bom()
         erp_layout.addLayout(buttons_layout)
         erp_layout.addWidget(help_label)
         erp_layout.addStretch()
+        
+        # Wrap in scroll area for better usability with tall content
+        from PySide6.QtWidgets import QScrollArea
+        scroll_area = QScrollArea()
+        scroll_area.setWidget(erp_tab)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                background-color: transparent;
+                border: none;
+            }
+        """)
 
-        self.tab_widget.addTab(erp_tab, "📤 ERP Stock Entry")
+        self.tab_widget.addTab(scroll_area, "📤 ERP Stock Entry")
 
         # Update ERP status
         self.update_erp_status()
@@ -1850,15 +1878,18 @@ class SettingsDialog(QDialog):
 
         # Custom format input
         self.batch_format_input = QLineEdit()
-        self.batch_format_input.setPlaceholderText("YYYY-MM-DD_product-code_color-code")
-        current_batch_format = self.current_settings.get("batch_name_format", "YYYY-MM-DD_product-code_color-code")
-        self.batch_format_input.setText(current_batch_format)
+        self.batch_format_input.setPlaceholderText("Batch_{product_code}_{date}")
+        # Format batch dikunci sesuai requirement.
+        current_batch_format = self.current_settings.get("batch_name_format", "Batch_{product_code}_{date}")
+        self.batch_format_input.setText("Batch_{product_code}_{date}")
+        self.batch_format_input.setReadOnly(True)
+        self.batch_format_input.setToolTip("Format batch dikunci: Batch_{product_code}_YYYY-MM-DD_####")
         self.batch_format_input.textChanged.connect(self.update_batch_preview)
         format_layout.addWidget(QLabel("Custom Format (tanpa auto increment):"))
         format_layout.addWidget(self.batch_format_input)
 
         # Format description
-        format_desc = QLabel("Available variables: {date}, {product_code}, {color_code}, {time}, {length}, {operator}")
+        format_desc = QLabel("Format batch: Batch_{product_code}_YYYY-MM-DD_#### (product_code otomatis dari BOM/field Product Code).")
         format_desc.setStyleSheet("color: #888888; font-size: 11px; font-style: italic;")
         format_layout.addWidget(format_desc)
 
@@ -1873,7 +1904,7 @@ class SettingsDialog(QDialog):
         preview_group = QGroupBox("Batch Name Preview")
         preview_layout = QVBoxLayout(preview_group)
 
-        self.batch_preview = QLabel("2024-01-15_BD-1_001_0001")
+        self.batch_preview = QLabel("Batch_BD-1_2026-01-24_0001")
         self.batch_preview.setStyleSheet("""
             QLabel {
                 color: #00ff00;
@@ -2129,9 +2160,6 @@ class SettingsDialog(QDialog):
     def update_batch_preview(self):
         """Update the batch name preview based on current settings."""
         try:
-            # Get current custom format
-            custom_format = self.batch_format_input.text() or "YYYY-MM-DD_product-code_color-code"
-            
             # Get starting number
             start_number = self.batch_start_number_input.text() or "1"
             try:
@@ -2145,21 +2173,11 @@ class SettingsDialog(QDialog):
             
             sample_data = {
                 "date": now.strftime("%Y-%m-%d"),
-                "product_code": "BD-1",
-                "color_code": "001", 
-                "time": now.strftime("%H-%M"),
-                "length": "25.5",
-                "operator": "OP001"
+                "product_code": (self.current_settings.get("bom_product_code") or "BD-1"),
             }
-            
-            # Replace variables in custom format
-            preview = custom_format
-            for key, value in sample_data.items():
-                preview = preview.replace(f"{{{key}}}", value)
-            
-            # Add auto increment part
-            auto_increment = f"{start_num:04d}"  # Format as 0001, 0002, etc.
-            final_preview = f"{preview}_{auto_increment}"
+
+            auto_increment = f"{start_num:04d}"
+            final_preview = f"Batch_{sample_data['product_code']}_{sample_data['date']}_{auto_increment}"
             
             # Update preview
             self.batch_preview.setText(final_preview)
@@ -2181,38 +2199,15 @@ class SettingsDialog(QDialog):
             str: Generated batch name
         """
         try:
-            # Get current settings
-            custom_format = self.current_settings.get("batch_name_format", "YYYY-MM-DD_product-code_color-code")
             start_number = int(self.current_settings.get("batch_start_number", "1"))
             
             # Get current data
             from datetime import datetime
             now = datetime.now()
             
-            # Default data
-            data = {
-                "date": now.strftime("%Y-%m-%d"),
-                "product_code": product_code or "PRODUCT",
-                "color_code": color_code or "COLOR", 
-                "time": now.strftime("%H-%M"),
-                "length": "25.5",
-                "operator": "OP001"
-            }
-            
-            # Add custom data if provided
-            if custom_data:
-                data.update(custom_data)
-            
-            # Replace variables in custom format
-            batch_name = custom_format
-            for key, value in data.items():
-                batch_name = batch_name.replace(f"{{{key}}}", str(value))
-            
-            # Add auto increment part (4 digits with leading zeros)
             auto_increment = f"{start_number:04d}"
-            final_batch_name = f"{batch_name}_{auto_increment}"
-            
-            return final_batch_name
+            batch_date = now.strftime("%Y-%m-%d")
+            return f"Batch_{product_code or 'PRODUCT'}_{batch_date}_{auto_increment}"
             
         except Exception as e:
             logger.error(f"Error generating batch name: {e}")
@@ -2877,6 +2872,33 @@ class SettingsDialog(QDialog):
 
             # Get roll time minimum duration
             roll_time_minimum_seconds = self.roll_time_min_input.value()
+
+            # BOM data (from selection in ERP tab)
+            if hasattr(self, "selected_bom_data") and self.selected_bom_data:
+                bom_data = {
+                    "bom_name": self.selected_bom_data.get("bom_name", ""),
+                    "bom_item": self.selected_bom_data.get("bom_item", ""),
+                    "bom_product_code": self.selected_bom_data.get("bom_product_code", ""),
+                    "bom_color_code": self.selected_bom_data.get("bom_color_code", ""),
+                    "bom_product_name": self.selected_bom_data.get("bom_product_name", ""),
+                }
+                logger.info(
+                    "Including selected BOM data in Save Settings: "
+                    f"{bom_data.get('bom_product_code', '')}"
+                )
+            else:
+                # Keep existing BOM data if no new selection
+                bom_data = {
+                    "bom_name": self.current_settings.get("bom_name", ""),
+                    "bom_item": self.current_settings.get("bom_item", ""),
+                    "bom_product_code": self.current_settings.get("bom_product_code", ""),
+                    "bom_color_code": self.current_settings.get("bom_color_code", ""),
+                    "bom_product_name": self.current_settings.get("bom_product_name", ""),
+                }
+                logger.info(
+                    "No new BOM selected via UI, keeping existing BOM: "
+                    f"{bom_data.get('bom_product_code', '')}"
+                )
             
             settings = {
                 # Port settings
@@ -2913,12 +2935,14 @@ class SettingsDialog(QDialog):
                 "erp_from_warehouse": self.erp_from_warehouse_input.text().strip() if hasattr(self, 'erp_from_warehouse_input') else self.current_settings.get("erp_from_warehouse", "Prancis - MGI"),
                 "erp_to_warehouse": self.erp_to_warehouse_input.text().strip() if hasattr(self, 'erp_to_warehouse_input') else self.current_settings.get("erp_to_warehouse", "Prancis - MGI"),
                 "erp_packing_list_field": self.erp_packing_list_field_input.text().strip() if hasattr(self, 'erp_packing_list_field_input') else self.current_settings.get("erp_packing_list_field", "packing_list_items"),
-                "bom_name": self.erp_bom_name_input.text().strip() if hasattr(self, 'erp_bom_name_input') else self.current_settings.get("bom_name", ""),
 
                 # Batch name settings
                 "batch_name_format": self.batch_format_input.text() if hasattr(self, 'batch_format_input') else "YYYY-MM-DD_product-code_color-code",
                 "batch_start_number": self.batch_start_number_input.text() if hasattr(self, 'batch_start_number_input') else "1"
             }
+
+            # Ensure BOM fields always included on Save Settings
+            settings.update(bom_data)
             
             logger.info(f"Settings to save: {settings}")
             self.settings_updated.emit(settings)
@@ -3412,24 +3436,30 @@ class SettingsDialog(QDialog):
             
             # Add BOM data if selected (from BOM search section)
             if hasattr(self, 'selected_bom_data') and self.selected_bom_data:
-                erp_settings.update({
+                bom_data = {
                     "bom_name": self.selected_bom_data.get("bom_name", ""),
                     "bom_item": self.selected_bom_data.get("bom_item", ""),
                     "bom_product_code": self.selected_bom_data.get("bom_product_code", ""),
                     "bom_color_code": self.selected_bom_data.get("bom_color_code", ""),
                     "bom_product_name": self.selected_bom_data.get("bom_product_name", "")
-                })
-                logger.info(f"BOM data included in save: {self.selected_bom_data.get('bom_product_code')} (Color: {self.selected_bom_data.get('bom_color_code')})")
+                }
+                erp_settings.update(bom_data)
+                logger.info(f"BOM data included in save:")
+                logger.info(f"  - Product Code: {bom_data['bom_product_code']}")
+                logger.info(f"  - Product Name: {bom_data['bom_product_name']}")
+                logger.info(f"  - Color Code: {bom_data['bom_color_code']}")
+                logger.info(f"  - BOM Name: {bom_data['bom_name']}")
             else:
                 # Keep existing BOM settings if no new selection
-                erp_settings.update({
+                existing_bom = {
                     "bom_name": self.current_settings.get("bom_name", ""),
                     "bom_item": self.current_settings.get("bom_item", ""),
                     "bom_product_code": self.current_settings.get("bom_product_code", ""),
                     "bom_color_code": self.current_settings.get("bom_color_code", ""),
                     "bom_product_name": self.current_settings.get("bom_product_name", "")
-                })
-                logger.info("No new BOM selected, keeping existing BOM data")
+                }
+                erp_settings.update(existing_bom)
+                logger.info(f"No new BOM selected, keeping existing BOM: {existing_bom['bom_product_code']}")
             
             # Update current settings
             self.current_settings.update(erp_settings)
@@ -3450,22 +3480,54 @@ class SettingsDialog(QDialog):
             
             # Update status
             self.update_erp_status()
+            
+            # Log the final settings that will be emitted
+            logger.info("=" * 80)
+            logger.info("EMITTING SETTINGS UPDATE SIGNAL")
+            logger.info(f"BOM Product Code: {erp_settings.get('bom_product_code', 'NOT SET')}")
+            logger.info(f"BOM Product Name: {erp_settings.get('bom_product_name', 'NOT SET')}")
+            logger.info(f"BOM Color Code: {erp_settings.get('bom_color_code', 'NOT SET')}")
+            logger.info("=" * 80)
+            
+            # Emit settings_updated signal to notify main window
+            # This will trigger load_bom_product_code() in product form if BOM settings changed
+            self.settings_updated.emit(erp_settings)
+            logger.info("✓ Settings update signal emitted")
 
-            # Notify product form to update BOM button visibility
+            # Notify product form to update BOM button visibility and data
             try:
                 from PySide6.QtWidgets import QApplication
+                from PySide6.QtCore import QTimer
                 app = QApplication.instance()
                 for widget in app.topLevelWidgets():
                     # Check if this is the main window and has product_form
                     if hasattr(widget, 'product_form') and widget.product_form:
+                        logger.info("=" * 80)
+                        logger.info("UPDATING MAIN WINDOW WITH NEW BOM DATA")
+                        logger.info("=" * 80)
+                        
+                        # Update BOM button visibility
                         widget.product_form.update_bom_button_visibility()
-                        logger.info("Notified product form to update BOM button visibility")
+                        logger.info("✓ BOM button visibility updated")
+                        
+                        # Force reload BOM product code dengan delay untuk memastikan config sudah tersimpan
+                        def reload_bom():
+                            logger.info("Reloading BOM data from saved config...")
+                            widget.product_form.load_bom_product_code()
+                            logger.info("✓ BOM data reload complete")
+                            logger.info("=" * 80)
+                        
+                        # Delay 300ms untuk memastikan config sudah benar-benar tersimpan ke disk
+                        QTimer.singleShot(300, reload_bom)
+                        logger.info("⏱ Scheduled BOM reload in 300ms")
                         break
                     # Also check if the widget contains product_form in its children
                     elif hasattr(widget, 'findChild'):
                         product_form = widget.findChild(QWidget, 'product_form')
                         if product_form and hasattr(product_form, 'update_bom_button_visibility'):
                             product_form.update_bom_button_visibility()
+                            if hasattr(product_form, 'load_bom_product_code'):
+                                product_form.load_bom_product_code()
                             logger.info("Found and notified product form via findChild")
                             break
             except Exception as e:
@@ -3587,13 +3649,113 @@ class SettingsDialog(QDialog):
                 item_name = bom_data.get("item", "")
                 item_code = bom_data.get("item_code", "")
                 
-                # Update selected BOM display
-                self.selected_bom_label.setText(
-                    f"✓ Selected BOM:\n"
-                    f"Name: {bom_name}\n"
-                    f"Item: {item_name}\n"
-                    f"Product Code: {item_code}"
-                )
+                # Log complete BOM data
+                logger.info("=" * 80)
+                logger.info("📋 BOM SELECTION IN SETTINGS - Complete BOM Data")
+                logger.info("=" * 80)
+                logger.info(f"BOM Name: {bom_name}")
+                logger.info(f"Item Name: {item_name}")
+                logger.info(f"Item Code: {item_code}")
+                logger.info("=" * 80)
+                
+                # Fetch item details to get color code and product name
+                color_code = ""
+                product_name = ""
+                
+                # Step 1: Fetch Item details from ERP API /api/resource/Item/{product_code}
+                try:
+                    erp_url = self.erp_url_input.text().strip()
+                    api_key = self.erp_api_key_input.text().strip()
+                    api_secret = self.erp_api_secret_input.text().strip()
+                    
+                    if erp_url and api_key and api_secret:
+                        # Fetch Item details from ERP API
+                        item_api_url = f"{erp_url}/api/resource/Item/{item_code}"
+                        headers = {
+                            "Authorization": f"token {api_key}:{api_secret}",
+                            "Content-Type": "application/json",
+                            "Accept": "application/json"
+                        }
+                        
+                        logger.info(f"Fetching Item details from ERP API: {item_api_url}")
+                        item_response = requests.get(item_api_url, headers=headers, timeout=10)
+                        logger.info(f"ERP Item API response status: {item_response.status_code}")
+                        
+                        if item_response.status_code == 200:
+                            item_data = item_response.json().get('data', {})
+                            logger.info(f"ERP Item API response keys: {list(item_data.keys())}")
+                            
+                            # Get Product Name from item_name
+                            product_name = item_data.get('item_name', '')
+                            if product_name:
+                                logger.info(f"✓ Product Name from ERP: {product_name}")
+                            
+                            # Get Color Code from attribute_value or various possible fields
+                            if item_data.get('attribute_value'):
+                                color_code = item_data.get('attribute_value')
+                            
+                            # Try in attributes array/list
+                            if not color_code and item_data.get('attributes'):
+                                attributes = item_data.get('attributes', [])
+                                if isinstance(attributes, list):
+                                    for attr in attributes:
+                                        if isinstance(attr, dict) and attr.get('attribute_value'):
+                                            color_code = attr.get('attribute_value')
+                                            break
+                                elif isinstance(attributes, dict):
+                                    color_code = attributes.get('attribute_value', '')
+                            
+                            # Try custom field for color code
+                            if not color_code:
+                                color_code = (item_data.get('color_code') or 
+                                            item_data.get('color') or 
+                                            item_data.get('custom_color_code') or
+                                            item_data.get('custom_color') or "")
+                            
+                            if color_code:
+                                logger.info(f"✓ Color Code from ERP: {color_code}")
+                            else:
+                                logger.warning("⚠ Color Code not found in ERP Item API response")
+                        else:
+                            logger.warning(f"Failed to fetch Item from ERP: {item_response.status_code}")
+                except Exception as e:
+                    logger.warning(f"Could not fetch item details from ERP: {e}")
+                
+                # Step 2: If still no data, try product search API as fallback
+                if not product_name or not color_code:
+                    try:
+                        api_url = self.current_settings.get('api_url', '')
+                        if api_url:
+                            logger.info(f"Trying fallback product search API: {api_url}")
+                            response = requests.post(
+                                api_url,
+                                json={'product_code': item_code},
+                                timeout=5
+                            )
+                            if response.status_code == 200:
+                                result = response.json()
+                                if isinstance(result.get('message'), dict):
+                                    msg = result['message']
+                                    if msg.get('success') and msg.get('data', {}).get('products'):
+                                        products = msg['data']['products']
+                                        if products:
+                                            product = products[0]
+                                            if not color_code:
+                                                color_code = product.get('color_code', '')
+                                            if not product_name:
+                                                product_name = product.get('product_name', '')
+                                            logger.info(f"✓ Fallback API - Color: {color_code}, Name: {product_name}")
+                    except Exception as e:
+                        logger.warning(f"Fallback product search API failed: {e}")
+                
+                # Update selected BOM display with all data
+                display_text = f"✓ Selected BOM:\nName: {bom_name}\nItem: {item_name}\nProduct Code: {item_code}"
+                if product_name:
+                    display_text += f"\nProduct Name: {product_name}"
+                if color_code:
+                    display_text += f"\nColor: {color_code}"
+                
+                self.selected_bom_label.setText(display_text)
                 self.selected_bom_label.setStyleSheet("""
                     QLabel {
                         color: #4CAF50;
@@ -3606,33 +3768,6 @@ class SettingsDialog(QDialog):
                     }
                 """)
                 
-                # Fetch item details to get color code and other info
-                color_code = ""
-                product_name = ""
-                
-                try:
-                    # Try to get item details from product search API
-                    api_url = self.current_settings.get('api_url', '')
-                    if api_url:
-                        response = requests.post(
-                            api_url,
-                            json={'product_code': item_code},
-                            timeout=5
-                        )
-                        if response.status_code == 200:
-                            result = response.json()
-                            if isinstance(result.get('message'), dict):
-                                msg = result['message']
-                                if msg.get('success') and msg.get('data', {}).get('products'):
-                                    products = msg['data']['products']
-                                    if products:
-                                        product = products[0]
-                                        color_code = product.get('color_code', '')
-                                        product_name = product.get('product_name', '')
-                                        logger.info(f"Fetched color code: {color_code}, name: {product_name}")
-                except Exception as e:
-                    logger.warning(f"Could not fetch item details for color code: {e}")
-                
                 # Store selected BOM data
                 self.selected_bom_data = {
                     "bom_name": bom_name,
@@ -3642,11 +3777,18 @@ class SettingsDialog(QDialog):
                     "bom_product_name": product_name
                 }
                 
+                # Update self.current_settings with selected BOM data immediately
+                self.current_settings.update(self.selected_bom_data)
+                logger.info(f"✓ self.current_settings updated with selected BOM data: {self.selected_bom_data}")
+
                 # Clear search and hide results
                 self.bom_search_input.clear()
                 self.bom_results_list.setVisible(False)
                 
-                logger.info(f"BOM selected: {bom_name} - {item_code} (Color: {color_code})")
+                logger.info(f"✓ BOM selected and stored: {bom_name} - {item_code}")
+                logger.info(f"  Product Name: '{product_name}'")
+                logger.info(f"  Color Code: '{color_code}'")
+                logger.info("=" * 80)
                 
         except Exception as e:
             logger.error(f"Error selecting BOM: {e}") 

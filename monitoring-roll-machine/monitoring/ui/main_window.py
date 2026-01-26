@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
     QSizePolicy, QApplication, QMessageBox, QFrame,
     QStackedWidget, QDialog, QCheckBox, QDialogButtonBox
 )
-from PySide6.QtCore import Qt, QTimer, Slot, Signal
+from PySide6.QtCore import Qt, QTimer, Slot, Signal, QPoint
 from PySide6.QtGui import QIcon, QFont, QCloseEvent, QPalette, QColor
 import pyqtgraph as pg
 
@@ -386,6 +386,10 @@ class ModernMainWindow(QMainWindow):
         self.is_new_product_started = False  # Flag to track if new product started
         self.is_kiosk_mode = True  # Initialize kiosk mode flag
         self.safe_mode_active = False  # Safe Mode flag - when True, no database operations
+        self.current_length_print_value = None  # Store current length_print value (with tolerance) for logging
+        self.current_machine_length_raw = None  # Store raw machine length (in machine unit) for logging
+        self.current_user_unit = 'meter'  # Store current user selected unit for logging
+        self.current_machine_unit = 'meter'  # Store current machine unit for logging
 
         # Login session tracking
         self.user_logged_in = False  # Track if user is logged in
@@ -423,6 +427,7 @@ class ModernMainWindow(QMainWindow):
         self.monitoring_view = None
         self.product_form = None
         self.logging_table_widget = None
+        self.batch_summary_dialog = None
 
         # Initialize logging table with Safe Mode awareness
         from ..logging_table import LoggingTable
@@ -1141,7 +1146,13 @@ class ModernMainWindow(QMainWindow):
                 logger.warning("Batch recap blocked - Safe Mode active and save_batch not allowed")
                 return
 
-            dialog = BatchSummaryDialog(self, safe_mode=self.safe_mode_active, safe_mode_settings=getattr(self, 'safe_mode_settings', {}))
+            self.batch_summary_dialog = BatchSummaryDialog(
+                self,
+                safe_mode=self.safe_mode_active,
+                safe_mode_settings=getattr(self, "safe_mode_settings", {}),
+            )
+            dialog = self.batch_summary_dialog
+            dialog.finished.connect(lambda _: setattr(self, "batch_summary_dialog", None))
 
             # Force dialog to stay on top in kiosk mode
             dialog.setWindowFlags(
@@ -1524,12 +1535,31 @@ del "%~f0"
         # Emit settings updated signal for other components
         self.settings_updated.emit(settings)
 
+        # Refresh open dialogs that depend on config (e.g. batch recap)
+        try:
+            if getattr(self, "batch_summary_dialog", None) is not None:
+                self.batch_summary_dialog.apply_settings_update(settings)
+                logger.info("Batch recap dialog config refreshed after settings update")
+        except Exception as e:
+            logger.error(f"Error refreshing batch recap dialog config: {e}")
+
         # Refresh BOM product code in product form if BOM settings changed
         if any(key in settings for key in ['bom_name', 'bom_item', 'bom_product_code']):
             try:
                 if hasattr(self, 'product_form') and self.product_form:
-                    self.product_form.load_bom_product_code()
-                    logger.info("BOM product code refreshed in product form")
+                    # Apply immediately from payload to avoid config path/timing issues
+                    bom_product_code = settings.get("bom_product_code", "")
+                    if bom_product_code:
+                        self.product_form.apply_bom_to_form(
+                            bom_product_code=bom_product_code,
+                            bom_product_name=settings.get("bom_product_name", ""),
+                            bom_color_code=settings.get("bom_color_code", ""),
+                        )
+                        logger.info("Applied BOM to ProductForm directly from settings payload")
+
+                    # Delay slightly to ensure config is fully persisted before ProductForm reloads.
+                    QTimer.singleShot(400, self.product_form.load_bom_product_code)
+                    logger.info("Scheduled BOM reload in product form (400ms)")
             except Exception as e:
                 logger.error(f"Error refreshing BOM product code: {e}")
 
@@ -1692,6 +1722,11 @@ del "%~f0"
                     self.is_new_product_started = False  # Reset new product flag
                     # DON'T reset last_product_start_time - we need this for cycle time calculation
                     logger.info("Cycle time variables reset - ready for new product cycle")
+                    
+                    # Reset length display in monitoring view
+                    if hasattr(self, 'monitoring_view') and self.monitoring_view:
+                        self.monitoring_view.reset_length_display()
+                        logger.info("Length display reset in monitoring view")
                     
                     # Show success message
                     self.show_kiosk_dialog(
@@ -1997,23 +2032,60 @@ del "%~f0"
         # Calculate length print with tolerance before updating monitoring view
         fields = data.get('fields', {})
         current_count = fields.get('current_count', 0.0)
-        unit = fields.get('unit', 'meter')
+        machine_unit = fields.get('unit', 'meter')  # Unit from machine
         
-        # Calculate length print with tolerance
-        length_print_text = self.calculate_length_print(current_count, unit)
+        # Get user selected unit from product form
+        user_selected_unit = 'meter'  # Default
+        if hasattr(self, 'product_form') and self.product_form:
+            selected_unit_text = self.product_form.selected_unit
+            user_selected_unit = selected_unit_text.lower() if selected_unit_text else 'meter'
+        
+        # Convert current_count to user selected unit if different from machine unit
+        length_for_calculation = current_count
+        if machine_unit != user_selected_unit:
+            if machine_unit == 'yard' and user_selected_unit == 'meter':
+                # Convert from yard to meter
+                length_for_calculation = current_count * 0.9144
+            elif machine_unit == 'meter' and user_selected_unit == 'yard':
+                # Convert from meter to yard
+                length_for_calculation = current_count * 1.09361
+        
+        # Calculate length print with tolerance using user selected unit
+        length_print_text = self.calculate_length_print(length_for_calculation, user_selected_unit)
+        
+        # Store values for logging (to ensure consistency with "Length Print" card)
+        self.current_machine_length_raw = current_count  # Store raw machine length
+        self.current_user_unit = user_selected_unit  # Store user selected unit
+        self.current_machine_unit = machine_unit  # Store machine unit
+        
+        # Calculate the numeric value of length_print (with tolerance) for logging
+        try:
+            tolerance_percent = self.config.get("length_tolerance", 0.0)
+            decimal_points = self.config.get("decimal_points", 1)
+            rounding_method = self.config.get("rounding", "UP")
+            
+            if tolerance_percent > 0:
+                from ..config import calculate_print_length
+                self.current_length_print_value = calculate_print_length(length_for_calculation, tolerance_percent, decimal_points, rounding_method)
+            else:
+                self.current_length_print_value = length_for_calculation
+        except Exception as e:
+            logger.warning(f"Error calculating length_print_value: {e}")
+            self.current_length_print_value = length_for_calculation
         
         # Add length print to data for monitoring view
         data['length_print_text'] = length_print_text
-        data['length_print_value'] = current_count  # Keep original value for internal use
+        data['length_print_value'] = self.current_length_print_value  # Store calculated value with tolerance
+        data['user_selected_unit'] = user_selected_unit  # Add user selected unit to data
         
         self.monitoring_view.update_data(data)
         
         # Update target length input with length print value (with tolerance)
         if hasattr(self, 'product_form') and self.product_form:
-            unit = data.get('unit', 'meter')
+            machine_unit = fields.get('unit', 'meter')
             # Use length print text (with tolerance) instead of raw current length
             self.product_form.update_target_with_length_print(length_print_text)
-            self.product_form.update_unit_from_monitoring(unit)
+            self.product_form.update_unit_from_monitoring(machine_unit)
             # Set current machine length for print preview
             self.product_form.set_current_machine_length(current_count)
         
@@ -2036,10 +2108,14 @@ del "%~f0"
                 self.is_new_product_started = False  # Track if new product has started
                 self.last_product_start_time = None  # Track the last product start time
             
-            # Detect when length counter == 0.01 (start of new product cycle)
-            # This happens after user clicks Reset Counter and starts rolling new product
-            if length >= 0.005 and length <= 0.015 and not self.is_new_product_started:
-                # New product cycle started - length counter is at 0.01
+            # Detect start of a new product cycle.
+            #
+            # Sebelumnya memakai trigger "length ~ 0.01", namun di lapangan nilai bisa meloncat
+            # (misal langsung 0.20) sehingga event start terlewat dan cycle time jadi N/A.
+            # Untuk lebih robust, kita anggap cycle mulai saat length sudah bergerak di atas 0.1m
+            # setelah reset (is_new_product_started False).
+            if length > 0.1 and not self.is_new_product_started:
+                # New product cycle started
                 self.cycle_start_time = current_time
                 self.roll_start_time = current_time
                 self.is_new_product_started = True
@@ -2067,14 +2143,23 @@ del "%~f0"
                 
                 # Store this start time for cycle time calculation (after updating previous product)
                 self.last_product_start_time = current_time
+                self.product_start_times.append(current_time)  # Add to list for tracking
                 
-                logger.info(f"New product cycle started - length counter at {length:.3f}m")
+                logger.info(
+                    f"New product cycle started - length counter at {length:.3f}m, "
+                    f"total products: {len(self.product_start_times)}"
+                )
             
             # Detect roll length reset to 0 (cycle end - after Reset Counter)
             elif self.last_length > 0.1 and length <= 0.1:
                 # Roll length reset to 0 - cycle ended, prepare for next product
                 self.is_new_product_started = False
                 logger.info(f"Cycle ended - roll length reset to {length:.2f}m")
+                
+                # Reset length display in monitoring view when device resets
+                if hasattr(self, 'monitoring_view') and self.monitoring_view:
+                    self.monitoring_view.reset_length_display()
+                    logger.info("Length display reset in monitoring view (device reset detected)")
             
             # Update last length for next comparison
             self.last_length = length
@@ -2118,6 +2203,18 @@ del "%~f0"
             if hasattr(self, 'roll_start_time') and self.roll_start_time:
                 roll_time = (current_time - self.roll_start_time).total_seconds()
 
+            # Ensure we have a valid "product start time" for Close Cycle.
+            # In real devices, the "start trigger" can be missed; in that case, fallback to roll_start_time.
+            if not getattr(self, "last_product_start_time", None) and getattr(self, "roll_start_time", None):
+                self.last_product_start_time = self.roll_start_time
+                if hasattr(self, "product_start_times") and isinstance(self.product_start_times, list):
+                    if not self.product_start_times:
+                        self.product_start_times.append(self.last_product_start_time)
+                logger.info(
+                    "Initialized last_product_start_time from roll_start_time during print "
+                    f"({self.last_product_start_time.strftime('%H:%M:%S')})"
+                )
+
             # Check minimum roll time requirement BEFORE logging
             min_roll_time = self.config.get("roll_time_minimum_seconds", 60)
             if min_roll_time > 0 and roll_time < min_roll_time:
@@ -2140,13 +2237,105 @@ del "%~f0"
             # Cycle time will be calculated when next product starts (length = 0.01) or Close Cycle is pressed
             cycle_time = None
 
-            # Store start time for this product (when length == 0.01)
+            # Initialize product_start_times if not exists
             if not hasattr(self, 'product_start_times'):
                 self.product_start_times = []
+            
+            # NOTE: product_start_times will be appended in handle_production_logging when length = 0.01
+            # This ensures cycle time is calculated correctly between products
 
-            # Use cycle_start_time if available, otherwise use current time
-            start_time = self.cycle_start_time if self.cycle_start_time else current_time
-            self.product_start_times.append(start_time)
+            # Calculate length_print (with tolerance) for logging
+            # Use the stored values from handle_data to ensure consistency with "Length Print" card
+            length_print_value = None
+            try:
+                # First, try to use the stored length_print_value (most accurate, matches card display)
+                if hasattr(self, 'current_length_print_value') and self.current_length_print_value is not None:
+                    length_print_value = self.current_length_print_value
+                    logger.info(f"Using stored length_print_value: {length_print_value:.2f} for logging")
+                # Second, try to get from product_form's current_machine_length and recalculate
+                elif hasattr(self, 'product_form') and self.product_form:
+                    current_machine_length = getattr(self.product_form, '_current_machine_length', None)
+                    if current_machine_length is not None:
+                        # Get unit from product_form
+                        user_selected_unit = 'meter'
+                        if hasattr(self.product_form, 'selected_unit'):
+                            selected_unit_text = self.product_form.selected_unit
+                            user_selected_unit = selected_unit_text.lower() if selected_unit_text else 'meter'
+                        
+                        # Get machine unit (assume same as stored or default to meter)
+                        machine_unit = getattr(self, 'current_machine_unit', 'meter')
+                        
+                        # Convert to user selected unit if different
+                        length_for_calc = current_machine_length
+                        if machine_unit != user_selected_unit:
+                            if machine_unit == 'yard' and user_selected_unit == 'meter':
+                                length_for_calc = current_machine_length * 0.9144
+                            elif machine_unit == 'meter' and user_selected_unit == 'yard':
+                                length_for_calc = current_machine_length * 1.09361
+                        
+                        # Get tolerance settings from config
+                        tolerance_percent = self.config.get("length_tolerance", 0.0)
+                        decimal_points = self.config.get("decimal_points", 1)
+                        rounding_method = self.config.get("rounding", "UP")
+                        
+                        # Calculate length_print using the same logic as calculate_length_print
+                        if tolerance_percent > 0:
+                            from ..config import calculate_print_length
+                            length_print_value = calculate_print_length(length_for_calc, tolerance_percent, decimal_points, rounding_method)
+                        else:
+                            length_print_value = length_for_calc
+                            
+                        logger.info(f"Calculated length_print from product_form machine length: {length_print_value:.2f} {user_selected_unit} (from {current_machine_length:.2f} {machine_unit})")
+                else:
+                    # Fallback: recalculate from stored machine length and unit
+                    if hasattr(self, 'current_machine_length_raw') and self.current_machine_length_raw is not None:
+                        machine_length = self.current_machine_length_raw
+                        user_selected_unit = getattr(self, 'current_user_unit', 'meter')
+                        
+                        # Get machine unit from stored value
+                        machine_unit = getattr(self, 'current_machine_unit', 'meter')
+                        
+                        # Convert to user selected unit if different
+                        length_for_calc = machine_length
+                        if machine_unit != user_selected_unit:
+                            if machine_unit == 'yard' and user_selected_unit == 'meter':
+                                length_for_calc = machine_length * 0.9144
+                            elif machine_unit == 'meter' and user_selected_unit == 'yard':
+                                length_for_calc = machine_length * 1.09361
+                        
+                        # Get tolerance settings from config
+                        tolerance_percent = self.config.get("length_tolerance", 0.0)
+                        decimal_points = self.config.get("decimal_points", 1)
+                        rounding_method = self.config.get("rounding", "UP")
+                        
+                        # Calculate length_print using the same logic as calculate_length_print
+                        if tolerance_percent > 0:
+                            from ..config import calculate_print_length
+                            length_print_value = calculate_print_length(length_for_calc, tolerance_percent, decimal_points, rounding_method)
+                        else:
+                            length_print_value = length_for_calc
+                            
+                        logger.info(f"Calculated length_print from machine length: {length_print_value:.2f} {user_selected_unit} (from {machine_length:.2f} {machine_unit})")
+                    else:
+                        # Last fallback: use product_length and calculate
+                        tolerance_percent = self.config.get("length_tolerance", 0.0)
+                        decimal_points = self.config.get("decimal_points", 1)
+                        rounding_method = self.config.get("rounding", "UP")
+                        
+                        units_text = print_data.get('units', 'Meter')
+                        user_selected_unit = units_text.lower() if units_text else 'meter'
+                        length_for_calc = product_length
+                        
+                        if tolerance_percent > 0:
+                            from ..config import calculate_print_length
+                            length_print_value = calculate_print_length(length_for_calc, tolerance_percent, decimal_points, rounding_method)
+                        else:
+                            length_print_value = length_for_calc
+                            
+                        logger.warning(f"Using fallback calculation for length_print: {length_print_value:.2f} (from product_length: {product_length:.2f})")
+            except Exception as e:
+                logger.error(f"Error calculating length_print for logging: {e}, using product_length as fallback")
+                length_print_value = product_length
 
             # Log the production data with cycle_time = None initially
             if hasattr(self, 'logging_table_widget') and self.logging_table_widget:
@@ -2163,7 +2352,8 @@ del "%~f0"
                         cycle_time=cycle_time,  # Always None for Print
                         roll_time=roll_time,
                         settings_timestamp=settings_timestamp,  # When settings were last changed
-                        safe_mode=self.safe_mode_active  # Pass Safe Mode status
+                        safe_mode=self.safe_mode_active,  # Pass Safe Mode status
+                        length_print=length_print_value  # Length with tolerance
                     )
                     # Refresh table after print
                     if hasattr(self.logging_table_widget, 'manual_refresh'):
@@ -2190,6 +2380,57 @@ del "%~f0"
             if hasattr(self, 'roll_start_time') and self.roll_start_time:
                 roll_time = (current_time - self.roll_start_time).total_seconds()
             
+            # Calculate length_print for timeout logging - use stored value for consistency
+            length_print_value = None
+            try:
+                # First, try to use the stored length_print_value (most accurate, matches card display)
+                if hasattr(self, 'current_length_print_value') and self.current_length_print_value is not None:
+                    length_print_value = self.current_length_print_value
+                    logger.info(f"Using stored length_print_value for timeout: {length_print_value:.2f}")
+                else:
+                    # Fallback: recalculate from stored machine length and unit
+                    if hasattr(self, 'current_machine_length_raw') and self.current_machine_length_raw is not None:
+                        machine_length = self.current_machine_length_raw
+                        user_selected_unit = getattr(self, 'current_user_unit', 'meter')
+                        machine_unit = getattr(self, 'current_machine_unit', 'meter')
+                        
+                        # Convert to user selected unit if different
+                        length_for_calc = machine_length
+                        if machine_unit != user_selected_unit:
+                            if machine_unit == 'yard' and user_selected_unit == 'meter':
+                                length_for_calc = machine_length * 0.9144
+                            elif machine_unit == 'meter' and user_selected_unit == 'yard':
+                                length_for_calc = machine_length * 1.09361
+                        
+                        # Get tolerance settings from config
+                        tolerance_percent = self.config.get("length_tolerance", 0.0)
+                        decimal_points = self.config.get("decimal_points", 1)
+                        rounding_method = self.config.get("rounding", "UP")
+                        
+                        # Calculate length_print using the same logic as calculate_length_print
+                        if tolerance_percent > 0:
+                            from ..config import calculate_print_length
+                            length_print_value = calculate_print_length(length_for_calc, tolerance_percent, decimal_points, rounding_method)
+                        else:
+                            length_print_value = length_for_calc
+                    else:
+                        # Last fallback: use product_length from current_product_info
+                        product_length = self.current_product_info.get('product_length', 0.0) if hasattr(self, 'current_product_info') and self.current_product_info else 0.0
+                        tolerance_percent = self.config.get("length_tolerance", 0.0)
+                        decimal_points = self.config.get("decimal_points", 1)
+                        rounding_method = self.config.get("rounding", "UP")
+                        
+                        if tolerance_percent > 0:
+                            from ..config import calculate_print_length
+                            length_print_value = calculate_print_length(product_length, tolerance_percent, decimal_points, rounding_method)
+                        else:
+                            length_print_value = product_length
+                            
+                        logger.warning(f"Using fallback calculation for timeout length_print: {length_print_value:.2f}")
+            except Exception as e:
+                logger.error(f"Error calculating length_print for timeout logging: {e}")
+                length_print_value = self.current_product_info.get('product_length', 0.0) if hasattr(self, 'current_product_info') and self.current_product_info else 0.0
+
             # Log the final production data for this cycle
             if hasattr(self, 'logging_table_widget') and self.logging_table_widget and hasattr(self, 'current_product_info') and self.current_product_info:
                 self.logging_table_widget.add_production_entry(
@@ -2198,7 +2439,8 @@ del "%~f0"
                     product_length=self.current_product_info.get('product_length', 0.0),
                     batch=self.current_product_info.get('batch', 'Unknown'),
                     cycle_time=cycle_time,
-                    roll_time=roll_time
+                    roll_time=roll_time,
+                    length_print=length_print_value
                 )
                 # Refresh table after timeout
                 self.logging_table_widget.manual_refresh()
@@ -2240,6 +2482,13 @@ del "%~f0"
                 last_product_start = self.product_start_times[-1]
                 cycle_time = (current_time - last_product_start).total_seconds()
                 logger.info(f"Close cycle (fallback): Last product started at {last_product_start.strftime('%H:%M:%S')}, current time {current_time.strftime('%H:%M:%S')}")
+            elif hasattr(self, 'roll_start_time') and self.roll_start_time:
+                # Last fallback: use roll_start_time (can exist even if start trigger was missed)
+                cycle_time = (current_time - self.roll_start_time).total_seconds()
+                logger.info(
+                    f"Close cycle (roll_start_time fallback): roll started at "
+                    f"{self.roll_start_time.strftime('%H:%M:%S')}, current time {current_time.strftime('%H:%M:%S')}"
+                )
             
             # Update the last product's cycle time in the logging table
             if hasattr(self, 'logging_table_widget') and self.logging_table_widget:
@@ -2300,6 +2549,11 @@ del "%~f0"
                         logger.info("Reset counter command sent successfully after close cycle")
                 except Exception as e:
                     logger.error(f"Error sending reset command after close cycle: {e}")
+            
+            # Reset length display in monitoring view
+            if hasattr(self, 'monitoring_view') and self.monitoring_view:
+                self.monitoring_view.reset_length_display()
+                logger.info("Length display reset in monitoring view after close cycle")
             
         except Exception as e:
             logger.error(f"Error in close cycle: {e}")

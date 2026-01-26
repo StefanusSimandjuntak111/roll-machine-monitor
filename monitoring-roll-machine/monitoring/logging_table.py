@@ -120,18 +120,20 @@ class LoggingTable:
                           batch: str,
                           cycle_time: Optional[float],
                           roll_time: float,
-                          settings_timestamp: Optional[str] = None):
+                          settings_timestamp: Optional[str] = None,
+                          length_print: Optional[float] = None):
         """
         Log production data with all required fields.
         
         Args:
             product_name: Nama produk
             product_code: Kode produk
-            product_length: Panjang hasil rolling
+            product_length: Panjang hasil rolling (panjang asli dari mesin)
             batch: Nomor batch (auto-generated)
             cycle_time: Cycle time (dapat None)
             roll_time: Roll time
             settings_timestamp: Timestamp settings terakhir
+            length_print: Panjang dengan tolerance (Length Print) - opsional
         """
         data = {
             'product_name': product_name,
@@ -143,6 +145,11 @@ class LoggingTable:
             'timestamp': datetime.now().isoformat(),
             'settings_timestamp': settings_timestamp  # When settings were last changed before this entry
         }
+        
+        # Add length_print if provided
+        if length_print is not None:
+            data['length_print'] = length_print
+        
         self.save_data(data)
     
     def get_batch_summary(self, batch: str) -> Optional[Dict[str, Any]]:
@@ -173,7 +180,11 @@ class LoggingTable:
                 return None
             
             total_rolls = len(batch_data)
-            total_length = sum(d.get('product_length', 0) for d in batch_data)
+            # Gunakan length_print jika tersedia (dengan tolerance), fallback ke product_length
+            total_length = sum(
+                d.get('length_print') if d.get('length_print') is not None else d.get('product_length', 0)
+                for d in batch_data
+            )
             avg_cycle_time = sum(d.get('cycle_time', 0) or 0 for d in batch_data) / total_rolls if total_rolls > 0 else 0
             avg_roll_time = sum(d.get('roll_time', 0) for d in batch_data) / total_rolls if total_rolls > 0 else 0
             

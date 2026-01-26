@@ -35,7 +35,8 @@ DEFAULT_CONFIG = {
     "supabase_url": "",  # Supabase project URL
     "supabase_key": "",  # Supabase API key
     "enable_supabase": False,  # Enable/disable Supabase integration
-    "batch_name_format": "YYYY-MM-DD_product-code_color-code",  # Custom batch name format
+    # Batch format standar: Batch_{product_code}_YYYY-MM-DD_#### (auto increment 4 digit ditambahkan otomatis)
+    "batch_name_format": "Batch_{product_code}_{date}",
     "batch_start_number": "1"  # Starting number for batch counter
 }
 
@@ -58,6 +59,15 @@ def load_config() -> Dict[str, Any]:
                     # Update with saved values, keeping defaults for missing keys
                     config.update(saved_config)
                 print(f"Config loaded from: {config_file}")
+                
+                # Debug BOM data
+                if 'bom_product_code' in config and config['bom_product_code']:
+                    print(f"  BOM Product Code: {config['bom_product_code']}")
+                    print(f"  BOM Product Name: {config.get('bom_product_name', 'NOT SET')}")
+                    print(f"  BOM Color Code: {config.get('bom_color_code', 'NOT SET')}")
+                else:
+                    print("  No BOM data in config")
+                
                 return config
             except Exception as e:
                 print(f"Error loading config from {config_file}: {e}")
@@ -74,6 +84,15 @@ def save_config(config: Dict[str, Any]) -> None:
             k: v for k, v in config.items()
             if isinstance(v, (str, int, float, bool, list, dict))
         }
+        
+        # Debug: Print BOM data yang akan disimpan
+        if 'bom_product_code' in serializable_config and serializable_config['bom_product_code']:
+            print("=" * 80)
+            print("SAVING BOM DATA TO CONFIG:")
+            print(f"  BOM Product Code: {serializable_config['bom_product_code']}")
+            print(f"  BOM Product Name: {serializable_config.get('bom_product_name', 'NOT SET')}")
+            print(f"  BOM Color Code: {serializable_config.get('bom_color_code', 'NOT SET')}")
+            print("=" * 80)
         
         # Try to save to original location first
         try:
